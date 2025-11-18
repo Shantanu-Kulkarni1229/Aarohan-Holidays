@@ -1,5 +1,5 @@
 import Enquiry from '../models/enquiry.js';
-import { sendEnquiryEmails } from '../utils/emailService.js';
+import { sendEnquiryEmails } from '../utils/emailServiceResend.js';
 
 // Create new enquiry (Public endpoint)
 export const createEnquiry = async (req, res) => {

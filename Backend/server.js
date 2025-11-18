@@ -30,8 +30,7 @@ console.log(`🚀 Starting server in ${process.env.NODE_ENV} mode`);
 const allowedOrigins = [
   "https://4zb5qb7j-5173.inc1.devtunnels.ms", 
   "http://localhost:5173",
-  "https://aarohan-holidays.vercel.app", // Add your production frontend URL
-  "https://aarohan-holidays.netlify.app", // If using Netlify
+  // If using Netlify
   // Add any other frontend domains you're using
 ];
 
