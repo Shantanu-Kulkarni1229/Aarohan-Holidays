@@ -222,24 +222,16 @@ export default function Footer() {
             ref={el => sectionsRef.current[0] = el}
             className="lg:col-span-1"
           >
-            <div className="flex items-center space-x-3 mb-6">
-              <div 
-                className="w-12 h-12 rounded-xl flex items-center justify-center"
-                style={{ backgroundColor: colors.primary }}
-              >
-                <FiCompass className="text-white" size={24} />
-              </div>
-              <div>
-                <h3 
-                  className="text-2xl font-black"
-                  style={{ color: colors.textLight }}
-                >
-                  Aarohan Holidays
-                </h3>
-                <p className="text-sm mt-1" style={{ color: colors.secondary }}>
-                  Feel Free to Fly
-                </p>
-              </div>
+            <div className="mb-6">
+              <img 
+                src="/Logo/logo2.jpg" 
+                alt="Aarohan Holidays Logo" 
+                className="h-16 w-auto object-contain transition-all duration-300 hover:scale-105 hover:brightness-110"
+                style={{ maxWidth: '220px' }}
+              />
+              <p className="text-sm mt-3" style={{ color: colors.secondary }}>
+                Feel Free to Fly
+              </p>
             </div>
             
             <p 
@@ -529,7 +521,7 @@ export default function Footer() {
                   className="text-sm"
                   style={{ color: colors.textLight }}
                 >
-                  Crafted with
+                  Developed with
                 </span>
                 <FiHeart 
                   size={16}

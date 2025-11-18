@@ -101,7 +101,7 @@ const Hero = () => {
     },
     {
       image:
-        "hhttps://plus.unsplash.com/premium_photo-1661903221734-11c7d6fc11e7?ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&q=100&w=1980",
+        "https://plus.unsplash.com/premium_photo-1661903221734-11c7d6fc11e7?ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&q=100&w=1980",
       text: "Island Escapes",
       subtext:
         "Turquoise waters, coral gardens, and tranquil tides — lose yourself to island bliss.",
@@ -125,7 +125,7 @@ const Hero = () => {
     },
     {
       image:
-        "hhttps://images.unsplash.com/photo-1701430662597-ff86c1cba95a?ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&q=100&w=1980",
+        "https://images.unsplash.com/photo-1701430662597-ff86c1cba95a?ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&q=100&w=1980",
       text: "Heritage Horizons",
       subtext:
         "Explore ancient forts, palaces, and timeless architecture that echo India’s glory.",

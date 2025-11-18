@@ -1,36 +1,14 @@
-import Booking from "../models/booking.js";import Booking from "../models/booking.js";import OfflineBooking from "../models/offlineBooking.js";
-
+import OfflineBooking from "../models/offlineBooking.js";
 import Tour from "../models/tours.js";
+import Trek from "../models/treks.js";
+import CustomBooking from "../models/customBooking.js";
+import { sendCustomBookingEmail } from "../utils/emailServiceResend.js";
 
-import Trek from "../models/treks.js";import Tour from "../models/tours.js";import Tour from "../models/tours.js";
-
-import nodemailer from "nodemailer";
-
-import Trek from "../models/treks.js";import Trek from "../models/treks.js";
-
-// Configure Nodemailer
-
-const transporter = nodemailer.createTransporter({import nodemailer from "nodemailer";import CustomBooking from "../models/customBooking.js";
-
-  service: "gmail",
-
-  auth: {import { sendCustomBookingEmail } from "../utils/emailService.js";
-
-    user: process.env.EMAIL_USER,
-
-    pass: process.env.EMAIL_PASS,// Configure Nodemailer
-
-  },
-
-});const transporter = nodemailer.createTransporter({// Create offline booking
-
-
-
-// Offline Booking Confirmation Email Template  service: "gmail",export const createOfflineBooking = async (req, res) => {
-
-const sendOfflineBookingConfirmationEmail = async (bookingData, itemDetails) => {
-
-  try {  auth: {  try {
+// ====================================
+// 🟢 CREATE OFFLINE BOOKING (ADMIN ONLY)
+// ====================================
+export const createOfflineBooking = async (req, res) => {
+  try {
 
     const logoUrl = "https://res.cloudinary.com/dvlsgka21/image/upload/v1761288219/Aarohan_Holidays_2_tdpfor.jpg";
 

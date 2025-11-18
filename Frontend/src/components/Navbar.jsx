@@ -599,16 +599,16 @@ export default function Navbar() {
             ref={leftSectionRef}
             className="flex items-center space-x-4 min-w-0 flex-shrink-0"
           >
-            <div className="flex items-center space-x-3">
-              <div className="flex flex-col">
-                <h1 
-                  className="text-xl font-black tracking-tight whitespace-nowrap"
-                  style={{ color: colors.primary }}
-                >
-                  Aarohan Holidays
-                </h1>
-                <div className="h-1 w-full rounded-full bg-secondary " ></div>
-              </div>
+            <div 
+              className="cursor-pointer group"
+              onClick={() => navigate('/')}
+            >
+              <img 
+                src="/Logo/logo2.jpg" 
+                alt="Aarohan Holidays Logo" 
+                className="h-16 w-auto object-contain transition-all duration-300 group-hover:scale-105 group-hover:brightness-110"
+                style={{ maxWidth: '200px' }}
+              />
             </div>
           </div>
 

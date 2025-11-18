@@ -4,7 +4,7 @@
 import axios from 'axios';
 
 // const BASE_URL = 'https://4zb5qb7j-5000.inc1.devtunnels.ms/api';
-const BASE_URL = 'https://aarohan-holidays-1.onrender.com/api';
+const BASE_URL = 'https://aarohan-holidays.vercel.app/api';
 // const BASE_URL = 'http://localhost:5000/api';
 
 // Create axios instance
