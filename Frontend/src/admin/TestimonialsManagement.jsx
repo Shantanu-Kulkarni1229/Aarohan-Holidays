@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { showSuccess, showError } from '../utils/toast';
+import { API_BASE_URL } from '../api/api';
 
 const TestimonialsManagement = () => {
   const [testimonials, setTestimonials] = useState([]);
@@ -55,7 +56,7 @@ const TestimonialsManagement = () => {
       params.append('order', 'desc');
 
       const response = await axios.get(
-        `http://localhost:5000/api/admin/testimonials?${params.toString()}`
+        `${API_BASE_URL}/admin/testimonials?${params.toString()}`
       );
 
       if (response.data.success) {
@@ -75,7 +76,7 @@ const TestimonialsManagement = () => {
     try {
       setActionLoading(testimonialId);
       const response = await axios.patch(
-        `http://localhost:5000/api/admin/testimonials/${testimonialId}/status`,
+        `${API_BASE_URL}/admin/testimonials/${testimonialId}/status`,
         { 
           status: newStatus,
           ...(notes && { adminNotes: notes })
@@ -100,7 +101,7 @@ const TestimonialsManagement = () => {
     try {
       setActionLoading(`feature-${testimonialId}`);
       const response = await axios.patch(
-        `http://localhost:5000/api/admin/testimonials/${testimonialId}/status`,
+        `${API_BASE_URL}/admin/testimonials/${testimonialId}/status`,
         { isFeatured: !currentFeatured }
       );
 
@@ -122,7 +123,7 @@ const TestimonialsManagement = () => {
     try {
       setActionLoading(`verify-${testimonialId}`);
       const response = await axios.patch(
-        `http://localhost:5000/api/admin/testimonials/${testimonialId}/status`,
+        `${API_BASE_URL}/admin/testimonials/${testimonialId}/status`,
         { isVerified: !currentVerified }
       );
 
@@ -148,7 +149,7 @@ const TestimonialsManagement = () => {
     try {
       setActionLoading(`delete-${testimonialId}`);
       const response = await axios.delete(
-        `http://localhost:5000/api/admin/testimonials/${testimonialId}`
+        `${API_BASE_URL}/admin/testimonials/${testimonialId}`
       );
 
       if (response.data.success) {
@@ -236,7 +237,7 @@ const TestimonialsManagement = () => {
 
     try {
       const response = await axios.patch(
-        `http://localhost:5000/api/admin/testimonials/${selectedTestimonial._id}/status`,
+        `${API_BASE_URL}/admin/testimonials/${selectedTestimonial._id}/status`,
         { adminNotes }
       );
 

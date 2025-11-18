@@ -9,6 +9,7 @@ import axios from 'axios';
 import { showSuccess, showApiError } from '../utils/toast';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
+import { API_BASE_URL } from '../api/api';
 
 const BlogPage = () => {
   const { identifier } = useParams();
@@ -36,27 +37,6 @@ const BlogPage = () => {
     background: '#F8FAFC',
   };
 
-  useEffect(() => {
-    if (identifier) {
-      fetchBlogDetail(identifier);
-      setView('detail');
-    } else {
-      setView('list');
-    }
-  }, [identifier]);
-
-  useEffect(() => {
-    if (view === 'list') {
-      fetchBlogs();
-    }
-  }, [currentPage, selectedCategory, searchTerm]);
-
-  useEffect(() => {
-    fetchCategories();
-    fetchPopularTags();
-    fetchLatestBlogs();
-  }, []);
-
   const fetchBlogs = async () => {
     try {
       setLoading(true);
@@ -67,7 +47,7 @@ const BlogPage = () => {
         ...(searchTerm && { search: searchTerm })
       });
 
-      const response = await axios.get(`http://localhost:5000/api/blogs?${params}`);
+      const response = await axios.get(`${API_BASE_URL}/blogs?${params}`);
       if (response.data.success) {
         setBlogs(response.data.data);
         setTotalPages(response.data.pagination.totalPages);
@@ -82,7 +62,7 @@ const BlogPage = () => {
   const fetchBlogDetail = async (id) => {
     try {
       setLoading(true);
-      const response = await axios.get(`http://localhost:5000/api/blogs/${id}`);
+      const response = await axios.get(`${API_BASE_URL}/blogs/${id}`);
       if (response.data.success) {
         setSelectedBlog(response.data.data);
       }
@@ -96,7 +76,7 @@ const BlogPage = () => {
 
   const fetchCategories = async () => {
     try {
-      const response = await axios.get('http://localhost:5000/api/blogs/categories');
+      const response = await axios.get(`${API_BASE_URL}/blogs/categories`);
       if (response.data.success) {
         setCategories(response.data.data);
       }
@@ -107,7 +87,7 @@ const BlogPage = () => {
 
   const fetchPopularTags = async () => {
     try {
-      const response = await axios.get('http://localhost:5000/api/blogs/tags/popular?limit=15');
+      const response = await axios.get(`${API_BASE_URL}/blogs/tags/popular?limit=15`);
       if (response.data.success) {
         setPopularTags(response.data.data);
       }
@@ -118,7 +98,7 @@ const BlogPage = () => {
 
   const fetchLatestBlogs = async () => {
     try {
-      const response = await axios.get('http://localhost:5000/api/blogs/latest?limit=5');
+      const response = await axios.get(`${API_BASE_URL}/blogs/latest?limit=5`);
       if (response.data.success) {
         setLatestBlogs(response.data.data);
       }
@@ -127,12 +107,35 @@ const BlogPage = () => {
     }
   };
 
+  useEffect(() => {
+    if (identifier) {
+      fetchBlogDetail(identifier);
+      setView('detail');
+    } else {
+      setView('list');
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [identifier]);
+
+  useEffect(() => {
+    if (view === 'list') {
+      fetchBlogs();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [view, currentPage, selectedCategory, searchTerm]);
+
+  useEffect(() => {
+    fetchCategories();
+    fetchPopularTags();
+    fetchLatestBlogs();
+  }, []);
+
   const handleLike = async () => {
     if (!selectedBlog || liking) return;
     
     try {
       setLiking(true);
-      const response = await axios.post(`http://localhost:5000/api/blogs/${selectedBlog._id}/like`);
+      const response = await axios.post(`${API_BASE_URL}/blogs/${selectedBlog._id}/like`);
       if (response.data.success) {
         setSelectedBlog(prev => ({
           ...prev,

@@ -16,6 +16,7 @@ import { gsap } from 'gsap';
 import axios from 'axios';
 import { showSuccess, showApiError } from '../utils/toast';
 import Footer from '../components/Footer';
+import { API_BASE_URL } from '../api/api';
 
 export default function ContactSupport() {
   const headerRef = useRef(null);
@@ -83,7 +84,7 @@ export default function ContactSupport() {
 
     try {
       // Replace with your actual API endpoint
-      await axios.post('http://localhost:5000/api/contact', formData);
+      await axios.post(`${API_BASE_URL}/contact`, formData);
       
       setSubmitted(true);
       showSuccess('Your message has been sent successfully! We\'ll get back to you soon.');

@@ -3,6 +3,7 @@ import { FiX, FiSend, FiCheckCircle, FiAlertCircle, FiUser, FiMail, FiPhone, FiM
 import { gsap } from 'gsap';
 import axios from 'axios';
 import { showSuccess, showApiError } from '../utils/toast';
+import { API_BASE_URL } from '../api/api';
 
 export default function EnquiryForm({ isOpen, onClose }) {
   const [formData, setFormData] = useState({
@@ -155,7 +156,7 @@ export default function EnquiryForm({ isOpen, onClose }) {
         submitData.endDate = formData.endDate;
       }
 
-      const response = await axios.post('http://localhost:5000/api/enquiries', submitData);
+      const response = await axios.post(`${API_BASE_URL}/enquiries`, submitData);
 
       if (response.data.success) {
         setSubmitStatus('success');

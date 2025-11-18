@@ -8,6 +8,7 @@ import axios from 'axios';
 import { showApiError } from '../utils/toast';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
+import { API_BASE_URL } from '../api/api';
 
 const HistoryPage = () => {
   const { identifier } = useParams();
@@ -63,7 +64,7 @@ const HistoryPage = () => {
         ...(searchTerm && { search: searchTerm })
       });
 
-      const response = await axios.get(`http://localhost:5000/api/history?${params}`);
+      const response = await axios.get(`${API_BASE_URL}/history?${params}`);
       if (response.data.success) {
         setHistories(response.data.data);
         setTotalPages(response.data.pagination.totalPages);
@@ -78,7 +79,7 @@ const HistoryPage = () => {
   const fetchHistoryDetail = async (id) => {
     try {
       setLoading(true);
-      const response = await axios.get(`http://localhost:5000/api/history/${id}`);
+      const response = await axios.get(`${API_BASE_URL}/history/${id}`);
       if (response.data.success) {
         setSelectedHistory(response.data.data);
       }
@@ -92,7 +93,7 @@ const HistoryPage = () => {
 
   const fetchLocations = async () => {
     try {
-      const response = await axios.get('http://localhost:5000/api/history/locations');
+      const response = await axios.get(`${API_BASE_URL}/history/locations`);
       if (response.data.success) {
         setLocations(response.data.data);
       }

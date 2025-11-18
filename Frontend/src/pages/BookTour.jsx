@@ -7,6 +7,7 @@ import { gsap } from 'gsap';
 import { Calendar, MapPin, Clock, Users, Star, ChevronDown, ChevronUp, CheckCircle, XCircle, AlertCircle, Loader, Play, X } from 'lucide-react';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
+import { API_BASE_URL } from '../api/api';
 
 const BookTour = () => {
   const { id } = useParams();
@@ -158,6 +159,18 @@ const BookTour = () => {
       fetchAvailability();
     }
   }, [tour]);
+
+  // Auto-calculate numberOfMembers when individual counts change
+  useEffect(() => {
+    const total = formData.adults + formData.women + formData.children + formData.infants;
+    if (total !== formData.numberOfMembers) {
+      setFormData(prev => ({
+        ...prev,
+        numberOfMembers: total
+      }));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [formData.adults, formData.women, formData.children, formData.infants]);
 
   // GSAP Animations (unchanged)
   useEffect(() => {
@@ -546,7 +559,7 @@ const BookTour = () => {
       // Calculate final amount (with discount if coupon applied)
       const finalAmount = calculateFinalPrice();
 
-      const orderResponse = await axios.post('http://localhost:5000/api/payment/create-order', {
+      const orderResponse = await axios.post(`${API_BASE_URL}/payment/create-order`, {
         amount: finalAmount,
         bookingData: bookingData
       });
@@ -574,7 +587,7 @@ const BookTour = () => {
         },
         handler: async function (response) {
           try {
-            const verifyResponse = await axios.post('http://localhost:5000/api/payment/verify', {
+            const verifyResponse = await axios.post(`${API_BASE_URL}/payment/verify`, {
               razorpay_order_id: response.razorpay_order_id,
               razorpay_payment_id: response.razorpay_payment_id,
               razorpay_signature: response.razorpay_signature,
@@ -598,7 +611,7 @@ const BookTour = () => {
             showError(errorMsg);
             
             try {
-              await axios.post('http://localhost:5000/api/payment/failure', {
+              await axios.post(`${API_BASE_URL}/payment/failure`, {
                 orderId: order.id,
                 error: verifyErr.message,
                 bookingData: bookingData
@@ -624,7 +637,7 @@ const BookTour = () => {
         setError(`Payment failed: ${response.error.description}`);
         
         try {
-          await axios.post('http://localhost:5000/api/payment/failure', {
+          await axios.post(`${API_BASE_URL}/payment/failure`, {
             orderId: order.id,
             error: response.error.description,
             bookingData: bookingData
@@ -1528,11 +1541,12 @@ const BookTour = () => {
                           type="number"
                           name="numberOfMembers"
                           value={formData.numberOfMembers}
-                          onChange={handleInputChange}
+                          readOnly
                           min="1"
                           max={tour.maxGroupSize}
-                          className="w-full px-3 py-2 border-2 rounded-lg focus:ring-2 transition-all duration-300 hover:border-gray-400"
-                          style={{ borderColor: colors.border, focusBorderColor: colors.primary, focusRingColor: colors.primary }}
+                          className="w-full px-3 py-2 border-2 rounded-lg transition-all duration-300 bg-gray-50 cursor-not-allowed"
+                          style={{ borderColor: colors.border, backgroundColor: '#F9FAFB', color: colors.lightText }}
+                          title="Auto-calculated from Adults + Women + Children + Infants"
                         />
                       </div>
 

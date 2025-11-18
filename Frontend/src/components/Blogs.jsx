@@ -3,6 +3,7 @@ import { Calendar, User, ArrowRight, Clock, Tag } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { showApiError } from '../utils/toast';
+import { API_BASE_URL } from '../api/api';
 
 const Blogs = () => {
   const navigate = useNavigate();
@@ -50,7 +51,7 @@ const Blogs = () => {
   const fetchFeaturedBlogs = async () => {
     try {
       setLoading(true);
-      const response = await axios.get('http://localhost:5000/api/blogs/featured?limit=6');
+      const response = await axios.get(`${API_BASE_URL}/blogs/featured?limit=6`);
       if (response.data.success) {
         setBlogs(response.data.data);
       }

@@ -6,6 +6,7 @@ import { showSuccess, showError, showApiError } from '../utils/toast';
 import { gsap } from 'gsap';
 import { MapPin, Clock, ChevronDown, ChevronUp, CheckCircle, XCircle, AlertCircle, Loader, Play, X, Mountain, TrendingUp, Users } from 'lucide-react';
 import Navbar from '../components/Navbar';
+import { API_BASE_URL } from '../api/api';
 
 const BookTrek = () => {
   const { id } = useParams();
@@ -156,6 +157,18 @@ const BookTrek = () => {
       fetchAvailability();
     }
   }, [trek]);
+
+  // Auto-calculate numberOfMembers when individual counts change
+  useEffect(() => {
+    const total = formData.adults + formData.women + formData.children + formData.infants;
+    if (total !== formData.numberOfMembers) {
+      setFormData(prev => ({
+        ...prev,
+        numberOfMembers: total
+      }));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [formData.adults, formData.women, formData.children, formData.infants]);
 
   // GSAP Animations (unchanged)
   useEffect(() => {
@@ -467,7 +480,7 @@ const BookTrek = () => {
     setCouponError('');
 
     try {
-      const response = await axios.post('http://localhost:5000/api/coupons/validate', {
+      const response = await axios.post(`${API_BASE_URL}/coupons/validate`, {
         code: formData.couponCode,
         bookingType: 'trek',
         itemId: trek._id,
@@ -556,7 +569,7 @@ const BookTrek = () => {
         throw new Error('Failed to load Razorpay. Please check your internet connection.');
       }
 
-      const orderResponse = await axios.post('http://localhost:5000/api/payment/create-order', {
+      const orderResponse = await axios.post(`${API_BASE_URL}/payment/create-order`, {
         amount: calculateFinalPrice(),
         bookingData: bookingData
       });
@@ -584,7 +597,7 @@ const BookTrek = () => {
         },
         handler: async function (response) {
           try {
-            const verifyResponse = await axios.post('http://localhost:5000/api/payment/verify', {
+            const verifyResponse = await axios.post(`${API_BASE_URL}/payment/verify`, {
               razorpay_order_id: response.razorpay_order_id,
               razorpay_payment_id: response.razorpay_payment_id,
               razorpay_signature: response.razorpay_signature,
@@ -608,7 +621,7 @@ const BookTrek = () => {
             showError(errorMsg);
             
             try {
-              await axios.post('http://localhost:5000/api/payment/failure', {
+              await axios.post(`${API_BASE_URL}/payment/failure`, {
                 orderId: order.id,
                 error: verifyErr.message,
                 bookingData: bookingData
@@ -634,7 +647,7 @@ const BookTrek = () => {
         setError(`Payment failed: ${response.error.description}`);
         
         try {
-          await axios.post('http://localhost:5000/api/payment/failure', {
+          await axios.post(`${API_BASE_URL}/payment/failure`, {
             orderId: order.id,
             error: response.error.description,
             bookingData: bookingData
@@ -1467,11 +1480,12 @@ const BookTrek = () => {
                           type="number"
                           name="numberOfMembers"
                           value={formData.numberOfMembers}
-                          onChange={handleInputChange}
+                          readOnly
                           min="1"
                           max={trek.maxGroupSize}
-                          className="w-full px-3 py-2 border rounded-lg focus:ring-1 transition-all duration-300 text-sm hover:border-gray-400"
-                          style={{ borderColor: colors.border, focusBorderColor: colors.primary, focusRingColor: colors.primary }}
+                          className="w-full px-3 py-2 border rounded-lg focus:ring-1 transition-all duration-300 text-sm bg-gray-50 cursor-not-allowed"
+                          style={{ borderColor: colors.border, backgroundColor: '#F9FAFB', color: colors.lightText }}
+                          title="Auto-calculated from Adults + Women + Children + Infants"
                         />
                       </div>
 
