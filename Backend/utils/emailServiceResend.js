@@ -1,3 +1,5 @@
+
+
 import { Resend } from 'resend';
 import nodemailer from 'nodemailer';
 import { customBookingEmailTemplate } from './customBookingEmailTemplate.js';
