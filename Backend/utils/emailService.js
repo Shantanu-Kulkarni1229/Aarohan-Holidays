@@ -1,14 +1,28 @@
 import nodemailer from 'nodemailer';
 import { customBookingEmailTemplate } from './customBookingEmailTemplate.js';
 
-// Create transporter
+// Create transporter with Render-compatible settings
 const createTransporter = () => {
+  // Explicit SMTP settings for better compatibility with Render
   return nodemailer.createTransport({
-    service: 'gmail', // or your email service
+    host: 'smtp.gmail.com', // Use explicit host instead of service
+    port: 587, // Use port 587 (TLS) - Render blocks port 25
+    secure: false, // false for port 587, true for port 465
     auth: {
       user: process.env.EMAIL_USER, // Your email
-      pass: process.env.EMAIL_PASS // Your email password or app password
-    }
+      pass: process.env.EMAIL_PASS // Your Gmail app password (NOT regular password)
+    },
+    tls: {
+      rejectUnauthorized: true, // Enable TLS
+      minVersion: 'TLSv1.2'
+    },
+    connectionTimeout: 10000, // 10 seconds timeout
+    greetingTimeout: 10000, // 10 seconds timeout
+    socketTimeout: 20000, // 20 seconds socket timeout
+    pool: true, // Use connection pooling for better performance
+    maxConnections: 5, // Max 5 concurrent connections
+    maxMessages: 100, // Max messages per connection
+    rateLimit: 10, // Max 10 messages per second
   });
 };
 
@@ -239,47 +253,85 @@ const adminNotificationTemplate = (enquiry) => {
 
 // Send user confirmation email
 export const sendUserConfirmationEmail = async (enquiry) => {
-  try {
-    const transporter = createTransporter();
-    
-    const mailOptions = {
-      from: `"Aarohan Holidays" <${process.env.EMAIL_USER}>`,
-      to: enquiry.email,
-      subject: `✅ Enquiry Confirmation - ${enquiry.referenceNumber}`,
-      html: userConfirmationTemplate(enquiry)
-    };
-    
-    const info = await transporter.sendMail(mailOptions);
-    console.log('User confirmation email sent:', info.messageId);
-    return { success: true, messageId: info.messageId };
-  } catch (error) {
-    console.error('Error sending user confirmation email:', error);
-    return { success: false, error: error.message };
+  const maxRetries = 3;
+  let lastError;
+
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      console.log(`📧 Sending user confirmation email (attempt ${attempt}/${maxRetries})...`);
+      const transporter = createTransporter();
+      
+      // Verify transporter configuration
+      if (attempt === 1) {
+        await transporter.verify();
+        console.log('✅ Email transporter verified successfully');
+      }
+      
+      const mailOptions = {
+        from: `"Aarohan Holidays" <${process.env.EMAIL_USER}>`,
+        to: enquiry.email,
+        subject: `✅ Enquiry Confirmation - ${enquiry.referenceNumber}`,
+        html: userConfirmationTemplate(enquiry)
+      };
+      
+      const info = await transporter.sendMail(mailOptions);
+      console.log('✅ User confirmation email sent:', info.messageId);
+      return { success: true, messageId: info.messageId };
+    } catch (error) {
+      lastError = error;
+      console.error(`❌ Error sending user confirmation email (attempt ${attempt}/${maxRetries}):`, error.message);
+      
+      // Wait before retry (exponential backoff)
+      if (attempt < maxRetries) {
+        const waitTime = Math.pow(2, attempt) * 1000; // 2s, 4s, 8s
+        console.log(`⏳ Waiting ${waitTime/1000}s before retry...`);
+        await new Promise(resolve => setTimeout(resolve, waitTime));
+      }
+    }
   }
+  
+  console.error('❌ Failed to send user confirmation email after all retries');
+  return { success: false, error: lastError.message };
 };
 
 // Send admin notification email
 export const sendAdminNotificationEmail = async (enquiry) => {
-  try {
-    const transporter = createTransporter();
-    
-    const adminEmail = process.env.ADMIN_EMAIL || process.env.EMAIL_USER;
-    
-    const mailOptions = {
-      from: `"Ravi Tours System" <${process.env.EMAIL_USER}>`,
-      to: adminEmail,
-      subject: `🚨 New Enquiry - ${enquiry.serviceType} - ${enquiry.referenceNumber}`,
-      html: adminNotificationTemplate(enquiry),
-      priority: enquiry.priority === 'Urgent' || enquiry.priority === 'High' ? 'high' : 'normal'
-    };
-    
-    const info = await transporter.sendMail(mailOptions);
-    console.log('Admin notification email sent:', info.messageId);
-    return { success: true, messageId: info.messageId };
-  } catch (error) {
-    console.error('Error sending admin notification email:', error);
-    return { success: false, error: error.message };
+  const maxRetries = 3;
+  let lastError;
+
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      console.log(`📧 Sending admin notification email (attempt ${attempt}/${maxRetries})...`);
+      const transporter = createTransporter();
+      
+      const adminEmail = process.env.ADMIN_EMAIL || process.env.EMAIL_USER;
+      
+      const mailOptions = {
+        from: `"Ravi Tours System" <${process.env.EMAIL_USER}>`,
+        to: adminEmail,
+        subject: `🚨 New Enquiry - ${enquiry.serviceType} - ${enquiry.referenceNumber}`,
+        html: adminNotificationTemplate(enquiry),
+        priority: enquiry.priority === 'Urgent' || enquiry.priority === 'High' ? 'high' : 'normal'
+      };
+      
+      const info = await transporter.sendMail(mailOptions);
+      console.log('✅ Admin notification email sent:', info.messageId);
+      return { success: true, messageId: info.messageId };
+    } catch (error) {
+      lastError = error;
+      console.error(`❌ Error sending admin notification email (attempt ${attempt}/${maxRetries}):`, error.message);
+      
+      // Wait before retry (exponential backoff)
+      if (attempt < maxRetries) {
+        const waitTime = Math.pow(2, attempt) * 1000;
+        console.log(`⏳ Waiting ${waitTime/1000}s before retry...`);
+        await new Promise(resolve => setTimeout(resolve, waitTime));
+      }
+    }
   }
+  
+  console.error('❌ Failed to send admin notification email after all retries');
+  return { success: false, error: lastError.message };
 };
 
 // Send both emails
@@ -300,62 +352,83 @@ export const sendEnquiryEmails = async (enquiry) => {
 
 // Send Custom Booking Email with PDF Buffer (no file saved)
 export const sendCustomBookingEmail = async (booking, pdfBuffer) => {
-  try {
-    console.log("🔧 Creating email transporter...");
-    console.log("📧 EMAIL_USER:", process.env.EMAIL_USER);
-    console.log("🔑 EMAIL_PASS exists:", !!process.env.EMAIL_PASS);
-    
-    const transporter = createTransporter();
-    
-    console.log("📄 PDF Buffer size:", pdfBuffer ? pdfBuffer.length : 0, "bytes");
-    console.log("✉️ Sending to:", booking.customerEmail);
-    
-    // Prepare booking data for email template
-    const emailData = {
-      ...booking._doc || booking,
-      packageName: booking.packageId?.name || booking.packageId?.packageName || booking.packageName || 'Package',
-      packageType: booking.packageType,
-      description: booking.packageId?.description || booking.description || '',
-      highlights: booking.packageId?.highlights || booking.highlights || [],
-      itinerary: booking.packageId?.itinerary || booking.itinerary || [],
-      inclusions: booking.packageId?.inclusions || booking.inclusions || [],
-      exclusions: booking.packageId?.exclusions || booking.exclusions || [],
-      location: booking.packageId?.location || booking.location || '',
-      duration: booking.packageId?.duration || booking.duration || '',
-      thumbnail: booking.thumbnail || null, // ✅ Explicitly include thumbnail
-    };
-    
-    console.log('📧 Email - Thumbnail URL:', emailData.thumbnail || 'No thumbnail');
-    
-    const mailOptions = {
-      from: `"Aarohan Holidays" <${process.env.EMAIL_USER}>`,
-      to: booking.customerEmail,
-      subject: `🎉 Your Customized ${booking.packageType} Package - ${emailData.packageName}`,
-      html: customBookingEmailTemplate(emailData),
-    };
+  const maxRetries = 3;
+  let lastError;
 
-    // Add PDF attachment if provided
-    if (pdfBuffer) {
-      mailOptions.attachments = [
-        {
-          filename: `${emailData.packageName.replace(/\s+/g, '-')}-Quote.pdf`,
-          content: pdfBuffer,
-          contentType: 'application/pdf'
-        }
-      ];
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      console.log(`🔧 Sending custom booking email (attempt ${attempt}/${maxRetries})...`);
+      console.log("📧 EMAIL_USER:", process.env.EMAIL_USER);
+      console.log("🔑 EMAIL_PASS exists:", !!process.env.EMAIL_PASS);
+      
+      const transporter = createTransporter();
+      
+      // Verify transporter on first attempt
+      if (attempt === 1) {
+        await transporter.verify();
+        console.log('✅ Email transporter verified successfully');
+      }
+      
+      console.log("📄 PDF Buffer size:", pdfBuffer ? pdfBuffer.length : 0, "bytes");
+      console.log("✉️ Sending to:", booking.customerEmail);
+      
+      // Prepare booking data for email template
+      const emailData = {
+        ...booking._doc || booking,
+        packageName: booking.packageId?.name || booking.packageId?.packageName || booking.packageName || 'Package',
+        packageType: booking.packageType,
+        description: booking.packageId?.description || booking.description || '',
+        highlights: booking.packageId?.highlights || booking.highlights || [],
+        itinerary: booking.packageId?.itinerary || booking.itinerary || [],
+        inclusions: booking.packageId?.inclusions || booking.inclusions || [],
+        exclusions: booking.packageId?.exclusions || booking.exclusions || [],
+        location: booking.packageId?.location || booking.location || '',
+        duration: booking.packageId?.duration || booking.duration || '',
+        thumbnail: booking.thumbnail || null, // ✅ Explicitly include thumbnail
+      };
+      
+      console.log('📧 Email - Thumbnail URL:', emailData.thumbnail || 'No thumbnail');
+      
+      const mailOptions = {
+        from: `"Aarohan Holidays" <${process.env.EMAIL_USER}>`,
+        to: booking.customerEmail,
+        subject: `🎉 Your Customized ${booking.packageType} Package - ${emailData.packageName}`,
+        html: customBookingEmailTemplate(emailData),
+      };
+
+      // Add PDF attachment if provided
+      if (pdfBuffer) {
+        mailOptions.attachments = [
+          {
+            filename: `${emailData.packageName.replace(/\s+/g, '-')}-Quote.pdf`,
+            content: pdfBuffer,
+            contentType: 'application/pdf'
+          }
+        ];
+      }
+      
+      console.log("📮 Sending email...");
+      const info = await transporter.sendMail(mailOptions);
+      console.log('✅ Custom booking email sent successfully! Message ID:', info.messageId);
+      return true;
+    } catch (error) {
+      lastError = error;
+      console.error(`❌ Error sending custom booking email (attempt ${attempt}/${maxRetries}):`);
+      console.error('Error message:', error.message);
+      console.error('Error code:', error.code);
+      
+      // Wait before retry (exponential backoff)
+      if (attempt < maxRetries) {
+        const waitTime = Math.pow(2, attempt) * 1000;
+        console.log(`⏳ Waiting ${waitTime/1000}s before retry...`);
+        await new Promise(resolve => setTimeout(resolve, waitTime));
+      }
     }
-    
-    console.log("📮 Sending email...");
-    const info = await transporter.sendMail(mailOptions);
-    console.log('✅ Custom booking email sent successfully! Message ID:', info.messageId);
-    return true;
-  } catch (error) {
-    console.error('❌ Error sending custom booking email:');
-    console.error('Error message:', error.message);
-    console.error('Error code:', error.code);
-    console.error('Full error:', error);
-    return false;
   }
+  
+  console.error('❌ Failed to send custom booking email after all retries');
+  console.error('Final error:', lastError);
+  return false;
 };
 
 export default {
