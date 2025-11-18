@@ -30,7 +30,7 @@ console.log(`🚀 Starting server in ${process.env.NODE_ENV} mode`);
 const allowedOrigins = [
   "https://4zb5qb7j-5173.inc1.devtunnels.ms", 
   "http://localhost:5173",
-  "https://cornflowerblue-woodpecker-384541.hostingersite.com/",
+  "https://cornflowerblue-woodpecker-384541.hostingersite.com",
   // If using Netlify
   // Add any other frontend domains you're using
 ];
