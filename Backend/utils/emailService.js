@@ -36,12 +36,12 @@ const userConfirmationTemplate = (enquiry) => {
       <div class="container">
         <div class="header">
           <h1>🎉 Thank You for Your Enquiry!</h1>
-          <p>Ravi Tours & Travels</p>
+          <p>Aarohan Holidays</p>
         </div>
         <div class="content">
           <p>Dear <strong>${enquiry.name}</strong>,</p>
           
-          <p>Thank you for reaching out to <strong>Ravi Tours & Travels</strong>! We have received your enquiry and our team will get back to you shortly.</p>
+          <p>Thank you for reaching out to <strong>Aarohan Holidays</strong>! We have received your enquiry and our team will get back to you shortly.</p>
           
           <div class="info-box">
             <h3 style="color: #1a365d; margin-top: 0;">📋 Enquiry Details</h3>
@@ -100,7 +100,7 @@ const userConfirmationTemplate = (enquiry) => {
           </div>
         </div>
         <div class="footer">
-          <p><strong>Ravi Tours & Travels</strong></p>
+          <p><strong>Aarohan Holidays</strong></p>
           <p>📧 Email: info@ravitours.com | 📞 Phone: +91 8482813688</p>
           <p>🌐 Website: www.ravitours.com</p>
           <p style="font-size: 12px; color: #94a3b8;">This is an automated confirmation email. Please do not reply directly to this email.</p>
@@ -228,7 +228,7 @@ const adminNotificationTemplate = (enquiry) => {
           </p>
         </div>
         <div class="footer">
-          <p><strong>Ravi Tours & Travels - Admin Panel</strong></p>
+          <p><strong>Aarohan Holidays - Admin Panel</strong></p>
           <p>This is an automated notification from your enquiry management system.</p>
         </div>
       </div>
@@ -243,7 +243,7 @@ export const sendUserConfirmationEmail = async (enquiry) => {
     const transporter = createTransporter();
     
     const mailOptions = {
-      from: `"Ravi Tours & Travels" <${process.env.EMAIL_USER}>`,
+      from: `"Aarohan Holidays" <${process.env.EMAIL_USER}>`,
       to: enquiry.email,
       subject: `✅ Enquiry Confirmation - ${enquiry.referenceNumber}`,
       html: userConfirmationTemplate(enquiry)
