@@ -1,8 +1,17 @@
 # 📧 Email Configuration for Render Deployment
 
+## ⚠️ CRITICAL: Render SMTP Restrictions
+
+**IMPORTANT:** Render FREE tier blocks outbound SMTP connections on ports 25, 465, and 587 by default. This is why emails work locally but fail on Render.
+
+### Solutions:
+1. **Upgrade to Render Paid Plan** ($7/month) - Enables SMTP ports ✅ RECOMMENDED
+2. **Use Email API Service** (SendGrid, Mailgun, AWS SES, Resend) - Works on free tier
+3. **Use Render's SMTP Relay** (if available)
+
 ## Problem Fixed
 Your Render deployment was experiencing email connection timeouts because:
-1. Port 25 is blocked by most cloud providers (including Render)
+1. Ports 25, 465, 587 are blocked by Render on free tier
 2. No retry mechanism for failed connections
 3. No connection pooling for better performance
 
@@ -23,6 +32,28 @@ Your Render deployment was experiencing email connection timeouts because:
 ### 3. Connection Verification
 - Verifies SMTP connection before sending
 - Fails fast if credentials are invalid
+
+## 🚨 RENDER FREE TIER LIMITATION
+
+**Render's free tier blocks SMTP ports (25, 465, 587).** You have 3 options:
+
+### Option 1: Upgrade Render Plan (Easiest)
+- Upgrade to **Starter Plan ($7/month)**
+- This unlocks all SMTP ports
+- Then follow Gmail setup below
+- ✅ **Most reliable solution**
+
+### Option 2: Use SendGrid (Free Alternative)
+SendGrid offers 100 emails/day for free and works on Render free tier:
+
+1. Sign up at https://sendgrid.com/
+2. Get your API key
+3. Set environment variable: `SENDGRID_API_KEY=your_api_key`
+4. Set `EMAIL_PROVIDER=sendgrid` on Render
+5. I'll add SendGrid support to your code
+
+### Option 3: Test if Render Allows Gmail
+Sometimes it works, let's try:
 
 ## 🔧 Required Setup on Render
 

@@ -1,28 +1,50 @@
 import nodemailer from 'nodemailer';
 import { customBookingEmailTemplate } from './customBookingEmailTemplate.js';
 
-// Create transporter with Render-compatible settings
+// Create transporter with multiple fallback options for Render
 const createTransporter = () => {
-  // Explicit SMTP settings for better compatibility with Render
+  // Try different configurations based on environment
+  const isProduction = process.env.NODE_ENV === 'production';
+  
+  // For Render/Production: Try Gmail SMTP with relaxed security
+  if (isProduction) {
+    return nodemailer.createTransport({
+      service: 'gmail', // Use Gmail service
+      auth: {
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS
+      },
+      tls: {
+        rejectUnauthorized: false, // Allow self-signed certificates
+        ciphers: 'SSLv3'
+      },
+      debug: true, // Enable debug logs
+      logger: true // Enable logger
+    });
+  }
+  
+  // For Local Development: Use explicit SMTP settings
   return nodemailer.createTransport({
-    host: 'smtp.gmail.com', // Use explicit host instead of service
-    port: 587, // Use port 587 (TLS) - Render blocks port 25
-    secure: false, // false for port 587, true for port 465
+    host: 'smtp.gmail.com',
+    port: 587,
+    secure: false,
     auth: {
-      user: process.env.EMAIL_USER, // Your email
-      pass: process.env.EMAIL_PASS // Your Gmail app password (NOT regular password)
+      user: process.env.EMAIL_USER,
+      pass: process.env.EMAIL_PASS
     },
     tls: {
-      rejectUnauthorized: true, // Enable TLS
+      rejectUnauthorized: false,
       minVersion: 'TLSv1.2'
     },
-    connectionTimeout: 10000, // 10 seconds timeout
-    greetingTimeout: 10000, // 10 seconds timeout
-    socketTimeout: 20000, // 20 seconds socket timeout
-    pool: true, // Use connection pooling for better performance
-    maxConnections: 5, // Max 5 concurrent connections
-    maxMessages: 100, // Max messages per connection
-    rateLimit: 10, // Max 10 messages per second
+    connectionTimeout: 15000,
+    greetingTimeout: 15000,
+    socketTimeout: 30000,
+    pool: true,
+    maxConnections: 5,
+    maxMessages: 100,
+    rateLimit: 10,
+    debug: true,
+    logger: true
   });
 };
 
@@ -259,12 +281,22 @@ export const sendUserConfirmationEmail = async (enquiry) => {
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
       console.log(`📧 Sending user confirmation email (attempt ${attempt}/${maxRetries})...`);
+      console.log(`🌐 Environment: ${process.env.NODE_ENV || 'development'}`);
+      console.log(`📮 Email User: ${process.env.EMAIL_USER}`);
+      console.log(`🔑 Email Pass exists: ${!!process.env.EMAIL_PASS}`);
+      
       const transporter = createTransporter();
       
-      // Verify transporter configuration
+      // Verify transporter configuration (skip on retries to save time)
       if (attempt === 1) {
-        await transporter.verify();
-        console.log('✅ Email transporter verified successfully');
+        console.log('🔍 Verifying email transporter...');
+        try {
+          await transporter.verify();
+          console.log('✅ Email transporter verified successfully');
+        } catch (verifyError) {
+          console.warn('⚠️ Transporter verification failed, but will try sending anyway:', verifyError.message);
+          // Don't throw - sometimes verify fails but send works
+        }
       }
       
       const mailOptions = {

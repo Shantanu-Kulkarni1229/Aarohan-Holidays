@@ -18,6 +18,13 @@ dotenv.config();
 
 const app = express();
 
+// Set production environment if not set
+if (!process.env.NODE_ENV) {
+  process.env.NODE_ENV = process.env.PORT ? 'production' : 'development';
+}
+
+console.log(`🚀 Starting server in ${process.env.NODE_ENV} mode`);
+
 
 // Middlewares
 const allowedOrigins = [
