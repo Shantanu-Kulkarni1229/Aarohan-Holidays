@@ -4,15 +4,55 @@ import { Resend } from 'resend';
 import nodemailer from 'nodemailer';
 import { customBookingEmailTemplate } from './customBookingEmailTemplate.js';
 
-// Initialize Resend client
-const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
+// ============================================
+// 🌐 ENVIRONMENT & PROVIDER DETECTION
+// ============================================
+const isProduction = process.env.NODE_ENV === 'production';
+const hasResendConfig = !!(process.env.RESEND_API_KEY && process.env.RESEND_FROM_EMAIL);
 
-// Determine which email service to use
-const useResend = () => {
-  return process.env.EMAIL_PROVIDER === 'resend' && process.env.RESEND_API_KEY;
+// Initialize Resend client
+const resend = hasResendConfig ? new Resend(process.env.RESEND_API_KEY) : null;
+
+// Log provider selection on startup
+console.log('📧 Email Service Configuration:');
+console.log(`   Environment: ${isProduction ? 'PRODUCTION' : 'DEVELOPMENT'}`);
+console.log(`   Resend API Key: ${hasResendConfig ? '✅ Configured' : '❌ Missing'}`);
+console.log(`   Provider: ${isProduction ? 'Resend (FORCED)' : (hasResendConfig ? 'Resend' : 'Nodemailer SMTP')}`);
+
+/**
+ * Determine which email service to use
+ * PRODUCTION: Always use Resend (SMTP is blocked on Render)
+ * DEVELOPMENT: Use Resend if configured, otherwise fallback to Nodemailer
+ */
+const shouldUseResend = () => {
+  // In production, ALWAYS use Resend (Render blocks SMTP)
+  if (isProduction) {
+    if (!hasResendConfig) {
+      console.error('🚨 CRITICAL: Production mode but Resend is not configured!');
+      console.error('   Add RESEND_API_KEY and RESEND_FROM_EMAIL to environment variables');
+      throw new Error('Email service not configured for production. Resend API key required.');
+    }
+    return true;
+  }
+  
+  // In development, prefer Resend but allow Nodemailer fallback
+  return hasResendConfig;
 };
+
+/**
+ * Create Nodemailer transporter for local development ONLY
+ * This will NEVER be used in production
+ */
 const createNodemailerTransporter = () => {
-  return nodemailer.createTransport({
+  if (isProduction) {
+    console.error('🚨 ERROR: Attempted to use SMTP in production!');
+    console.error('   Render blocks SMTP ports (25, 465, 587)');
+    console.error('   Use Resend instead by setting RESEND_API_KEY');
+    throw new Error('SMTP not available in production environment');
+  }
+  
+  console.log('📧 Creating Nodemailer transporter for LOCAL DEVELOPMENT');
+  return nodemailer.createTransporter({
     host: "smtp-relay.brevo.com",
     port: 587,
     secure: false,
@@ -22,34 +62,6 @@ const createNodemailerTransporter = () => {
     },
   });
 };
-// Nodemailer transporter as fallback
-let transporter = null;
-
-if (useResend()) {
-  transporter = {
-    sendMail: async (options) => {
-      const result = await resend.emails.send({
-        from: options.from,
-        to: options.to,
-        subject: options.subject,
-        html: options.html,
-      });
-
-      return result;
-    },
-  };
-} else {
-  // Fallback to Nodemailer (local dev only)
-  transporter = nodemailer.createTransport({
-    host: "smtp-relay.brevo.com",
-    port: 587,
-    secure: false,
-    auth: {
-      user: process.env.EMAIL_USER,
-      pass: process.env.EMAIL_PASS
-    }
-  });
-}
 
 
 // User confirmation email template
@@ -255,62 +267,75 @@ const adminNotificationTemplate = (enquiry) => {
   `;
 };
 
-// Send user confirmation email using Resend
+// ============================================
+// 📧 RESEND EMAIL FUNCTIONS
+// ============================================
+
+/**
+ * Send user confirmation email using Resend API
+ * Used in production (Render) - no SMTP ports needed
+ */
 const sendUserConfirmationEmailResend = async (enquiry) => {
   try {
-    console.log('📧 Sending user confirmation email via Resend...');
+    console.log('📧 [Resend] Sending user confirmation email...');
     
     const { data, error } = await resend.emails.send({
-      from: process.env.RESEND_FROM_EMAIL || 'Aarohan Holidays <onboarding@resend.dev>',
+      from: process.env.RESEND_FROM_EMAIL,
       to: [enquiry.email],
       subject: `✅ Enquiry Confirmation - ${enquiry.referenceNumber}`,
       html: userConfirmationTemplate(enquiry),
     });
 
     if (error) {
-      console.error('❌ Resend error:', error);
+      console.error('❌ [Resend] Error:', error);
       return { success: false, error: error.message };
     }
 
-    console.log('✅ User confirmation email sent via Resend:', data.id);
+    console.log('✅ [Resend] User confirmation email sent:', data.id);
     return { success: true, messageId: data.id };
   } catch (error) {
-    console.error('❌ Error sending user confirmation email via Resend:', error);
+    console.error('❌ [Resend] Exception:', error.message);
     return { success: false, error: error.message };
   }
 };
 
-// Send admin notification email using Resend
+/**
+ * Send admin notification email using Resend API
+ * Used in production (Render) - no SMTP ports needed
+ */
 const sendAdminNotificationEmailResend = async (enquiry) => {
   try {
-    console.log('📧 Sending admin notification email via Resend...');
+    console.log('📧 [Resend] Sending admin notification email...');
     
     const adminEmail = process.env.ADMIN_EMAIL || process.env.EMAIL_USER;
     
     const { data, error } = await resend.emails.send({
-      from: process.env.RESEND_FROM_EMAIL || 'Aarohan Holidays <onboarding@resend.dev>',
+      from: process.env.RESEND_FROM_EMAIL,
       to: [adminEmail],
       subject: `🚨 New Enquiry - ${enquiry.serviceType} - ${enquiry.referenceNumber}`,
       html: adminNotificationTemplate(enquiry),
     });
 
     if (error) {
-      console.error('❌ Resend error:', error);
+      console.error('❌ [Resend] Error:', error);
       return { success: false, error: error.message };
     }
 
-    console.log('✅ Admin notification email sent via Resend:', data.id);
+    console.log('✅ [Resend] Admin notification email sent:', data.id);
     return { success: true, messageId: data.id };
   } catch (error) {
-    console.error('❌ Error sending admin notification email via Resend:', error);
+    console.error('❌ [Resend] Exception:', error.message);
     return { success: false, error: error.message };
   }
 };
 
-// Send custom booking email using Resend
+/**
+ * Send custom booking email with PDF attachment using Resend API
+ * Used in production (Render) - no SMTP ports needed
+ */
 const sendCustomBookingEmailResend = async (booking, pdfBuffer) => {
   try {
-    console.log('📧 Sending custom booking email via Resend...');
+    console.log('📧 [Resend] Sending custom booking email...');
     
     const emailData = {
       ...booking._doc || booking,
@@ -327,7 +352,7 @@ const sendCustomBookingEmailResend = async (booking, pdfBuffer) => {
     };
 
     const emailPayload = {
-      from: process.env.RESEND_FROM_EMAIL || 'Aarohan Holidays <onboarding@resend.dev>',
+      from: process.env.RESEND_FROM_EMAIL,
       to: [booking.customerEmail],
       subject: `🎉 Your Customized ${booking.packageType} Package - ${emailData.packageName}`,
       html: customBookingEmailTemplate(emailData),
@@ -346,57 +371,180 @@ const sendCustomBookingEmailResend = async (booking, pdfBuffer) => {
     const { data, error } = await resend.emails.send(emailPayload);
 
     if (error) {
-      console.error('❌ Resend error:', error);
+      console.error('❌ [Resend] Error:', error);
       return false;
     }
 
-    console.log('✅ Custom booking email sent via Resend:', data.id);
+    console.log('✅ [Resend] Custom booking email sent:', data.id);
     return true;
   } catch (error) {
-    console.error('❌ Error sending custom booking email via Resend:', error);
+    console.error('❌ [Resend] Exception:', error.message);
     return false;
   }
 };
 
-// Fallback to nodemailer if Resend fails
-const sendWithNodemailer = async (mailOptions) => {
+// ============================================
+// 📧 NODEMAILER FALLBACK (LOCAL DEV ONLY)
+// ============================================
+
+/**
+ * Send user confirmation email using Nodemailer SMTP
+ * ONLY used in local development - NEVER in production
+ */
+const sendUserConfirmationEmailNodemailer = async (enquiry) => {
+  if (isProduction) {
+    throw new Error('SMTP not available in production. Use Resend.');
+  }
+  
+  console.log('📧 [Nodemailer] Sending user confirmation email (LOCAL DEV)...');
   const transporter = createNodemailerTransporter();
+  
+  const mailOptions = {
+    from: `"Aarohan Holidays" <${process.env.EMAIL_USER}>`,
+    to: enquiry.email,
+    subject: `✅ Enquiry Confirmation - ${enquiry.referenceNumber}`,
+    html: userConfirmationTemplate(enquiry)
+  };
+  
   const info = await transporter.sendMail(mailOptions);
-  return info;
+  console.log('✅ [Nodemailer] User confirmation email sent:', info.messageId);
+  return { success: true, messageId: info.messageId };
 };
 
-// Main export functions with automatic provider selection
+/**
+ * Send admin notification email using Nodemailer SMTP
+ * ONLY used in local development - NEVER in production
+ */
+const sendAdminNotificationEmailNodemailer = async (enquiry) => {
+  if (isProduction) {
+    throw new Error('SMTP not available in production. Use Resend.');
+  }
+  
+  console.log('📧 [Nodemailer] Sending admin notification email (LOCAL DEV)...');
+  const transporter = createNodemailerTransporter();
+  const adminEmail = process.env.ADMIN_EMAIL || process.env.EMAIL_USER;
+  
+  const mailOptions = {
+    from: `"Aarohan Holidays" <${process.env.EMAIL_USER}>`,
+    to: adminEmail,
+    subject: `🚨 New Enquiry - ${enquiry.serviceType} - ${enquiry.referenceNumber}`,
+    html: adminNotificationTemplate(enquiry)
+  };
+  
+  const info = await transporter.sendMail(mailOptions);
+  console.log('✅ [Nodemailer] Admin notification email sent:', info.messageId);
+  return { success: true, messageId: info.messageId };
+};
+
+/**
+ * Send custom booking email using Nodemailer SMTP
+ * ONLY used in local development - NEVER in production
+ */
+const sendCustomBookingEmailNodemailer = async (booking, pdfBuffer) => {
+  if (isProduction) {
+    throw new Error('SMTP not available in production. Use Resend.');
+  }
+  
+  console.log('📧 [Nodemailer] Sending custom booking email (LOCAL DEV)...');
+  const transporter = createNodemailerTransporter();
+  
+  const emailData = {
+    ...booking._doc || booking,
+    packageName: booking.packageId?.name || booking.packageId?.packageName || booking.packageName || 'Package',
+    packageType: booking.packageType,
+    description: booking.packageId?.description || booking.description || '',
+    highlights: booking.packageId?.highlights || booking.highlights || [],
+    itinerary: booking.packageId?.itinerary || booking.itinerary || [],
+    inclusions: booking.packageId?.inclusions || booking.inclusions || [],
+    exclusions: booking.packageId?.exclusions || booking.exclusions || [],
+    location: booking.packageId?.location || booking.location || '',
+    duration: booking.packageId?.duration || booking.duration || '',
+    thumbnail: booking.thumbnail || null,
+  };
+  
+  const mailOptions = {
+    from: `"Aarohan Holidays" <${process.env.EMAIL_USER}>`,
+    to: booking.customerEmail,
+    subject: `🎉 Your Customized ${booking.packageType} Package - ${emailData.packageName}`,
+    html: customBookingEmailTemplate(emailData),
+  };
+
+  if (pdfBuffer) {
+    mailOptions.attachments = [
+      {
+        filename: `${emailData.packageName.replace(/\s+/g, '-')}-Quote.pdf`,
+        content: pdfBuffer,
+        contentType: 'application/pdf'
+      }
+    ];
+  }
+  
+  const info = await transporter.sendMail(mailOptions);
+  console.log('✅ [Nodemailer] Custom booking email sent:', info.messageId);
+  return true;
+};
+
+// ============================================
+// 🎯 MAIN EXPORT FUNCTIONS - SMART PROVIDER SELECTION
+// ============================================
+
+/**
+ * Send user confirmation email
+ * PRODUCTION: Always uses Resend
+ * DEVELOPMENT: Uses Resend if configured, otherwise Nodemailer
+ */
 export const sendUserConfirmationEmail = async (enquiry) => {
-  if (useResend()) {
-    console.log('🎯 Using Resend for user confirmation email');
-    return await sendUserConfirmationEmailResend(enquiry);
-  } else {
-    console.log('🎯 Using Nodemailer for user confirmation email');
-    // Import and use original nodemailer function
-    const { sendUserConfirmationEmail: nodemailerSend } = await import('./emailService.js');
-    return await nodemailerSend(enquiry);
+  try {
+    if (shouldUseResend()) {
+      console.log('🎯 [PRODUCTION] Using Resend for user confirmation email');
+      return await sendUserConfirmationEmailResend(enquiry);
+    } else {
+      console.log('🎯 [DEVELOPMENT] Using Nodemailer for user confirmation email');
+      return await sendUserConfirmationEmailNodemailer(enquiry);
+    }
+  } catch (error) {
+    console.error('❌ Failed to send user confirmation email:', error.message);
+    return { success: false, error: error.message };
   }
 };
 
+/**
+ * Send admin notification email
+ * PRODUCTION: Always uses Resend
+ * DEVELOPMENT: Uses Resend if configured, otherwise Nodemailer
+ */
 export const sendAdminNotificationEmail = async (enquiry) => {
-  if (useResend()) {
-    console.log('🎯 Using Resend for admin notification email');
-    return await sendAdminNotificationEmailResend(enquiry);
-  } else {
-    console.log('🎯 Using Nodemailer for admin notification email');
-    const { sendAdminNotificationEmail: nodemailerSend } = await import('./emailService.js');
-    return await nodemailerSend(enquiry);
+  try {
+    if (shouldUseResend()) {
+      console.log('🎯 [PRODUCTION] Using Resend for admin notification email');
+      return await sendAdminNotificationEmailResend(enquiry);
+    } else {
+      console.log('🎯 [DEVELOPMENT] Using Nodemailer for admin notification email');
+      return await sendAdminNotificationEmailNodemailer(enquiry);
+    }
+  } catch (error) {
+    console.error('❌ Failed to send admin notification email:', error.message);
+    return { success: false, error: error.message };
   }
 };
 
+/**
+ * Send custom booking email with PDF attachment
+ * PRODUCTION: Always uses Resend
+ * DEVELOPMENT: Uses Resend if configured, otherwise Nodemailer
+ */
 export const sendCustomBookingEmail = async (booking, pdfBuffer) => {
-  if (useResend()) {
-    console.log('🎯 Using Resend for custom booking email');
-    return await sendCustomBookingEmailResend(booking, pdfBuffer);
-  } else {
-    console.log('🎯 Using Nodemailer for custom booking email');
-    const { sendCustomBookingEmail: nodemailerSend } = await import('./emailService.js');
-    return await nodemailerSend(booking, pdfBuffer);
+  try {
+    if (shouldUseResend()) {
+      console.log('🎯 [PRODUCTION] Using Resend for custom booking email');
+      return await sendCustomBookingEmailResend(booking, pdfBuffer);
+    } else {
+      console.log('🎯 [DEVELOPMENT] Using Nodemailer for custom booking email');
+      return await sendCustomBookingEmailNodemailer(booking, pdfBuffer);
+    }
+  } catch (error) {
+    console.error('❌ Failed to send custom booking email:', error.message);
+    return false;
   }
 };
 
