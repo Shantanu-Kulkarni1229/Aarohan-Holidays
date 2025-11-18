@@ -1,5 +1,5 @@
 import CustomBooking from "../models/customBooking.js";
-import { sendCustomBookingEmail } from "../utils/emailService.js";
+import { sendCustomBookingEmail } from "../utils/emailServiceResend.js";
 import { generateCustomBookingPDF } from "../utils/customBookingPDFGenerator.js";
 import { uploadThumbnail } from "../utils/cloudinaryUtils.js";
 import Razorpay from "razorpay";
