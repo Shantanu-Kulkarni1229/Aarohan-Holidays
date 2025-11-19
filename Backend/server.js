@@ -1,6 +1,7 @@
 import express from "express";
 import dotenv from "dotenv";
 import cors from "cors";
+import mongoose from "mongoose";
 import connectDB from "./config/db.js";
 import adminRoutes from "./routes/adminRoutes.js";
 import userRoutes from "./routes/userRoutes.js";
@@ -76,33 +77,24 @@ app.use(
 
 app.use(express.json());
 
-// Connect to MongoDB with error handling for serverless
-let dbConnected = false;
-connectDB()
-  .then(() => {
-    dbConnected = true;
-    console.log("✅ Database connection established");
-  })
-  .catch((error) => {
-    console.error("❌ Initial database connection failed:", error.message);
-    console.log("⚠️ Server will attempt to reconnect on requests");
-  });
-
 // Middleware to ensure DB connection before handling requests
 app.use(async (req, res, next) => {
-  if (!dbConnected) {
-    try {
+  try {
+    // Check if mongoose is connected
+    if (mongoose.connection.readyState !== 1) {
+      console.log("⚠️ DB not connected, attempting connection...");
       await connectDB();
-      dbConnected = true;
-    } catch (error) {
-      console.error("❌ DB connection failed on request:", error.message);
-      return res.status(503).json({ 
-        error: "Database connection unavailable",
-        message: "Please try again in a moment"
-      });
+      console.log("✅ DB connection established on request");
     }
+    next();
+  } catch (error) {
+    console.error("❌ DB connection failed on request:", error.message);
+    return res.status(503).json({ 
+      success: false,
+      error: "Database connection unavailable",
+      message: "Please try again in a moment"
+    });
   }
-  next();
 });
 
 // Routes

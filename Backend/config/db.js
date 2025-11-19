@@ -14,10 +14,12 @@ const connectDB = async () => {
       maxPoolSize: 10, // Maximum number of connections in the pool
       minPoolSize: 2, // Minimum number of connections
       socketTimeoutMS: 45000, // Close sockets after 45 seconds of inactivity
-      serverSelectionTimeoutMS: 10000, // Timeout for selecting a server
+      serverSelectionTimeoutMS: 30000, // Increased timeout for selecting a server
+      connectTimeoutMS: 30000, // Increased connection timeout
       family: 4, // Use IPv4, skip trying IPv6
       retryWrites: true,
       w: "majority",
+      bufferCommands: false, // Disable buffering for immediate errors
     };
 
     const conn = await mongoose.connect(process.env.MONGO_URI, options);
