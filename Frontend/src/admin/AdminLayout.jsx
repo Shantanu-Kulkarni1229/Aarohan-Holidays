@@ -194,8 +194,15 @@ const AdminLayout = () => {
                       ⚙️ Settings
                     </button>
                     <div className="border-t mt-2 pt-2" style={{ borderColor: colors.border }}>
-                      <button className="w-full text-left px-4 py-2 text-sm transition-colors hover:bg-red-50"
-                              style={{ color: '#DC2626' }}>
+                      <button 
+                        onClick={() => {
+                          sessionStorage.removeItem('adminAuthenticated');
+                          sessionStorage.removeItem('adminLoginTime');
+                          navigate('/admin/login');
+                        }}
+                        className="w-full text-left px-4 py-2 text-sm transition-colors hover:bg-red-50"
+                        style={{ color: '#DC2626' }}
+                      >
                         🚪 Sign Out
                       </button>
                     </div>

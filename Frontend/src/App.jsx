@@ -14,6 +14,8 @@ import PrivacyPolicy from './pages/PrivacyPolicy'
 import TermsOfService from './pages/TermsOfService'
 import ContactSupport from './pages/ContactSupport'
 import AdminLayout from './admin/AdminLayout'
+import AdminLogin from './admin/AdminLogin'
+import ProtectedRoute from './admin/ProtectedRoute'
 import AdminDashboard from './admin/AdminDashboard'
 import ToursManagement from './admin/ToursManagement'
 import TreksManagement from './admin/TreksManagement'
@@ -110,8 +112,11 @@ const App = () => {
           <Route path="/about" element={<About />} />
 
         
-          {/* Admin Routes */}
-          <Route path="/admin" element={<AdminLayout />}>
+          {/* Admin Login Route */}
+          <Route path="/admin/login" element={<AdminLogin />} />
+          
+          {/* Protected Admin Routes */}
+          <Route path="/admin" element={<ProtectedRoute><AdminLayout /></ProtectedRoute>}>
             <Route index element={<AdminDashboard />} />
             <Route path="dashboard" element={<AdminDashboard />} />
             <Route path="tours" element={<ToursManagement />} />

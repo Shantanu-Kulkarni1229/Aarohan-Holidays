@@ -111,4 +111,13 @@ export const adminAPI = {
   }
 };
 
+// Public API endpoints
+export const publicAPI = {
+  // Coupons API
+  coupons: {
+    getActive: () => api.get('/coupons/active'),
+    validate: (code, bookingData) => api.post('/coupons/validate', { code, ...bookingData }),
+  },
+};
+
 export default api;

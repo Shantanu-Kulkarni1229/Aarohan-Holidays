@@ -1,13 +1,17 @@
 import { useState, useEffect, useRef, useMemo } from "react";
 import { gsap } from "gsap";
-import { FiArrowRight, FiMapPin, FiTrendingUp, FiStar, FiPlay, FiAward, FiUsers, FiChevronRight } from "react-icons/fi";
+import { FiArrowRight, FiMapPin, FiTrendingUp, FiStar, FiPlay, FiAward, FiUsers, FiChevronRight, FiCopy, FiCheck, FiTag, FiPercent, FiClock } from "react-icons/fi";
 import { FaMountain, FaUmbrellaBeach, FaCompass } from "react-icons/fa";
+import { publicAPI } from "../api/api";
+import { toast } from "react-toastify";
 
 const Hero = () => {
   const [currentSlide, setCurrentSlide] = useState(0);
   const [typedText, setTypedText] = useState("");
   const [isTyping, setIsTyping] = useState(true);
   const [statValues, setStatValues] = useState({ 0: 0, 1: 0, 2: 0, 3: 0 });
+  const [coupons, setCoupons] = useState([]);
+  const [copiedCode, setCopiedCode] = useState(null);
 
   const heroRef = useRef(null);
   const imageRef = useRef(null);
@@ -20,6 +24,8 @@ const Hero = () => {
   const buttonsRef = useRef([]);
   const statsContainerRef = useRef(null);
   const badgeRef = useRef(null);
+  const couponsRef = useRef(null);
+  const couponCardsRef = useRef([]);
 
   // Updated color palette
   const colors = {
@@ -369,6 +375,21 @@ const Hero = () => {
     return () => clearInterval(typingInterval);
   }, [currentSlide, slides]);
 
+  // Fetch active coupons
+  useEffect(() => {
+    const fetchCoupons = async () => {
+      try {
+        const response = await publicAPI.coupons.getActive();
+        if (response.data.success) {
+          setCoupons(response.data.data);
+        }
+      } catch (error) {
+        console.error("Error fetching coupons:", error);
+      }
+    };
+    fetchCoupons();
+  }, []);
+
   // Auto slide
   useEffect(() => {
     const slideInterval = setInterval(() => {
@@ -484,6 +505,21 @@ const Hero = () => {
       return Math.floor(value / 1000) + 'K' + stat.suffix;
     }
     return Math.floor(value) + stat.suffix;
+  };
+
+  const handleCopyCode = (code) => {
+    navigator.clipboard.writeText(code);
+    setCopiedCode(code);
+    toast.success(`Coupon code ${code} copied!`, {
+      position: "top-center",
+      autoClose: 2000,
+    });
+    setTimeout(() => setCopiedCode(null), 2000);
+  };
+
+  const formatDate = (dateString) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
   };
 
   return (
@@ -821,6 +857,229 @@ const Hero = () => {
               </div>
             </div>
           </div>
+
+          {/* Exclusive Coupons Section */}
+          {coupons.length > 0 && (
+            <div className="mt-24">
+              <div className="text-center mb-16">
+                <div className="inline-flex items-center space-x-2 px-4 py-2 rounded-full mb-4"
+                  style={{
+                    background: `${colors.primary}15`,
+                    color: colors.primary
+                  }}>
+                  <FiTag size={18} />
+                  <span className="text-sm font-semibold">Limited Time Offers</span>
+                </div>
+                <h3 className="text-4xl sm:text-5xl font-black mb-4 bg-clip-text text-transparent"
+                  style={{
+                    backgroundImage: `linear-gradient(135deg, ${colors.darkBg}, ${colors.primary})`
+                  }}>
+                  Exclusive Coupon Deals
+                </h3>
+                <p className="text-xl text-gray-600 max-w-3xl mx-auto leading-relaxed">
+                  Save big on your next adventure! Grab these amazing offers before they expire
+                </p>
+              </div>
+
+              {/* Coupons Grid */}
+              <div ref={couponsRef} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                {coupons.map((coupon, index) => {
+                  const isExpiring = new Date(coupon.validTo) - new Date() < 7 * 24 * 60 * 60 * 1000; // Less than 7 days
+                  const daysLeft = Math.ceil((new Date(coupon.validTo) - new Date()) / (1000 * 60 * 60 * 24));
+                  
+                  return (
+                    <div
+                      key={coupon._id}
+                      ref={(el) => (couponCardsRef.current[index] = el)}
+                      className="relative overflow-hidden rounded-2xl border-2 shadow-xl hover:shadow-2xl transition-all duration-500 group cursor-pointer"
+                      style={{
+                        borderColor: index % 2 === 0 ? colors.primary : colors.secondary,
+                        backgroundColor: colors.lightBg
+                      }}
+                      onMouseEnter={(e) => {
+                        gsap.to(e.currentTarget, {
+                          y: -8,
+                          scale: 1.02,
+                          duration: 0.4,
+                          ease: "power2.out"
+                        });
+                      }}
+                      onMouseLeave={(e) => {
+                        gsap.to(e.currentTarget, {
+                          y: 0,
+                          scale: 1,
+                          duration: 0.4,
+                          ease: "power2.out"
+                        });
+                      }}
+                    >
+                      {/* Decorative Corner Elements */}
+                      <div
+                        className="absolute top-0 right-0 w-32 h-32 rounded-bl-full opacity-10"
+                        style={{
+                          backgroundColor: index % 2 === 0 ? colors.primary : colors.secondary
+                        }}
+                      />
+                      <div
+                        className="absolute bottom-0 left-0 w-24 h-24 rounded-tr-full opacity-10"
+                        style={{
+                          backgroundColor: index % 2 === 0 ? colors.secondary : colors.primary
+                        }}
+                      />
+
+                      {/* Expiring Soon Badge */}
+                      {isExpiring && (
+                        <div className="absolute top-4 left-4 px-3 py-1 rounded-full text-xs font-bold text-white animate-pulse"
+                          style={{ backgroundColor: '#DC2626' }}>
+                          <FiClock className="inline mr-1" size={12} />
+                          {daysLeft} {daysLeft === 1 ? 'Day' : 'Days'} Left!
+                        </div>
+                      )}
+
+                      {/* Discount Badge */}
+                      <div className="absolute top-4 right-4">
+                        <div className="relative">
+                          <div
+                            className="w-20 h-20 rounded-full flex items-center justify-center shadow-lg"
+                            style={{
+                              backgroundColor: index % 2 === 0 ? colors.primary : colors.secondary
+                            }}
+                          >
+                            <div className="text-center">
+                              <div className="text-3xl font-black text-white leading-none">
+                                {coupon.discountPercentage}
+                              </div>
+                              <div className="text-xs font-bold text-white">% OFF</div>
+                            </div>
+                          </div>
+                          <div className="absolute -top-1 -right-1 w-6 h-6 rounded-full flex items-center justify-center"
+                            style={{ backgroundColor: '#10B981' }}>
+                            <FiPercent size={12} className="text-white" />
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Content */}
+                      <div className="p-6 pt-24">
+                        {/* Description */}
+                        <div className="mb-6">
+                          <h4 className="text-xl font-bold mb-2" style={{ color: colors.darkBg }}>
+                            {coupon.description || `${coupon.discountPercentage}% Off on Your Booking`}
+                          </h4>
+                          
+                          {/* Details */}
+                          <div className="space-y-2 text-sm text-gray-600">
+                            {coupon.minOrderAmount > 0 && (
+                              <div className="flex items-center space-x-2">
+                                <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: colors.secondary }} />
+                                <span>Min. booking: ₹{coupon.minOrderAmount.toLocaleString()}</span>
+                              </div>
+                            )}
+                            {coupon.maxDiscountAmount && (
+                              <div className="flex items-center space-x-2">
+                                <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: colors.primary }} />
+                                <span>Max. discount: ₹{coupon.maxDiscountAmount.toLocaleString()}</span>
+                              </div>
+                            )}
+                            {coupon.applicableToType !== 'all' && (
+                              <div className="flex items-center space-x-2">
+                                <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: colors.secondary }} />
+                                <span className="capitalize">Valid for: {coupon.applicableToType}s only</span>
+                              </div>
+                            )}
+                            <div className="flex items-center space-x-2">
+                              <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: colors.primary }} />
+                              <span>Valid till: {formatDate(coupon.validTo)}</span>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Coupon Code */}
+                        <div className="border-t-2 border-dashed pt-4"
+                          style={{ borderColor: `${colors.darkBg}20` }}>
+                          <div className="flex items-center justify-between gap-3">
+                            <div className="flex-1">
+                              <div className="text-xs font-semibold text-gray-500 mb-1 uppercase tracking-wide">
+                                Coupon Code
+                              </div>
+                              <div
+                                className="text-2xl font-black tracking-wider"
+                                style={{ color: index % 2 === 0 ? colors.primary : colors.secondary }}
+                              >
+                                {coupon.code}
+                              </div>
+                            </div>
+                            
+                            {/* Copy Button */}
+                            <button
+                              onClick={() => handleCopyCode(coupon.code)}
+                              className="flex items-center space-x-2 px-5 py-3 rounded-xl font-bold text-white transition-all duration-300 hover:scale-105 active:scale-95 shadow-lg"
+                              style={{
+                                backgroundColor: index % 2 === 0 ? colors.primary : colors.secondary
+                              }}
+                            >
+                              {copiedCode === coupon.code ? (
+                                <>
+                                  <FiCheck size={18} />
+                                  <span>Copied!</span>
+                                </>
+                              ) : (
+                                <>
+                                  <FiCopy size={18} />
+                                  <span>Copy</span>
+                                </>
+                              )}
+                            </button>
+                          </div>
+
+                          {/* Usage Info */}
+                          {coupon.usageLimit && (
+                            <div className="mt-4 flex items-center justify-between text-xs">
+                              <span className="text-gray-500">
+                                {coupon.usageLimit - coupon.usedCount} uses left
+                              </span>
+                              <div className="flex-1 mx-3 h-2 rounded-full overflow-hidden"
+                                style={{ backgroundColor: `${colors.darkBg}10` }}>
+                                <div
+                                  className="h-full rounded-full transition-all duration-500"
+                                  style={{
+                                    width: `${((coupon.usageLimit - coupon.usedCount) / coupon.usageLimit) * 100}%`,
+                                    backgroundColor: index % 2 === 0 ? colors.primary : colors.secondary
+                                  }}
+                                />
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Hover Effect Overlay */}
+                      <div
+                        className="absolute inset-0 opacity-0 group-hover:opacity-5 transition-opacity duration-500 pointer-events-none"
+                        style={{
+                          background: `linear-gradient(135deg, ${colors.primary}, ${colors.secondary})`
+                        }}
+                      />
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Terms Note */}
+              <div className="mt-12 text-center">
+                <div className="inline-flex items-center space-x-2 px-6 py-3 rounded-xl border-2"
+                  style={{
+                    borderColor: `${colors.secondary}30`,
+                    backgroundColor: `${colors.secondary}05`
+                  }}>
+                  <FiStar size={16} style={{ color: colors.secondary }} />
+                  <span className="text-sm text-gray-700">
+                    <strong>Pro Tip:</strong> Coupon codes are automatically applied at checkout for maximum savings!
+                  </span>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Additional Info Section */}
           
