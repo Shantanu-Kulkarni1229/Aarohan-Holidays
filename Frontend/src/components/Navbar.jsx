@@ -751,7 +751,7 @@ export default function Navbar() {
           <div className="flex items-center space-x-4 min-w-0 flex-shrink-0">
             {/* Desktop Navigation */}
             <div className="hidden lg:flex items-center space-x-1">
-              {["Home", "Tours", "Treks", "Other Services", "Gallery", "About"].map((link, idx) => {
+              {["Home", "Tours", "Treks", "Other Services",  "About"].map((link, idx) => {
                 const IconComponent = navIcons[link];
                 return (
                   <div

@@ -104,7 +104,7 @@ const App = () => {
           <Route path="/blogs/:identifier" element={<BlogPage />} />
           <Route path="/history" element={<HistoryPage />} />
           <Route path="/history/:identifier" element={<HistoryPage />} />
-          <Route path="/gallery" element={<Gallery />} />
+          {/* <Route path="/gallery" element={<Gallery />} /> */}
           <Route path="/privacy" element={<PrivacyPolicy />} />
           <Route path="/terms" element={<TermsOfService />} />
           <Route path="/contact" element={<ContactSupport />} />
