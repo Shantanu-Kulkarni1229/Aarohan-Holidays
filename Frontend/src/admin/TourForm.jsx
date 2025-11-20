@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { adminAPI } from '../api/api';
 import { showSuccess, showError } from '../utils/toast';
+import RichTextEditor from '../components/RichTextEditor';
 import {
   ArrowLeft,
   Save,
@@ -48,17 +49,20 @@ const TourForm = () => {
     highlights: [''],
     inclusions: [''],
     exclusions: [''],
-    cityPricing: [{ city: '', budget: '', economy: '', deluxe: '', premium: '', luxury: '' }],  // CATEGORY-BASED PRICING
+    cityPricing: [{ city: '', pricingOptions: [{ categoryName: '', price: '' }] }],  // FLEXIBLE PRICING
     itinerary: [{ day: 1, title: '', description: '', meals: '', accommodation: '', note: '', activities: [] }],
     availableDates: [],
     faqs: [{ question: '', answer: '' }],
+    addOns: [{ name: '', price: '', description: '' }],  // ADD-ON OPTIONS
+    addonFacilities: [{ header: '', subPoints: [''] }],  // ADDITIONAL FACILITIES
     
     // Optional fields
     videoLink: '',
     maxGroupSize: 20,
     isActive: true,
     isFeatured: false,
-    isFixedDeparture: false, // NEW: Fixed departure toggle
+    isFixedDeparture: false,
+    isOnlyFixedDeparture: false, // Only show as fixed departure
   });
 
   const [files, setFiles] = useState({
@@ -93,6 +97,8 @@ const TourForm = () => {
     { id: 'images', name: 'Media', icon: '🖼️' },
     { id: 'dates', name: 'Dates', icon: '📅' },
     { id: 'pricing', name: 'Pricing', icon: '💰' },
+    { id: 'addons', name: 'Add-ons', icon: '➕' },
+    { id: 'facilities', name: 'Facilities', icon: '🏨' },
     { id: 'highlights', name: 'Highlights', icon: '⭐' },
     { id: 'inclusions', name: 'Inclusions/Exclusions', icon: '✅' },
     { id: 'itinerary', name: 'Itinerary', icon: '🗓️' },
@@ -287,8 +293,10 @@ const TourForm = () => {
     const newErrors = {};
     
     if (!formData.name.trim()) newErrors.name = 'Tour name is required';
-    if (!formData.description.trim()) newErrors.description = 'Description is required';
-    if (formData.description.length < 20) newErrors.description = 'Description must be at least 20 characters';
+    // Strip HTML tags for description validation
+    const descriptionText = formData.description.replace(/<[^>]*>/g, '').trim();
+    if (!descriptionText) newErrors.description = 'Description is required';
+    if (descriptionText.length < 20) newErrors.description = 'Description must be at least 20 characters';
     if (!formData.location.trim()) newErrors.location = 'Location is required';
     if (!formData.duration.trim()) newErrors.duration = 'Duration is required';
     
@@ -300,30 +308,34 @@ const TourForm = () => {
       newErrors.showcaseImages = 'Maximum 5 showcase images allowed';
     }
 
-    // Validate city pricing - filter out completely empty entries
-    const validCityPricing = formData.cityPricing.filter(cp => 
-      cp.city.trim() !== '' || 
-      (cp.budget !== '' && cp.budget !== 0) || 
-      (cp.economy !== '' && cp.economy !== 0) || 
-      (cp.deluxe !== '' && cp.deluxe !== 0) || 
-      (cp.premium !== '' && cp.premium !== 0) || 
-      (cp.luxury !== '' && cp.luxury !== 0)
-    );
-    
-    // At least one city pricing entry is required
-    if (validCityPricing.length === 0) {
-      newErrors.cityPricing = 'At least one city with pricing is required';
-    }
-    
-    validCityPricing.forEach((cityPrice, index) => {
+    // Validate city pricing - optional, but if provided, validate structure
+    formData.cityPricing.forEach((cityPrice, index) => {
       const hasCity = cityPrice.city && cityPrice.city.trim() !== '';
-      const hasAnyPrice = cityPrice.budget || cityPrice.economy || cityPrice.deluxe || cityPrice.premium || cityPrice.luxury;
+      const hasPricingOptions = cityPrice.pricingOptions && cityPrice.pricingOptions.length > 0;
       
-      if (hasCity && (!cityPrice.budget || !cityPrice.economy || !cityPrice.deluxe || !cityPrice.premium || !cityPrice.luxury)) {
-        newErrors[`cityPrice_${index}`] = 'All category prices (Budget, Economy, Deluxe, Premium, Luxury) are required when city is specified';
-      }
-      if (hasAnyPrice && !hasCity) {
-        newErrors[`cityCity_${index}`] = 'City is required when prices are specified';
+      if (hasCity && hasPricingOptions) {
+        // If city has pricing options, validate each option has both name and price
+        cityPrice.pricingOptions.forEach((option, optIndex) => {
+          const categoryName = option.categoryName || '';
+          const price = option.price || '';
+          
+          if (categoryName.trim() && !price) {
+            newErrors[`cityPrice_${index}_option_${optIndex}`] = 'Price is required when category name is specified';
+          }
+          if (!categoryName.trim() && price) {
+            newErrors[`cityPrice_${index}_option_${optIndex}`] = 'Category name is required when price is specified';
+          }
+        });
+      } else if (hasCity && !hasPricingOptions) {
+        newErrors[`cityPrice_${index}`] = 'At least one pricing option is required when city is specified';
+      } else if (!hasCity && hasPricingOptions) {
+        const hasValidOption = cityPrice.pricingOptions.some(opt => {
+          const catName = opt.categoryName || '';
+          return catName.trim() || opt.price;
+        });
+        if (hasValidOption) {
+          newErrors[`cityCity_${index}`] = 'City is required when pricing options are specified';
+        }
       }
     });
 
@@ -366,10 +378,24 @@ const TourForm = () => {
         highlights: formData.highlights.filter(h => h.trim()),
         inclusions: formData.inclusions.filter(i => i.trim()),
         exclusions: formData.exclusions.filter(e => e.trim()),
-        // Filter out empty city pricing entries - must have city and all 5 category prices
-        cityPricing: formData.cityPricing.filter(cp => 
-          cp.city.trim() && cp.budget && cp.economy && cp.deluxe && cp.premium && cp.luxury
-        ),
+        // Filter out empty city pricing entries (optional - can be empty array)
+        cityPricing: formData.cityPricing
+          .filter(cp => cp.city.trim() && cp.pricingOptions && cp.pricingOptions.length > 0)
+          .map(cp => ({
+            city: cp.city.trim(),
+            pricingOptions: cp.pricingOptions.filter(opt => opt.categoryName.trim() && opt.price)
+          }))
+          .filter(cp => cp.pricingOptions.length > 0), // Remove cities with no valid pricing options
+        // Filter out empty add-ons
+        addOns: formData.addOns.filter(addon => addon.name.trim() && addon.price),
+        // Filter out empty addon facilities
+        addonFacilities: formData.addonFacilities
+          .filter(facility => facility.header.trim() && facility.subPoints && facility.subPoints.length > 0)
+          .map(facility => ({
+            header: facility.header.trim(),
+            subPoints: facility.subPoints.filter(sp => sp.trim())
+          }))
+          .filter(facility => facility.subPoints.length > 0),
         // Filter out empty FAQ entries
         faqs: formData.faqs.filter(faq => faq.question.trim() && faq.answer.trim()),
         // Filter out incomplete itinerary entries and clean activities
@@ -711,9 +737,9 @@ const TourForm = () => {
               ))}
 
               {[
-                { label: 'Category', name: 'category', options: ['Honeymoon Package', 'Adventure', 'Cultural', 'Wildlife', 'Spiritual', 'Heritage', 'Beach', 'Hill Station', 'Desert', 'Backwater', 'Photography', 'Custom'] },
+                { label: 'Category', name: 'category', options: ['Honeymoon Package', 'Adventure', 'Cultural', 'Wildlife', 'Spiritual', 'Heritage', 'Beach', 'Hill Station', 'Desert', 'Backwater', 'Photography', 'Pilgrimage', 'Custom'] },
                 { label: 'Region Type', name: 'regionType', options: ['Domestic', 'International'] },
-                { label: 'Special Type', name: 'specialType', options: ['None', 'Weekend Special', 'Diwali Special', 'Christmas Special', 'New Year Special', 'Summer Special', 'Winter Special'] },
+                { label: 'Special Type', name: 'specialType', options: ['None', 'Weekend Special', 'Diwali Special', 'Christmas Special', 'New Year Special', 'Summer Special', 'Winter Special', 'Monsoon Special'] },
                 { label: 'Tour Type', name: 'tourType', options: ['Adventure', 'Cultural', 'Wildlife', 'Spiritual', 'Heritage', 'Beach', 'Hill Station', 'Desert', 'Backwater', 'Photography'] },
                 { label: 'Difficulty', name: 'difficulty', options: ['Easy', 'Moderate', 'Hard'] }
               ].map((field) => (
@@ -787,21 +813,13 @@ const TourForm = () => {
 
             <div className="mt-8">
               <label className="block text-sm font-semibold mb-3" style={{ color: colors.darkBg }}>
-                Description * <span className="font-normal" style={{ color: colors.textDark }}>(min 20 characters)</span>
-                <span className="float-right text-sm font-normal" style={{ color: colors.textDark }}>
-                  {formData.description.length}/20
-                </span>
+                Description * <span className="font-normal" style={{ color: colors.textDark }}>(Use toolbar for formatting - min 20 characters)</span>
               </label>
-              <textarea
-                name="description"
+              <RichTextEditor
                 value={formData.description}
-                onChange={handleInputChange}
-                rows={5}
-                className={`w-full px-4 py-3 border-2 rounded-xl transition-all ${
-                  errors.description ? 'border-red-500' : 'border-gray-200'
-                }`}
-                style={{ focusBorderColor: colors.primary }}
-                placeholder="Describe your tour package in detail. What makes it special? What experiences will travelers have?"
+                onChange={(html) => setFormData({ ...formData, description: html })}
+                placeholder="Describe your tour package in detail. What makes it special? What experiences will travelers have? Use bold, italic, and bullet points to highlight key features."
+                minHeight="250px"
               />
               {errors.description && (
                 <p className="text-red-500 text-sm mt-2 flex items-center">
@@ -872,6 +890,27 @@ const TourForm = () => {
                 </div>
                 <span className="text-sm font-medium" style={{ color: colors.darkBg }}>
                   📅 Fixed Departure
+                </span>
+              </label>
+
+              <label className="flex items-center space-x-3 cursor-pointer">
+                <div className="relative">
+                  <input
+                    type="checkbox"
+                    name="isOnlyFixedDeparture"
+                    checked={formData.isOnlyFixedDeparture}
+                    onChange={handleInputChange}
+                    className="sr-only"
+                  />
+                  <div className={`w-12 h-6 rounded-full transition-colors ${
+                    formData.isOnlyFixedDeparture ? 'bg-blue-500' : 'bg-gray-300'
+                  }`}></div>
+                  <div className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full transition-transform ${
+                    formData.isOnlyFixedDeparture ? 'transform translate-x-6' : ''
+                  }`}></div>
+                </div>
+                <span className="text-sm font-medium" style={{ color: colors.darkBg }}>
+                  🔒 Only Fixed Departure (Hide from normal tours)
                 </span>
               </label>
             </div>
@@ -1118,7 +1157,7 @@ const TourForm = () => {
             )}
           </div>
 
-          {/* City-wise Pricing */}
+          {/* Flexible Pricing */}
           <div id="pricing" className="bg-white rounded-xl shadow-lg border p-8" style={{ borderColor: colors.border }}>
             <div className="flex items-center mb-6">
               <div 
@@ -1128,8 +1167,8 @@ const TourForm = () => {
                 <DollarSign size={24} style={{ color: colors.primary }} />
               </div>
               <div>
-                <h2 className="text-2xl font-bold mb-2" style={{ color: colors.darkBg }}>Category-Based Pricing</h2>
-                <p style={{ color: colors.textDark }}>Set 5 category price tiers for each departure city - per person pricing</p>
+                <h2 className="text-2xl font-bold mb-2" style={{ color: colors.darkBg }}>Flexible Pricing</h2>
+                <p style={{ color: colors.textDark }}>Add custom pricing categories for each departure city - per person pricing</p>
               </div>
             </div>
             
@@ -1166,101 +1205,86 @@ const TourForm = () => {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 lg:grid-cols-5 gap-4 items-end">
-                  <div>
-                    <label className="block text-sm font-semibold mb-2" style={{ color: colors.darkBg }}>
-                      💰 Budget (₹) *
-                      <span className="text-xs block text-gray-500">Entry-level</span>
+                <div className="mb-4">
+                  <div className="flex items-center justify-between mb-3">
+                    <label className="block text-sm font-semibold" style={{ color: colors.darkBg }}>
+                      Pricing Options (Add custom categories)
                     </label>
-                    <input
-                      type="number"
-                      value={cityPrice.budget}
-                      onChange={(e) => handleObjectArrayChange('cityPricing', index, 'budget', Number(e.target.value))}
-                      className="w-full px-4 py-3 border-2 rounded-xl transition-all"
-                      style={{ 
-                        borderColor: colors.border,
-                        focusBorderColor: colors.primary
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const updated = [...formData.cityPricing];
+                        updated[index].pricingOptions = [...(updated[index].pricingOptions || []), { categoryName: '', price: '' }];
+                        setFormData({ ...formData, cityPricing: updated });
                       }}
-                      placeholder="3000"
-                      min="0"
-                    />
+                      className="inline-flex items-center px-3 py-1 rounded-lg text-sm text-white transition-all"
+                      style={{ backgroundColor: colors.secondary }}
+                    >
+                      <Plus size={14} className="mr-1" />
+                      Add Price Category
+                    </button>
                   </div>
-
-                  <div>
-                    <label className="block text-sm font-semibold mb-2" style={{ color: colors.darkBg }}>
-                      🏷️ Economy (₹) *
-                      <span className="text-xs block text-gray-500">Standard</span>
-                    </label>
-                    <input
-                      type="number"
-                      value={cityPrice.economy}
-                      onChange={(e) => handleObjectArrayChange('cityPricing', index, 'economy', Number(e.target.value))}
-                      className="w-full px-4 py-3 border-2 rounded-xl transition-all"
-                      style={{ 
-                        borderColor: colors.border,
-                        focusBorderColor: colors.primary
-                      }}
-                      placeholder="4000"
-                      min="0"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-semibold mb-2" style={{ color: colors.darkBg }}>
-                      ⭐ Deluxe (₹) *
-                      <span className="text-xs block text-gray-500">Superior</span>
-                    </label>
-                    <input
-                      type="number"
-                      value={cityPrice.deluxe}
-                      onChange={(e) => handleObjectArrayChange('cityPricing', index, 'deluxe', Number(e.target.value))}
-                      className="w-full px-4 py-3 border-2 rounded-xl transition-all"
-                      style={{ 
-                        borderColor: colors.border,
-                        focusBorderColor: colors.primary
-                      }}
-                      placeholder="5000"
-                      min="0"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-semibold mb-2" style={{ color: colors.darkBg }}>
-                      💎 Premium (₹) *
-                      <span className="text-xs block text-gray-500">High-end</span>
-                    </label>
-                    <input
-                      type="number"
-                      value={cityPrice.premium}
-                      onChange={(e) => handleObjectArrayChange('cityPricing', index, 'premium', Number(e.target.value))}
-                      className="w-full px-4 py-3 border-2 rounded-xl transition-all"
-                      style={{ 
-                        borderColor: colors.border,
-                        focusBorderColor: colors.primary
-                      }}
-                      placeholder="6500"
-                      min="0"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-semibold mb-2" style={{ color: colors.darkBg }}>
-                      👑 Luxury (₹) *
-                      <span className="text-xs block text-gray-500">Ultimate</span>
-                    </label>
-                    <input
-                      type="number"
-                      value={cityPrice.luxury}
-                      onChange={(e) => handleObjectArrayChange('cityPricing', index, 'luxury', Number(e.target.value))}
-                      className="w-full px-4 py-3 border-2 rounded-xl transition-all"
-                      style={{ 
-                        borderColor: colors.border,
-                        focusBorderColor: colors.primary
-                      }}
-                      placeholder="8000"
-                      min="0"
-                    />
-                  </div>
+                  
+                  {(cityPrice.pricingOptions || []).map((priceOpt, priceIndex) => (
+                    <div key={priceIndex} className="mb-3">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 p-3 rounded-lg" style={{ backgroundColor: '#F9FAFB' }}>
+                        <div>
+                          <label className="block text-xs font-medium mb-1 text-gray-600">
+                            Category Name (e.g., Economy, Deluxe, VIP)
+                          </label>
+                          <input
+                            type="text"
+                            value={priceOpt.categoryName}
+                            onChange={(e) => {
+                              const updated = [...formData.cityPricing];
+                              updated[index].pricingOptions[priceIndex].categoryName = e.target.value;
+                              setFormData({ ...formData, cityPricing: updated });
+                            }}
+                            className="w-full px-3 py-2 border-2 rounded-lg text-sm"
+                            style={{ borderColor: colors.border }}
+                            placeholder="e.g., Economy, Premium"
+                          />
+                        </div>
+                        <div className="flex gap-2">
+                          <div className="flex-1">
+                            <label className="block text-xs font-medium mb-1 text-gray-600">
+                              Price (₹)
+                            </label>
+                            <input
+                              type="number"
+                              value={priceOpt.price}
+                              onChange={(e) => {
+                                const updated = [...formData.cityPricing];
+                                updated[index].pricingOptions[priceIndex].price = Number(e.target.value);
+                                setFormData({ ...formData, cityPricing: updated });
+                              }}
+                              className="w-full px-3 py-2 border-2 rounded-lg text-sm"
+                              style={{ borderColor: colors.border }}
+                              placeholder="5000"
+                              min="0"
+                            />
+                          </div>
+                          {(cityPrice.pricingOptions || []).length > 1 && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const updated = [...formData.cityPricing];
+                                updated[index].pricingOptions.splice(priceIndex, 1);
+                                setFormData({ ...formData, cityPricing: updated });
+                              }}
+                              className="mt-6 px-3 py-2 rounded-lg text-white transition-all"
+                              style={{ backgroundColor: '#EF4444' }}
+                            >
+                              <Trash2 size={16} />
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                      {errors[`cityPrice_${index}_option_${priceIndex}`] && (
+                        <p className="text-red-500 text-xs mt-1 ml-3">{errors[`cityPrice_${index}_option_${priceIndex}`]}</p>
+                      )}
+                    </div>
+                  ))}
                 </div>
 
                 {errors[`cityPrice_${index}`] && (
@@ -1287,12 +1311,219 @@ const TourForm = () => {
 
             <button
               type="button"
-              onClick={() => addArrayItem('cityPricing', { city: '', budget: '', economy: '', deluxe: '', premium: '', luxury: '' })}
+              onClick={() => addArrayItem('cityPricing', { city: '', pricingOptions: [{ categoryName: '', price: '' }] })}
               className="inline-flex items-center px-6 py-3 rounded-xl transition-colors transform hover:scale-105 text-white"
               style={{ backgroundColor: colors.primary }}
             >
               <Plus size={20} className="mr-2" />
               Add Another City
+            </button>
+          </div>
+
+          {/* Add-ons Section */}
+          <div id="addons" className="bg-white rounded-xl shadow-lg border p-8" style={{ borderColor: colors.border }}>
+            <div className="flex items-center mb-6">
+              <div 
+                className="w-12 h-12 rounded-xl flex items-center justify-center mr-4"
+                style={{ backgroundColor: colors.secondary + '15' }}
+              >
+                <Plus size={24} style={{ color: colors.secondary }} />
+              </div>
+              <div>
+                <h2 className="text-2xl font-bold mb-2" style={{ color: colors.darkBg }}>Add-on Options</h2>
+                <p style={{ color: colors.textDark }}>Optional extras that users can select during booking</p>
+              </div>
+            </div>
+
+            {formData.addOns.map((addon, index) => (
+              <div 
+                key={index} 
+                className="p-6 rounded-xl border mb-4"
+                style={{ 
+                  backgroundColor: colors.lightBg,
+                  borderColor: colors.border
+                }}
+              >
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                  <div>
+                    <label className="block text-sm font-semibold mb-2" style={{ color: colors.darkBg }}>
+                      Add-on Name *
+                    </label>
+                    <input
+                      type="text"
+                      value={addon.name}
+                      onChange={(e) => handleObjectArrayChange('addOns', index, 'name', e.target.value)}
+                      className="w-full px-4 py-3 border-2 rounded-xl"
+                      style={{ borderColor: colors.border }}
+                      placeholder="e.g., Extra Meal, Guide Service"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-semibold mb-2" style={{ color: colors.darkBg }}>
+                      Price (₹) *
+                    </label>
+                    <input
+                      type="number"
+                      value={addon.price}
+                      onChange={(e) => handleObjectArrayChange('addOns', index, 'price', Number(e.target.value))}
+                      className="w-full px-4 py-3 border-2 rounded-xl"
+                      style={{ borderColor: colors.border }}
+                      placeholder="500"
+                      min="0"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold mb-2" style={{ color: colors.darkBg }}>
+                    Description (Optional)
+                  </label>
+                  <textarea
+                    value={addon.description}
+                    onChange={(e) => handleObjectArrayChange('addOns', index, 'description', e.target.value)}
+                    className="w-full px-4 py-3 border-2 rounded-xl"
+                    style={{ borderColor: colors.border }}
+                    placeholder="Brief description of the add-on"
+                    rows="2"
+                  />
+                </div>
+                {formData.addOns.length > 1 && (
+                  <div className="mt-4">
+                    <button
+                      type="button"
+                      onClick={() => removeArrayItem('addOns', index)}
+                      className="px-4 py-2 rounded-xl transition-colors flex items-center text-white"
+                      style={{ backgroundColor: '#EF4444' }}
+                    >
+                      <Trash2 size={16} className="mr-2" />
+                      Remove Add-on
+                    </button>
+                  </div>
+                )}
+              </div>
+            ))}
+
+            <button
+              type="button"
+              onClick={() => addArrayItem('addOns', { name: '', price: '', description: '' })}
+              className="inline-flex items-center px-6 py-3 rounded-xl transition-colors transform hover:scale-105 text-white"
+              style={{ backgroundColor: colors.secondary }}
+            >
+              <Plus size={20} className="mr-2" />
+              Add Another Add-on
+            </button>
+          </div>
+
+          {/* Addon Facilities Section */}
+          <div id="facilities" className="bg-white rounded-xl shadow-lg border p-8" style={{ borderColor: colors.border }}>
+            <div className="flex items-center mb-6">
+              <div 
+                className="w-12 h-12 rounded-xl flex items-center justify-center mr-4"
+                style={{ backgroundColor: '#10B981' + '15' }}
+              >
+                <CheckCircle2 size={24} style={{ color: '#10B981' }} />
+              </div>
+              <div>
+                <h2 className="text-2xl font-bold mb-2" style={{ color: colors.darkBg }}>Additional Facilities</h2>
+                <p style={{ color: colors.textDark }}>Detailed facilities information with categorized features</p>
+              </div>
+            </div>
+
+            {formData.addonFacilities.map((facility, index) => (
+              <div 
+                key={index} 
+                className="p-6 rounded-xl border mb-4"
+                style={{ 
+                  backgroundColor: colors.lightBg,
+                  borderColor: colors.border
+                }}
+              >
+                <div className="mb-4">
+                  <label className="block text-sm font-semibold mb-2" style={{ color: colors.darkBg }}>
+                    Facility Header *
+                  </label>
+                  <input
+                    type="text"
+                    value={facility.header}
+                    onChange={(e) => handleObjectArrayChange('addonFacilities', index, 'header', e.target.value)}
+                    className="w-full px-4 py-3 border-2 rounded-xl"
+                    style={{ borderColor: colors.border }}
+                    placeholder="e.g., Transportation, Accommodation"
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-semibold mb-2" style={{ color: colors.darkBg }}>
+                    Sub-points
+                  </label>
+                  {facility.subPoints.map((subPoint, subIndex) => (
+                    <div key={subIndex} className="flex gap-3 mb-3">
+                      <input
+                        type="text"
+                        value={subPoint}
+                        onChange={(e) => {
+                          const updated = [...formData.addonFacilities];
+                          updated[index].subPoints[subIndex] = e.target.value;
+                          setFormData({ ...formData, addonFacilities: updated });
+                        }}
+                        className="flex-1 px-4 py-3 border-2 rounded-xl"
+                        style={{ borderColor: colors.border }}
+                        placeholder="e.g., AC Bus from pickup point"
+                      />
+                      {facility.subPoints.length > 1 && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const updated = [...formData.addonFacilities];
+                            updated[index].subPoints.splice(subIndex, 1);
+                            setFormData({ ...formData, addonFacilities: updated });
+                          }}
+                          className="px-4 py-2 rounded-xl text-white"
+                          style={{ backgroundColor: '#EF4444' }}
+                        >
+                          <X size={16} />
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const updated = [...formData.addonFacilities];
+                      updated[index].subPoints.push('');
+                      setFormData({ ...formData, addonFacilities: updated });
+                    }}
+                    className="inline-flex items-center px-4 py-2 rounded-lg text-sm transition-all"
+                    style={{ backgroundColor: colors.lightBg, color: colors.secondary, border: `1px solid ${colors.secondary}` }}
+                  >
+                    <Plus size={14} className="mr-1" />
+                    Add Sub-point
+                  </button>
+                </div>
+
+                {formData.addonFacilities.length > 1 && (
+                  <div className="mt-4">
+                    <button
+                      type="button"
+                      onClick={() => removeArrayItem('addonFacilities', index)}
+                      className="px-4 py-2 rounded-xl transition-colors flex items-center text-white"
+                      style={{ backgroundColor: '#EF4444' }}
+                    >
+                      <Trash2 size={16} className="mr-2" />
+                      Remove Facility
+                    </button>
+                  </div>
+                )}
+              </div>
+            ))}
+
+            <button
+              type="button"
+              onClick={() => addArrayItem('addonFacilities', { header: '', subPoints: [''] })}
+              className="inline-flex items-center px-6 py-3 rounded-xl transition-colors transform hover:scale-105 text-white"
+              style={{ backgroundColor: '#10B981' }}
+            >
+              <Plus size={20} className="mr-2" />
+              Add Another Facility
             </button>
           </div>
 
@@ -1526,17 +1757,14 @@ const TourForm = () => {
                 </div>
                 
                 <div className="mb-4">
-                  <label className="block text-sm font-semibold mb-2" style={{ color: colors.darkBg }}>Day Description</label>
-                  <textarea
+                  <label className="block text-sm font-semibold mb-2" style={{ color: colors.darkBg }}>
+                    Day Description <span className="text-xs font-normal text-gray-500">(Use toolbar for formatting)</span>
+                  </label>
+                  <RichTextEditor
                     value={item.description}
-                    onChange={(e) => handleObjectArrayChange('itinerary', index, 'description', e.target.value)}
-                    className="w-full px-4 py-3 border-2 rounded-xl transition-all"
-                    style={{ 
-                      borderColor: colors.border,
-                      focusBorderColor: colors.primary
-                    }}
-                    rows={4}
-                    placeholder="Describe the day's activities, sights, and experiences in detail"
+                    onChange={(html) => handleObjectArrayChange('itinerary', index, 'description', html)}
+                    placeholder="Describe the day's activities, sights, and experiences in detail. Use bullet points, bold, italic for better formatting."
+                    minHeight="200px"
                   />
                 </div>
 
@@ -1574,18 +1802,13 @@ const TourForm = () => {
                 {/* NEW: Note and Activities Fields */}
                 <div className="mt-4">
                   <label className="block text-sm font-semibold mb-2" style={{ color: colors.darkBg }}>
-                    📝 Day Note <span className="text-xs font-normal" style={{ color: colors.textDark }}>(Optional)</span>
+                    📝 Day Note <span className="text-xs font-normal" style={{ color: colors.textDark }}>(Optional - Use toolbar for formatting)</span>
                   </label>
-                  <textarea
+                  <RichTextEditor
                     value={item.note || ''}
-                    onChange={(e) => handleObjectArrayChange('itinerary', index, 'note', e.target.value)}
-                    className="w-full px-4 py-3 border-2 rounded-xl transition-all"
-                    style={{ 
-                      borderColor: colors.border,
-                      focusBorderColor: colors.primary
-                    }}
-                    rows={2}
-                    placeholder="Add any special notes or important information for this day..."
+                    onChange={(html) => handleObjectArrayChange('itinerary', index, 'note', html)}
+                    placeholder="Add any special notes or important information for this day. Use formatting for emphasis."
+                    minHeight="120px"
                   />
                 </div>
 

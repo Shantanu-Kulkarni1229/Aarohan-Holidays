@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { adminAPI } from '../api/api';
 import { showSuccess, showError } from '../utils/toast';
+import RichTextEditor from '../components/RichTextEditor';
 import {
   ArrowLeft, Info, Mountain, ImageIcon, Star, DollarSign,
   Calendar, HelpCircle, TrendingUp, Users, MapPin, Save,
@@ -41,7 +42,7 @@ const TrekForm = () => {
     highlights: [''],
     availableDates: [''],
     faqs: [{ question: '', answer: '' }],
-    cityPricing: [{ city: '', adultPrice: '', womenPrice: '', childrenPrice: '', infantPrice: '' }],
+    cityPricing: [{ city: '', pricingOptions: [{ categoryName: '', price: '' }] }],
     
     // NEW: Itinerary with note and activities
     itinerary: [{ day: 1, title: '', description: '', meals: '', accommodation: '', note: '', activities: [] }],
@@ -49,6 +50,10 @@ const TrekForm = () => {
     // NEW: Inclusions and Exclusions
     inclusions: [''],
     exclusions: [''],
+    
+    // Add-ons and Facilities
+    addOns: [{ name: '', price: '', description: '' }],
+    addonFacilities: [{ header: '', subPoints: [''] }],
     
     // Numbers
     maxGroupSize: 15,
@@ -58,7 +63,8 @@ const TrekForm = () => {
     // Booleans
     isActive: true,
     isFeatured: false,
-    isFixedDeparture: false // NEW: Fixed Departure flag
+    isFixedDeparture: false,
+    isOnlyFixedDeparture: false // Only show as fixed departure
   });
 
   // File states
@@ -76,6 +82,8 @@ const TrekForm = () => {
     { id: 'itinerary', name: 'Itinerary', icon: Calendar },
     { id: 'inclusions', name: 'Inclusions/Exclusions', icon: CheckCircle },
     { id: 'pricing', name: 'Pricing', icon: DollarSign },
+    { id: 'addons', name: 'Add-ons', icon: Plus },
+    { id: 'facilities', name: 'Facilities', icon: CheckCircle },
     { id: 'dates', name: 'Dates', icon: Calendar },
     { id: 'faqs', name: 'FAQs', icon: HelpCircle }
   ];
@@ -222,22 +230,33 @@ const TrekForm = () => {
       ...formData,
       highlights: formData.highlights.filter(h => h.trim()),
       availableDates: formData.availableDates.filter(d => d.trim()),
-      cityPricing: formData.cityPricing.filter(cp => 
-        cp.city.trim() && 
-        cp.adultPrice !== '' && cp.adultPrice !== null && cp.adultPrice !== undefined &&
-        cp.womenPrice !== '' && cp.womenPrice !== null && cp.womenPrice !== undefined &&
-        cp.childrenPrice !== '' && cp.childrenPrice !== null && cp.childrenPrice !== undefined &&
-        cp.infantPrice !== '' && cp.infantPrice !== null && cp.infantPrice !== undefined
-      ),
+      // Filter out empty city pricing entries (optional - can be empty array)
+      cityPricing: formData.cityPricing
+        .filter(cp => cp.city.trim() && cp.pricingOptions && cp.pricingOptions.length > 0)
+        .map(cp => ({
+          city: cp.city.trim(),
+          pricingOptions: cp.pricingOptions.filter(opt => opt.categoryName.trim() && opt.price)
+        }))
+        .filter(cp => cp.pricingOptions.length > 0), // Remove cities with no valid pricing options
+      // Filter out empty add-ons
+      addOns: formData.addOns.filter(addon => addon.name.trim() && addon.price),
+      // Filter out empty addon facilities
+      addonFacilities: formData.addonFacilities
+        .filter(facility => facility.header.trim() && facility.subPoints && facility.subPoints.length > 0)
+        .map(facility => ({
+          header: facility.header.trim(),
+          subPoints: facility.subPoints.filter(sp => sp.trim())
+        }))
+        .filter(facility => facility.subPoints.length > 0),
       faqs: formData.faqs.filter(faq => faq.question.trim() && faq.answer.trim()),
-      // NEW: Clean itinerary data
+      // Clean itinerary data
       itinerary: formData.itinerary.filter(day => 
         day.title.trim() && day.description.trim()
       ).map(day => ({
         ...day,
         activities: (day.activities || []).filter(a => a && a.trim())
       })),
-      // NEW: Clean inclusions and exclusions
+      // Clean inclusions and exclusions
       inclusions: formData.inclusions.filter(i => i.trim()),
       exclusions: formData.exclusions.filter(e => e.trim()),
       maxGroupSize: Number(formData.maxGroupSize),
@@ -255,7 +274,9 @@ const TrekForm = () => {
       setError('Trek name is required');
       return;
     }
-    if (!formData.description.trim() || formData.description.length < 20) {
+    // Strip HTML tags for description validation
+    const descriptionText = formData.description.replace(/<[^>]*>/g, '').trim();
+    if (!descriptionText || descriptionText.length < 20) {
       setError('Description must be at least 20 characters');
       return;
     }
@@ -558,19 +579,13 @@ const TrekForm = () => {
 
             <div className="mt-8">
               <label className="block text-sm font-semibold text-gray-700 mb-3">
-                Trek Description * <span className="text-gray-500 font-normal">(min 20 characters)</span>
-                <span className="float-right text-sm font-normal text-gray-500">
-                  {formData.description.length}/20
-                </span>
+                Trek Description * <span className="text-gray-500 font-normal">(Use toolbar for formatting - min 20 characters)</span>
               </label>
-              <textarea
-                name="description"
+              <RichTextEditor
                 value={formData.description}
-                onChange={handleInputChange}
-                rows={5}
-                className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all resize-vertical"
-                placeholder="Describe the trek experience, scenery, challenges, and highlights in detail..."
-                required
+                onChange={(html) => setFormData({ ...formData, description: html })}
+                placeholder="Describe the trek experience, scenery, challenges, and highlights in detail. Use bold, italic, and bullet points to make it engaging."
+                minHeight="250px"
               />
             </div>
 
@@ -638,6 +653,28 @@ const TrekForm = () => {
                   📅 Fixed Departure
                 </span>
               </label>
+
+              {/* Only Fixed Departure Toggle */}
+              <label className="flex items-center space-x-3 cursor-pointer">
+                <div className="relative">
+                  <input
+                    type="checkbox"
+                    name="isOnlyFixedDeparture"
+                    checked={formData.isOnlyFixedDeparture}
+                    onChange={handleInputChange}
+                    className="sr-only"
+                  />
+                  <div className={`w-12 h-6 rounded-full transition-colors ${
+                    formData.isOnlyFixedDeparture ? 'bg-purple-500' : 'bg-gray-300'
+                  }`}></div>
+                  <div className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full transition-transform ${
+                    formData.isOnlyFixedDeparture ? 'transform translate-x-6' : ''
+                  }`}></div>
+                </div>
+                <span className="text-sm font-medium text-gray-700 flex items-center gap-1">
+                  🔒 Only Fixed Departure
+                </span>
+              </label>
             </div>
           </div>
 
@@ -668,7 +705,7 @@ const TrekForm = () => {
                 {
                   label: "Special Type",
                   name: "specialType",
-                  options: ["None", "Monsoon Special", "Winter Special", "Summer Special", "Weekend Trek", "Festival Trek"]
+                  options: ["None", "Monsoon Special", "Winter Special", "Summer Special", "Weekend Trek", "Weekend Special", "Festival Trek"]
                 },
                 {
                   label: "Difficulty Level",
@@ -906,13 +943,14 @@ const TrekForm = () => {
                   </div>
 
                   <div className="lg:col-span-2">
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">Description *</label>
-                    <textarea
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                      Description * <span className="text-xs font-normal text-gray-500">(Use toolbar for formatting)</span>
+                    </label>
+                    <RichTextEditor
                       value={day.description}
-                      onChange={(e) => handleObjectArrayChange('itinerary', index, 'description', e.target.value)}
-                      rows="3"
-                      className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all resize-none"
-                      placeholder="Describe the day's activities, terrain, and what trekkers will experience..."
+                      onChange={(html) => handleObjectArrayChange('itinerary', index, 'description', html)}
+                      placeholder="Describe the day's activities, terrain, and what trekkers will experience. Use bullet points, bold, italic for better formatting."
+                      minHeight="180px"
                     />
                   </div>
 
@@ -939,13 +977,14 @@ const TrekForm = () => {
                   </div>
 
                   <div className="lg:col-span-2">
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">📝 Day Note (Optional)</label>
-                    <textarea
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                      📝 Day Note <span className="text-xs font-normal text-gray-500">(Optional - Use toolbar for formatting)</span>
+                    </label>
+                    <RichTextEditor
                       value={day.note || ''}
-                      onChange={(e) => handleObjectArrayChange('itinerary', index, 'note', e.target.value)}
-                      rows="2"
-                      className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all resize-none"
-                      placeholder="Add any special notes or important information for this day..."
+                      onChange={(html) => handleObjectArrayChange('itinerary', index, 'note', html)}
+                      placeholder="Add any special notes or important information for this day. Use formatting for emphasis."
+                      minHeight="100px"
                     />
                   </div>
 
@@ -1126,64 +1165,77 @@ const TrekForm = () => {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 items-end">
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">
-                      Adult Price (₹) *
+                <div className="mb-4">
+                  <div className="flex items-center justify-between mb-3">
+                    <label className="block text-sm font-semibold text-gray-700">
+                      Pricing Options (Add custom categories)
                     </label>
-                    <input
-                      type="number"
-                      value={cityPrice.adultPrice}
-                      onChange={(e) => handleObjectArrayChange('cityPricing', index, 'adultPrice', Number(e.target.value))}
-                      className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-all"
-                      placeholder="5000"
-                      min="0"
-                    />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const updated = [...formData.cityPricing];
+                        updated[index].pricingOptions = [...(updated[index].pricingOptions || []), { categoryName: '', price: '' }];
+                        setFormData({ ...formData, cityPricing: updated });
+                      }}
+                      className="inline-flex items-center px-3 py-1 bg-teal-500 text-white rounded-lg text-sm hover:bg-teal-600 transition-all"
+                    >
+                      <Plus className="w-3 h-3 mr-1" />
+                      Add Price Category
+                    </button>
                   </div>
-
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">
-                      Women Price (₹) *
-                    </label>
-                    <input
-                      type="number"
-                      value={cityPrice.womenPrice}
-                      onChange={(e) => handleObjectArrayChange('cityPricing', index, 'womenPrice', Number(e.target.value))}
-                      className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-all"
-                      placeholder="4500"
-                      min="0"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">
-                      Children Price (₹) *
-                      <span className="text-xs block text-gray-500">(5-18 years)</span>
-                    </label>
-                    <input
-                      type="number"
-                      value={cityPrice.childrenPrice}
-                      onChange={(e) => handleObjectArrayChange('cityPricing', index, 'childrenPrice', Number(e.target.value))}
-                      className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-all"
-                      placeholder="2500"
-                      min="0"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">
-                      Infant Price (₹) *
-                      <span className="text-xs block text-gray-500">(Below 5 years)</span>
-                    </label>
-                    <input
-                      type="number"
-                      value={cityPrice.infantPrice}
-                      onChange={(e) => handleObjectArrayChange('cityPricing', index, 'infantPrice', Number(e.target.value))}
-                      className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-all"
-                      placeholder="0"
-                      min="0"
-                    />
-                  </div>
+                  
+                  {(cityPrice.pricingOptions || []).map((priceOpt, priceIndex) => (
+                    <div key={priceIndex} className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3 p-3 bg-gray-100 rounded-lg">
+                      <div>
+                        <label className="block text-xs font-medium mb-1 text-gray-600">
+                          Category Name (e.g., Adult, Women, Children)
+                        </label>
+                        <input
+                          type="text"
+                          value={priceOpt.categoryName}
+                          onChange={(e) => {
+                            const updated = [...formData.cityPricing];
+                            updated[index].pricingOptions[priceIndex].categoryName = e.target.value;
+                            setFormData({ ...formData, cityPricing: updated });
+                          }}
+                          className="w-full px-3 py-2 border-2 border-gray-200 rounded-lg text-sm"
+                          placeholder="e.g., Adult, Student, Senior"
+                        />
+                      </div>
+                      <div className="flex gap-2">
+                        <div className="flex-1">
+                          <label className="block text-xs font-medium mb-1 text-gray-600">
+                            Price (₹)
+                          </label>
+                          <input
+                            type="number"
+                            value={priceOpt.price}
+                            onChange={(e) => {
+                              const updated = [...formData.cityPricing];
+                              updated[index].pricingOptions[priceIndex].price = Number(e.target.value);
+                              setFormData({ ...formData, cityPricing: updated });
+                            }}
+                            className="w-full px-3 py-2 border-2 border-gray-200 rounded-lg text-sm"
+                            placeholder="5000"
+                            min="0"
+                          />
+                        </div>
+                        {(cityPrice.pricingOptions || []).length > 1 && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const updated = [...formData.cityPricing];
+                              updated[index].pricingOptions.splice(priceIndex, 1);
+                              setFormData({ ...formData, cityPricing: updated });
+                            }}
+                            className="mt-6 px-3 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-all"
+                          >
+                            <X className="w-4 h-4" />
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  ))}
                 </div>
 
                 {formData.cityPricing.length > 1 && (
@@ -1203,11 +1255,177 @@ const TrekForm = () => {
 
             <button
               type="button"
-              onClick={() => addArrayItem('cityPricing', { city: '', adultPrice: '', womenPrice: '', childrenPrice: '', infantPrice: '' })}
+              onClick={() => addArrayItem('cityPricing', { city: '', pricingOptions: [{ categoryName: '', price: '' }] })}
               className="inline-flex items-center px-6 py-3 bg-teal-500 text-white rounded-xl hover:bg-teal-600 transition-colors transform hover:scale-105"
             >
               <Plus className="w-5 h-5 mr-2" />
               Add Another City
+            </button>
+          </div>
+
+          {/* Add-ons Section */}
+          <div id="addons" className="bg-white rounded-2xl shadow-xl border border-gray-200 p-8">
+            <div className="flex items-center mb-6">
+              <div className="w-12 h-12 bg-orange-100 rounded-xl flex items-center justify-center mr-4">
+                <Plus className="w-6 h-6 text-orange-600" />
+              </div>
+              <div>
+                <h2 className="text-2xl font-bold text-gray-900">Add-on Options</h2>
+                <p className="text-gray-600">Optional extras users can select during booking</p>
+              </div>
+            </div>
+
+            {formData.addOns.map((addon, index) => (
+              <div key={index} className="p-6 bg-gray-50 rounded-xl border border-gray-200 mb-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">Add-on Name *</label>
+                    <input
+                      type="text"
+                      value={addon.name}
+                      onChange={(e) => handleObjectArrayChange('addOns', index, 'name', e.target.value)}
+                      className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl"
+                      placeholder="e.g., Camping Equipment, Guide Service"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">Price (₹) *</label>
+                    <input
+                      type="number"
+                      value={addon.price}
+                      onChange={(e) => handleObjectArrayChange('addOns', index, 'price', Number(e.target.value))}
+                      className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl"
+                      placeholder="500"
+                      min="0"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">Description (Optional)</label>
+                  <textarea
+                    value={addon.description}
+                    onChange={(e) => handleObjectArrayChange('addOns', index, 'description', e.target.value)}
+                    className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl"
+                    placeholder="Brief description of the add-on"
+                    rows="2"
+                  />
+                </div>
+                {formData.addOns.length > 1 && (
+                  <div className="mt-4">
+                    <button
+                      type="button"
+                      onClick={() => removeArrayItem('addOns', index)}
+                      className="px-4 py-2 bg-red-500 text-white rounded-xl hover:bg-red-600 transition-colors flex items-center"
+                    >
+                      <X className="w-4 h-4 mr-2" />
+                      Remove Add-on
+                    </button>
+                  </div>
+                )}
+              </div>
+            ))}
+
+            <button
+              type="button"
+              onClick={() => addArrayItem('addOns', { name: '', price: '', description: '' })}
+              className="inline-flex items-center px-6 py-3 bg-orange-500 text-white rounded-xl hover:bg-orange-600 transition-colors transform hover:scale-105"
+            >
+              <Plus className="w-5 h-5 mr-2" />
+              Add Another Add-on
+            </button>
+          </div>
+
+          {/* Addon Facilities Section */}
+          <div id="facilities" className="bg-white rounded-2xl shadow-xl border border-gray-200 p-8">
+            <div className="flex items-center mb-6">
+              <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center mr-4">
+                <CheckCircle className="w-6 h-6 text-green-600" />
+              </div>
+              <div>
+                <h2 className="text-2xl font-bold text-gray-900">Additional Facilities</h2>
+                <p className="text-gray-600">Detailed facilities with categorized features</p>
+              </div>
+            </div>
+
+            {formData.addonFacilities.map((facility, index) => (
+              <div key={index} className="p-6 bg-gray-50 rounded-xl border border-gray-200 mb-4">
+                <div className="mb-4">
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">Facility Header *</label>
+                  <input
+                    type="text"
+                    value={facility.header}
+                    onChange={(e) => handleObjectArrayChange('addonFacilities', index, 'header', e.target.value)}
+                    className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl"
+                    placeholder="e.g., Safety Equipment, Medical Support"
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">Sub-points</label>
+                  {facility.subPoints.map((subPoint, subIndex) => (
+                    <div key={subIndex} className="flex gap-3 mb-3">
+                      <input
+                        type="text"
+                        value={subPoint}
+                        onChange={(e) => {
+                          const updated = [...formData.addonFacilities];
+                          updated[index].subPoints[subIndex] = e.target.value;
+                          setFormData({ ...formData, addonFacilities: updated });
+                        }}
+                        className="flex-1 px-4 py-3 border-2 border-gray-200 rounded-xl"
+                        placeholder="e.g., First-aid kit, Oxygen cylinders"
+                      />
+                      {facility.subPoints.length > 1 && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const updated = [...formData.addonFacilities];
+                            updated[index].subPoints.splice(subIndex, 1);
+                            setFormData({ ...formData, addonFacilities: updated });
+                          }}
+                          className="px-4 py-2 bg-red-500 text-white rounded-xl hover:bg-red-600"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const updated = [...formData.addonFacilities];
+                      updated[index].subPoints.push('');
+                      setFormData({ ...formData, addonFacilities: updated });
+                    }}
+                    className="inline-flex items-center px-4 py-2 border-2 border-green-500 text-green-600 rounded-lg text-sm hover:bg-green-50"
+                  >
+                    <Plus className="w-3 h-3 mr-1" />
+                    Add Sub-point
+                  </button>
+                </div>
+
+                {formData.addonFacilities.length > 1 && (
+                  <div className="mt-4">
+                    <button
+                      type="button"
+                      onClick={() => removeArrayItem('addonFacilities', index)}
+                      className="px-4 py-2 bg-red-500 text-white rounded-xl hover:bg-red-600 transition-colors flex items-center"
+                    >
+                      <X className="w-4 h-4 mr-2" />
+                      Remove Facility
+                    </button>
+                  </div>
+                )}
+              </div>
+            ))}
+
+            <button
+              type="button"
+              onClick={() => addArrayItem('addonFacilities', { header: '', subPoints: [''] })}
+              className="inline-flex items-center px-6 py-3 bg-green-500 text-white rounded-xl hover:bg-green-600 transition-colors transform hover:scale-105"
+            >
+              <Plus className="w-5 h-5 mr-2" />
+              Add Another Facility
             </button>
           </div>
 

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { otherServicesAPI } from '../api/userAPI';
 import { showSuccess, showApiError } from '../utils/toast';
 
@@ -144,6 +144,23 @@ const OtherServices = () => {
       borderColor: "border-blue-200"
     }
   ];
+
+  // Check for pre-selected service from sessionStorage
+  useEffect(() => {
+    const preSelectedService = sessionStorage.getItem('selectedServiceType');
+    if (preSelectedService) {
+      handleServiceClick(preSelectedService);
+      sessionStorage.removeItem('selectedServiceType'); // Clear after use
+      
+      // Scroll to form after a delay
+      setTimeout(() => {
+        document.getElementById('service-form')?.scrollIntoView({ 
+          behavior: 'smooth', 
+          block: 'start' 
+        });
+      }, 500);
+    }
+  }, []);
 
   // Handle input changes
   const handleChange = (e) => {
@@ -550,7 +567,7 @@ const OtherServices = () => {
                       🚗 Premium Cab Services
                     </div>
                     <h2 className="text-4xl md:text-5xl lg:text-6xl font-bold text-white mb-6 leading-tight">
-                      Cab Services in Aurangabad
+                      Cab Services in Chhatrapati Sambhajinagar
                     </h2>
                     <p className="text-xl md:text-2xl text-white/95 font-medium mb-4">
                       Comfortable & Reliable Taxi Services for Every Need

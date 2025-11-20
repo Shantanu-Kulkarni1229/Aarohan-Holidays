@@ -1,13 +1,25 @@
 import mongoose from "mongoose";
 
-// ✅ Category-based pricing schema for city-specific pricing
+// ✅ Flexible pricing schema for city-specific pricing (admin can add custom price categories)
 const categoryPriceSchema = new mongoose.Schema({
   city: { type: String, required: true },
-  budget: { type: Number, required: true, min: 0 },
-  economy: { type: Number, required: true, min: 0 },
-  deluxe: { type: Number, required: true, min: 0 },
-  premium: { type: Number, required: true, min: 0 },
-  luxury: { type: Number, required: true, min: 0 },
+  pricingOptions: [{
+    categoryName: { type: String, required: true }, // e.g., "Economy", "Deluxe", custom names
+    price: { type: Number, required: true, min: 0 }
+  }]
+});
+
+// ✅ Add-on options schema (for extra charges)
+const addOnSchema = new mongoose.Schema({
+  name: { type: String, required: true }, // e.g., "Extra Meal", "Guide Service"
+  price: { type: Number, required: true, min: 0 },
+  description: { type: String, default: "" }
+});
+
+// ✅ Additional facilities schema
+const addonFacilitySchema = new mongoose.Schema({
+  header: { type: String, required: true }, // e.g., "Transportation", "Accommodation"
+  subPoints: { type: [String], default: [] } // Array of facility details
 });
 
 // ✅ FAQ Schema (reusable and structured)
@@ -52,6 +64,7 @@ const tourSchema = new mongoose.Schema(
         "Desert",
         "Backwater",
         "Photography",
+        "Pilgrimage",
         "Custom",
       ],
       default: "Custom",
@@ -96,6 +109,7 @@ const tourSchema = new mongoose.Schema(
         "New Year Special",
         "Summer Special",
         "Winter Special",
+        "Monsoon Special",
       ],
       default: "None",
     },
@@ -181,6 +195,19 @@ const tourSchema = new mongoose.Schema(
           message: "Duplicate city pricing is not allowed",
         },
       ],
+      default: []
+    },
+
+    // ✅ Add-on options (optional extras)
+    addOns: {
+      type: [addOnSchema],
+      default: []
+    },
+
+    // ✅ Additional facilities
+    addonFacilities: {
+      type: [addonFacilitySchema],
+      default: []
     },
 
     rating: { type: Number, default: 0, min: 0, max: 5 },
@@ -188,10 +215,12 @@ const tourSchema = new mongoose.Schema(
     maxGroupSize: { type: Number, default: 20 },
     isActive: { type: Boolean, default: true },
     isFeatured: { type: Boolean, default: false },
-    isFixedDeparture: { type: Boolean, default: false }, // NEW: Fixed departure flag
+    isFixedDeparture: { type: Boolean, default: false }, // Fixed departure flag
+    isOnlyFixedDeparture: { type: Boolean, default: false }, // Only show as fixed departure (not in normal tours)
   },
   { timestamps: true }
 );
 
-const Tour = mongoose.model("Tour", tourSchema);
+// Prevent model recompilation error by checking if model already exists
+const Tour = mongoose.models.Tour || mongoose.model("Tour", tourSchema);
 export default Tour;

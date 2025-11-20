@@ -543,6 +543,79 @@ const BlogPage = () => {
                   </button>
                 </div>
               </div>
+
+              {/* Why Choose Aarohan Holidays Section */}
+              <div className="mt-8 bg-white rounded-xl shadow-lg overflow-hidden">
+                <div className="p-6 bg-gradient-to-r from-[#1E9ABF] to-[#E66926]">
+                  <h3 className="text-2xl font-bold text-white text-center">Why Choose Aarohan Holidays?</h3>
+                </div>
+                <div className="p-6 space-y-4">
+                  {/* Card 1 */}
+                  <div className="flex items-start gap-4 p-4 rounded-xl bg-blue-50 hover:shadow-md transition-all duration-300">
+                    <div className="w-12 h-12 bg-[#1E9ABF] rounded-full flex items-center justify-center flex-shrink-0">
+                      <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                    </div>
+                    <div>
+                      <h4 className="font-bold text-lg text-gray-900 mb-1">5+ Years of Excellence</h4>
+                      <p className="text-sm text-gray-600">Trusted by 15,000+ travelers with expert-curated experiences across 250+ destinations</p>
+                    </div>
+                  </div>
+
+                  {/* Card 2 */}
+                  <div className="flex items-start gap-4 p-4 rounded-xl bg-orange-50 hover:shadow-md transition-all duration-300">
+                    <div className="w-12 h-12 bg-[#E66926] rounded-full flex items-center justify-center flex-shrink-0">
+                      <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                      </svg>
+                    </div>
+                    <div>
+                      <h4 className="font-bold text-lg text-gray-900 mb-1">Safe & Secure Travel</h4>
+                      <p className="text-sm text-gray-600">100% secure payments, verified partners, and comprehensive travel insurance options</p>
+                    </div>
+                  </div>
+
+                  {/* Card 3 */}
+                  <div className="flex items-start gap-4 p-4 rounded-xl bg-blue-50 hover:shadow-md transition-all duration-300">
+                    <div className="w-12 h-12 bg-[#1E9ABF] rounded-full flex items-center justify-center flex-shrink-0">
+                      <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                      </svg>
+                    </div>
+                    <div>
+                      <h4 className="font-bold text-lg text-gray-900 mb-1">Expert Travel Guides</h4>
+                      <p className="text-sm text-gray-600">Professional, certified guides with local knowledge to make your journey memorable</p>
+                    </div>
+                  </div>
+
+                  {/* Card 4 */}
+                  <div className="flex items-start gap-4 p-4 rounded-xl bg-orange-50 hover:shadow-md transition-all duration-300">
+                    <div className="w-12 h-12 bg-[#E66926] rounded-full flex items-center justify-center flex-shrink-0">
+                      <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                      </svg>
+                    </div>
+                    <div>
+                      <h4 className="font-bold text-lg text-gray-900 mb-1">Personalized Experiences</h4>
+                      <p className="text-sm text-gray-600">Customizable itineraries tailored to your preferences, budget, and travel style</p>
+                    </div>
+                  </div>
+
+                  {/* Card 5 */}
+                  <div className="flex items-start gap-4 p-4 rounded-xl bg-blue-50 hover:shadow-md transition-all duration-300">
+                    <div className="w-12 h-12 bg-[#1E9ABF] rounded-full flex items-center justify-center flex-shrink-0">
+                      <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                      </svg>
+                    </div>
+                    <div>
+                      <h4 className="font-bold text-lg text-gray-900 mb-1">24/7 Travel Support</h4>
+                      <p className="text-sm text-gray-600">Round-the-clock assistance via phone, WhatsApp, and email for a worry-free journey</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
 
             {/* Sidebar */}

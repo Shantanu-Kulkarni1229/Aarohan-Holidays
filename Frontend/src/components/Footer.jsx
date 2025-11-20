@@ -158,7 +158,7 @@ export default function Footer() {
     },
     { 
       icon: FiInstagram, 
-      url: "https://instagram.com/aarohanholidays", 
+      url: "https://www.instagram.com/aarohan_holidays?igsh=NWljeDV5b3c5a2Jk&utm_source=qr", 
       color: "#E4405F",
       label: "Instagram" 
     },
@@ -170,7 +170,7 @@ export default function Footer() {
     },
     { 
       icon: FaWhatsapp, 
-      url: "https://wa.me/+919011268465", 
+      url: "https://wa.me/+917276644221", 
       color: "#25D366",
       label: "WhatsApp" 
     },
@@ -223,12 +223,14 @@ export default function Footer() {
             className="lg:col-span-1"
           >
             <div className="mb-6">
-              <img 
-                src="/Logo/logo2.jpg" 
-                alt="Aarohan Holidays Logo" 
-                className="h-16 w-auto object-contain transition-all duration-300 hover:scale-105 hover:brightness-110"
-                style={{ maxWidth: '220px' }}
-              />
+              <div className="inline-block p-3 rounded-xl" style={{ backgroundColor: 'white' }}>
+                <img 
+                  src="../../public/Logo/mainLogo.png" 
+                  alt="Aarohan Holidays Logo" 
+                  className="h-16 w-auto object-contain transition-all duration-300 hover:scale-105"
+                  style={{ maxWidth: '220px' }}
+                />
+              </div>
               <p className="text-sm mt-3" style={{ color: colors.secondary }}>
                 Feel Free to Fly
               </p>
@@ -256,7 +258,7 @@ export default function Footer() {
                     className="font-semibold block"
                     style={{ color: colors.textLight }}
                   >
-                    +91 90112 68465
+                    +91 72766 44221
                   </span>
                   <span className="text-sm" style={{ color: colors.secondary }}>
                     Call us anytime

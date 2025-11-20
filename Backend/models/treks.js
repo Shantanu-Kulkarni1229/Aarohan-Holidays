@@ -1,12 +1,25 @@
 import mongoose from "mongoose";
 
-// Schema for city-based pricing with member type pricing
+// Schema for city-based pricing with flexible pricing options
 const priceSchema = new mongoose.Schema({
   city: { type: String, required: true },
-  adultPrice: { type: Number, required: true, min: 0 },
-  womenPrice: { type: Number, required: true, min: 0 },
-  childrenPrice: { type: Number, required: true, min: 0 },
-  infantPrice: { type: Number, required: true, min: 0 },
+  pricingOptions: [{
+    categoryName: { type: String, required: true }, // e.g., "Adult", "Women", "Children", or custom names
+    price: { type: Number, required: true, min: 0 }
+  }]
+});
+
+// ✅ Add-on options schema (for extra charges)
+const addOnSchema = new mongoose.Schema({
+  name: { type: String, required: true }, // e.g., "Camping Equipment", "Guide Service"
+  price: { type: Number, required: true, min: 0 },
+  description: { type: String, default: "" }
+});
+
+// ✅ Additional facilities schema
+const addonFacilitySchema = new mongoose.Schema({
+  header: { type: String, required: true }, // e.g., "Safety Equipment", "Medical Support"
+  subPoints: { type: [String], default: [] } // Array of facility details
 });
 
 // FAQ Schema
@@ -64,6 +77,7 @@ const trekSchema = new mongoose.Schema(
         "Winter Special",
         "Summer Special",
         "Weekend Trek",
+        "Weekend Special",
         "Festival Trek",
       ],
       default: "None",
@@ -156,6 +170,19 @@ const trekSchema = new mongoose.Schema(
           message: "Duplicate city pricing is not allowed",
         },
       ],
+      default: []
+    },
+
+    // ✅ Add-on options (optional extras)
+    addOns: {
+      type: [addOnSchema],
+      default: []
+    },
+
+    // ✅ Additional facilities
+    addonFacilities: {
+      type: [addonFacilitySchema],
+      default: []
     },
 
     // ✅ Additional Fields
@@ -164,10 +191,12 @@ const trekSchema = new mongoose.Schema(
     rating: { type: Number, default: 0, min: 0, max: 5 },
     isActive: { type: Boolean, default: true },
     isFeatured: { type: Boolean, default: false },
-    isFixedDeparture: { type: Boolean, default: false }, // NEW: Fixed departure flag
+    isFixedDeparture: { type: Boolean, default: false }, // Fixed departure flag
+    isOnlyFixedDeparture: { type: Boolean, default: false }, // Only show as fixed departure (not in normal treks)
   },
   { timestamps: true }
 );
 
-const Trek = mongoose.model("Trek", trekSchema);
+// Prevent model recompilation error by checking if model already exists
+const Trek = mongoose.models.Trek || mongoose.model("Trek", trekSchema);
 export default Trek;

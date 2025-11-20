@@ -75,14 +75,10 @@ const bookingSchema = new mongoose.Schema(
       min: [0, "Infants count cannot be negative"],
     },
     
-    // Category Selection (Budget, Economy, Deluxe, Premium, Luxury) - ONLY FOR TOURS
+    // Category Selection (Flexible pricing category name) - ONLY FOR TOURS
     selectedCategory: {
       type: String,
-      enum: ["budget", "economy", "deluxe", "premium", "luxury"],
-      required: function() {
-        return this.bookingType === "tour";
-      },
-      lowercase: true,
+      trim: true,
     },
 
     // Location

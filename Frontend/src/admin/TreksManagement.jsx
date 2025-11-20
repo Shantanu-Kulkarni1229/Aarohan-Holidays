@@ -585,31 +585,53 @@ const TreksManagement = () => {
                           <div className="text-xs font-medium" style={{ color: colors.textDark }}>Departure Cities:</div>
                           {trek.cityPricing && trek.cityPricing.length > 0 ? (
                             <>
-                              {trek.cityPricing.slice(0, 2).map((cityPrice, index) => (
-                                <div 
-                                  key={index} 
-                                  className="rounded-lg px-3 py-2 border space-y-1"
-                                  style={{ 
-                                    backgroundColor: colors.secondary + '08',
-                                    borderColor: colors.secondary + '30'
-                                  }}
-                                >
-                                  <div className="flex items-center justify-between">
-                                    <span className="text-sm font-medium" style={{ color: colors.darkBg }}>{cityPrice.city}</span>
-                                    <span className="font-semibold" style={{ color: colors.primary }}>
-                                      ₹{(cityPrice.adultPrice || cityPrice.price || 0).toLocaleString()}
-                                    </span>
-                                  </div>
-                                  {(cityPrice.adultPrice || cityPrice.womenPrice || cityPrice.childrenPrice) && (
-                                    <div className="text-[10px] grid grid-cols-2 gap-1" style={{ color: colors.textDark }}>
-                                      {cityPrice.adultPrice && <span>👨 ₹{cityPrice.adultPrice.toLocaleString()}</span>}
-                                      {cityPrice.womenPrice && <span>👩 ₹{cityPrice.womenPrice.toLocaleString()}</span>}
-                                      {cityPrice.childrenPrice && <span>👶 ₹{cityPrice.childrenPrice.toLocaleString()}</span>}
-                                      {cityPrice.infantPrice !== undefined && <span>🍼 ₹{cityPrice.infantPrice.toLocaleString()}</span>}
+                              {trek.cityPricing.slice(0, 2).map((cityPrice, index) => {
+                                // Calculate minimum price from all pricing options
+                                const prices = cityPrice.pricingOptions?.map(opt => opt.price).filter(p => p > 0) || [];
+                                const minPrice = prices.length > 0 ? Math.min(...prices) : null;
+                                
+                                return (
+                                  <div 
+                                    key={index} 
+                                    className="rounded-lg px-3 py-2 border space-y-1"
+                                    style={{ 
+                                      backgroundColor: colors.secondary + '08',
+                                      borderColor: colors.secondary + '30'
+                                    }}
+                                  >
+                                    <div className="flex items-center justify-between">
+                                      <span className="text-sm font-medium" style={{ color: colors.darkBg }}>{cityPrice.city}</span>
+                                      {minPrice ? (
+                                        <span className="font-semibold" style={{ color: colors.primary }}>
+                                          ₹{minPrice.toLocaleString()}
+                                          <span className="text-[10px] font-normal ml-1" style={{ color: colors.textDark }}>onwards</span>
+                                        </span>
+                                      ) : (
+                                        <span className="text-xs italic" style={{ color: colors.textDark }}>
+                                          Not set
+                                        </span>
+                                      )}
                                     </div>
-                                  )}
-                                </div>
-                              ))}
+                                    {cityPrice.pricingOptions && cityPrice.pricingOptions.length > 0 && (
+                                      <div className="text-[10px] space-y-1" style={{ color: colors.textDark }}>
+                                        {cityPrice.pricingOptions.slice(0, 3).map((option, optIndex) => (
+                                          option.categoryName && option.price > 0 && (
+                                            <div key={optIndex} className="flex justify-between">
+                                              <span className="font-medium">{option.categoryName}:</span>
+                                              <span>₹{option.price.toLocaleString()}</span>
+                                            </div>
+                                          )
+                                        ))}
+                                        {cityPrice.pricingOptions.length > 3 && (
+                                          <span className="italic" style={{ color: colors.secondary }}>
+                                            +{cityPrice.pricingOptions.length - 3} more options
+                                          </span>
+                                        )}
+                                      </div>
+                                    )}
+                                  </div>
+                                );
+                              })}
                               {trek.cityPricing.length > 2 && (
                                 <div className="text-xs cursor-pointer hover:underline pt-1" style={{ color: colors.secondary }}>
                                   +{trek.cityPricing.length - 2} more cities

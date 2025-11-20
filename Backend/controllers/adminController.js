@@ -63,7 +63,7 @@ export const createTour = async (req, res) => {
 
     // Parse array fields
     const parsedRest = { ...rest };
-    const arrayFields = ['highlights', 'inclusions', 'exclusions', 'cityPricing', 'itinerary', 'faqs', 'availableDates'];
+    const arrayFields = ['highlights', 'inclusions', 'exclusions', 'cityPricing', 'itinerary', 'faqs', 'availableDates', 'addOns', 'addonFacilities'];
     
     arrayFields.forEach(field => {
       if (parsedRest[field]) {
@@ -73,13 +73,19 @@ export const createTour = async (req, res) => {
 
     // Convert string values to appropriate types
     if (parsedRest.maxGroupSize) {
-      parsedRest.maxGroupSize = Number(parsedRest.maxGroupSize);
+      parsedRest.maxGroupSize = parseInt(parsedRest.maxGroupSize);
     }
     if (parsedRest.isActive !== undefined) {
       parsedRest.isActive = parsedRest.isActive === 'true' || parsedRest.isActive === true;
     }
     if (parsedRest.isFeatured !== undefined) {
       parsedRest.isFeatured = parsedRest.isFeatured === 'true' || parsedRest.isFeatured === true;
+    }
+    if (parsedRest.isFixedDeparture !== undefined) {
+      parsedRest.isFixedDeparture = parsedRest.isFixedDeparture === 'true' || parsedRest.isFixedDeparture === true;
+    }
+    if (parsedRest.isOnlyFixedDeparture !== undefined) {
+      parsedRest.isOnlyFixedDeparture = parsedRest.isOnlyFixedDeparture === 'true' || parsedRest.isOnlyFixedDeparture === true;
     }
 
     // Upload images
@@ -261,8 +267,8 @@ export const createTrek = async (req, res) => {
     }
 
     // Parse JSON strings from FormData
-    const arrayFields = ['highlights', 'cityPricing', 'availableDates', 'faqs'];
-    const booleanFields = ['isActive', 'isFeatured'];
+    const arrayFields = ['highlights', 'cityPricing', 'availableDates', 'faqs', 'addOns', 'addonFacilities', 'inclusions', 'exclusions', 'itinerary'];
+    const booleanFields = ['isActive', 'isFeatured', 'isFixedDeparture', 'isOnlyFixedDeparture'];
     const numberFields = ['altitude', 'maxGroupSize', 'totalBookings', 'rating'];
 
     const {

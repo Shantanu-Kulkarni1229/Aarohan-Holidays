@@ -6,7 +6,6 @@ import UpcomingTreks from '../components/upcomingTreks'
 import Featured from '../components/Featured'
 import Testomonial from '../components/Testomonial'
 import Footer from '../components/Footer'
-import OtherServices from '../components/OtherServices'
 import Blogs from '../components/Blogs'
 import History from '../components/History'
 
@@ -40,10 +39,6 @@ const HomePage = () => {
           
           <div id="featured">
             <Featured />
-          </div>
-          
-          <div id="other-services">
-            <OtherServices />
           </div>
           
           <div id="testimonials">

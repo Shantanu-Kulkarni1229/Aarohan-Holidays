@@ -4,6 +4,7 @@ import { FiPhone, FiSearch, FiMapPin, FiMenu, FiX, FiChevronDown, FiHome, FiCame
 import { FaMountain, FaRoute, FaConciergeBell, FaWhatsapp } from "react-icons/fa";
 import { gsap } from "gsap";
 import { toursAPI, treksAPI } from "../api/userAPI";
+import { publicAPI } from "../api/api";
 import { showApiError } from "../utils/toast";
 import EnquiryForm from "./EnquiryForm";
 
@@ -22,6 +23,7 @@ export default function Navbar() {
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState([]);
   const [showSearchResults, setShowSearchResults] = useState(false);
+  const [coupons, setCoupons] = useState([]);
   const navRef = useRef(null);
   const searchRef = useRef(null);
   const dropdownRef = useRef(null);
@@ -63,7 +65,11 @@ export default function Navbar() {
       setLoadingTours(true);
       const response = await toursAPI.getAll({ limit: 12 });
       if (response.data.success) {
-        setTours(response.data.data);
+        // Filter only available tours (not sold out or unavailable)
+        const availableTours = response.data.data.filter(
+          tour => tour.availability !== 'Sold Out' && tour.availability !== 'Unavailable'
+        );
+        setTours(availableTours);
       }
     } catch (error) {
       showApiError(error);
@@ -78,7 +84,11 @@ export default function Navbar() {
       setLoadingTreks(true);
       const response = await treksAPI.getAll({ limit: 12 });
       if (response.data.success) {
-        setTreks(response.data.data);
+        // Filter only available treks (not sold out or unavailable)
+        const availableTreks = response.data.data.filter(
+          trek => trek.availability !== 'Sold Out' && trek.availability !== 'Unavailable'
+        );
+        setTreks(availableTreks);
       }
     } catch (error) {
       showApiError(error);
@@ -87,10 +97,24 @@ export default function Navbar() {
     }
   };
 
+  // Fetch active coupons
+  const fetchCoupons = async () => {
+    try {
+      const response = await publicAPI.coupons.getActive();
+      if (response.data.success) {
+        setCoupons(response.data.data);
+      }
+    } catch (error) {
+      // Silently fail for coupons as they're not critical
+      console.error('Failed to fetch coupons:', error);
+    }
+  };
+
   // Fetch data on mount
   useEffect(() => {
     fetchTours();
     fetchTreks();
+    fetchCoupons();
   }, []);
 
   // Initial navbar animation
@@ -453,9 +477,14 @@ export default function Navbar() {
       return;
     }
 
+    // Special handling for Other Services - navigate to /other-services page
+    if (link === 'Other Services') {
+      navigate('/other-services');
+      return;
+    }
+
     const sectionMap = {
-      'Home': 'hero',
-      'Other Services': 'other-services'
+      'Home': 'hero'
     };
 
     const sectionId = sectionMap[link];
@@ -490,10 +519,9 @@ export default function Navbar() {
         window.dispatchEvent(navigationEvent);
       }
     } else if (type === 'Other Services') {
-      // Open enquiry form with service type pre-filled
-      setEnquiryFormOpen(true);
-      // Store the service type to be used by EnquiryForm
+      // Navigate to other-services page with service type pre-filled
       sessionStorage.setItem('selectedServiceType', item);
+      navigate('/other-services');
     }
   };
 
@@ -585,12 +613,81 @@ export default function Navbar() {
 
   return (
     <>
+      {/* Announcement Bar */}
+      <div 
+        className="fixed w-full z-50 overflow-hidden"
+        style={{ 
+          background: colors.primary,
+          height: '32px'
+        }}
+      >
+        <div className="flex items-center h-full">
+          <div className="animate-marquee whitespace-nowrap flex items-center">
+            {/* Display Coupons */}
+            {coupons.length > 0 && coupons.map((coupon, index) => (
+              <span key={`coupon-${index}`} className="text-white text-sm font-medium mx-8">
+                🎉 {coupon.description} - Use Code: <strong>{coupon.code}</strong> ({coupon.discountPercentage}% OFF)
+              </span>
+            ))}
+            
+            {/* Display Available Treks */}
+            {treks.length > 0 && (
+              <span className="text-white text-sm font-medium mx-8">
+                🏔️ Available Treks: {treks.slice(0, 6).map(trek => trek.name).join(' | ')}
+              </span>
+            )}
+            
+            {/* Display Available Tours */}
+            {tours.length > 0 && (
+              <span className="text-white text-sm font-medium mx-8">
+                🌴 Available Tours: {tours.slice(0, 6).map(tour => tour.name).join(' | ')}
+              </span>
+            )}
+            
+            {/* Fallback if no data */}
+            {coupons.length === 0 && tours.length === 0 && treks.length === 0 && (
+              <span className="text-white text-sm font-medium mx-8">⛰️ Adventure Awaits: Explore Amazing Destinations with Aarohan Holidays</span>
+            )}
+          </div>
+          
+          {/* Duplicate for seamless loop */}
+          <div className="animate-marquee whitespace-nowrap flex items-center" aria-hidden="true">
+            {/* Display Coupons */}
+            {coupons.length > 0 && coupons.map((coupon, index) => (
+              <span key={`coupon-dup-${index}`} className="text-white text-sm font-medium mx-8">
+                🎉 {coupon.description} - Use Code: <strong>{coupon.code}</strong> ({coupon.discountPercentage}% OFF)
+              </span>
+            ))}
+            
+            {/* Display Available Treks */}
+            {treks.length > 0 && (
+              <span className="text-white text-sm font-medium mx-8">
+                🏔️ Available Treks: {treks.slice(0, 6).map(trek => trek.name).join(' | ')}
+              </span>
+            )}
+            
+            {/* Display Available Tours */}
+            {tours.length > 0 && (
+              <span className="text-white text-sm font-medium mx-8">
+                🌴 Available Tours: {tours.slice(0, 6).map(tour => tour.name).join(' | ')}
+              </span>
+            )}
+            
+            {/* Fallback if no data */}
+            {coupons.length === 0 && tours.length === 0 && treks.length === 0 && (
+              <span className="text-white text-sm font-medium mx-8">⛰️ Adventure Awaits: Explore Amazing Destinations with Aarohan Holidays</span>
+            )}
+          </div>
+        </div>
+      </div>
+
       <nav 
         ref={navRef} 
         className="fixed w-full z-50 shadow-lg border-b"
         style={{ 
           background: colors.background,
-          borderColor: colors.border
+          borderColor: colors.border,
+          top: '32px'
         }}
       >
         <div className="max-w-8xl mx-auto flex items-center justify-between px-4 lg:px-8 py-3">
@@ -604,7 +701,7 @@ export default function Navbar() {
               onClick={() => navigate('/')}
             >
               <img 
-                src="/Logo/logo2.jpg" 
+                src="../../public/Logo/mainLogo.png" 
                 alt="Aarohan Holidays Logo" 
                 className="h-16 w-auto object-contain transition-all duration-300 group-hover:scale-105 group-hover:brightness-110"
                 style={{ maxWidth: '200px' }}
@@ -1223,15 +1320,29 @@ export default function Navbar() {
         <div 
           className="fixed w-full z-40 shadow-xl"
           style={{ 
-            top: navRef.current?.offsetHeight || '80px',
+            top: `calc(${navRef.current?.offsetHeight || 80}px + 32px)`,
             background: 'white',
-            maxHeight: 'calc(100vh - 80px)',
+            maxHeight: 'calc(100vh - 112px)',
             overflowY: 'auto'
           }}
         >
           <EnquiryForm isOpen={enquiryFormOpen} onClose={() => setEnquiryFormOpen(false)} />
         </div>
       )}
+      
+      <style>{`
+        @keyframes marquee {
+          0% {
+            transform: translateX(0%);
+          }
+          100% {
+            transform: translateX(-50%);
+          }
+        }
+        .animate-marquee {
+          animation: marquee 45s linear infinite;
+        }
+      `}</style>
     </>
   );
 }

@@ -167,9 +167,30 @@ export const verifyPaymentAndCreateBooking = async (req, res) => {
     } = bookingData;
 
     if (!name || !email || !mobile || !bookingType || !numberOfMembers || !pickupCity || !bookingDate || !totalPrice) {
+      console.error("❌ Missing required fields:", {
+        name: !!name,
+        email: !!email,
+        mobile: !!mobile,
+        bookingType: !!bookingType,
+        numberOfMembers: !!numberOfMembers,
+        pickupCity: !!pickupCity,
+        bookingDate: !!bookingDate,
+        totalPrice: !!totalPrice,
+        pricePerPerson: !!pricePerPerson
+      });
       return res.status(400).json({
         success: false,
         message: "Please provide all required booking fields",
+        missingFields: {
+          name: !name,
+          email: !email,
+          mobile: !mobile,
+          bookingType: !bookingType,
+          numberOfMembers: !numberOfMembers,
+          pickupCity: !pickupCity,
+          bookingDate: !bookingDate,
+          totalPrice: !totalPrice
+        }
       });
     }
 
@@ -223,6 +244,20 @@ export const verifyPaymentAndCreateBooking = async (req, res) => {
     }
 
     // Create booking with payment details
+    console.log("📝 Creating booking with data:", {
+      name,
+      email,
+      mobile,
+      bookingType,
+      numberOfMembers,
+      selectedCategory,
+      pickupCity,
+      bookingDate,
+      pricePerPerson,
+      totalPrice,
+      originalPrice: originalPrice || totalPrice
+    });
+
     const newBooking = await Booking.create({
       name,
       email,
@@ -235,10 +270,10 @@ export const verifyPaymentAndCreateBooking = async (req, res) => {
       women: women || 0,
       children: children || 0,
       infants: infants || 0,
-      selectedCategory: bookingType === "tour" ? selectedCategory : undefined, // NEW: Save category for tours
+      selectedCategory: selectedCategory || undefined, // Save selected pricing category
       pickupCity,
       bookingDate,
-      pricePerPerson,
+      pricePerPerson: pricePerPerson || (totalPrice / numberOfMembers), // Calculate if not provided
       totalPrice, // Final price (after discount)
       originalPrice: originalPrice || totalPrice, // Original price before discount
       discountAmount: discountAmount || 0,

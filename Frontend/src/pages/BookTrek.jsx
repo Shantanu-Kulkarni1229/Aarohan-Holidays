@@ -2,11 +2,12 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { treksAPI } from '../api/userAPI';
 import axios from 'axios';
-import { showSuccess, showError, showApiError } from '../utils/toast';
+import { showError, showApiError, showSuccess } from '../utils/toast';
 import { gsap } from 'gsap';
-import { MapPin, Clock, ChevronDown, ChevronUp, CheckCircle, XCircle, AlertCircle, Loader, Play, X, Mountain, TrendingUp, Users } from 'lucide-react';
+import { MapPin, Clock, ChevronDown, ChevronUp, CheckCircle, XCircle, AlertCircle, Loader, Play, X, Mountain, TrendingUp, Users, Shield, Heart, Phone } from 'lucide-react';
 import Navbar from '../components/Navbar';
 import { API_BASE_URL } from '../api/api';
+import '../components/RichTextContent.css';
 
 const BookTrek = () => {
   const { id } = useParams();
@@ -32,9 +33,11 @@ const BookTrek = () => {
     infants: 0,
     pickupCity: '',
     bookingDate: '',
+    selectedPricingOption: '', // Selected pricing option (categoryName from pricingOptions)
     pricePerPerson: 0,
     specialRequests: '',
-    couponCode: ''
+    couponCode: '',
+    selectedAddOns: [] // Array of selected add-on IDs
   });
   
   const [expandedItinerary, setExpandedItinerary] = useState({});
@@ -117,9 +120,11 @@ const BookTrek = () => {
           infants: 0,
           pickupCity: '',
           bookingDate: '',
+          selectedPricingOption: '',
           pricePerPerson: 0,
           specialRequests: '',
-          couponCode: ''
+          couponCode: '',
+          selectedAddOns: []
         });
         
         const response = await treksAPI.getById(id);
@@ -128,12 +133,16 @@ const BookTrek = () => {
           if (response.data.data.cityPricing?.length > 0) {
             const firstCity = response.data.data.cityPricing[0];
             setSelectedCity(firstCity.city);
-            // Use adultPrice as the base price (Version 2 structure)
-            const basePrice = firstCity.adultPrice || firstCity.price || 0;
+            // Set first pricing option as default
+            const firstPricingOption = firstCity.pricingOptions?.[0];
+            const basePrice = firstPricingOption?.price || 0;
+            const categoryName = firstPricingOption?.categoryName || '';
             setFormData(prev => ({
               ...prev,
               pickupCity: firstCity.city,
-              pricePerPerson: basePrice
+              selectedPricingOption: categoryName,
+              pricePerPerson: basePrice,
+              selectedAddOns: []
             }));
           }
         }
@@ -388,13 +397,40 @@ const BookTrek = () => {
     const city = e.target.value;
     setSelectedCity(city);
     const cityPrice = trek.cityPricing.find(cp => cp.city === city);
-    // Use adultPrice as the base price (Version 2 structure)
-    const basePrice = cityPrice ? (cityPrice.adultPrice || cityPrice.price || 0) : 0;
+    // Set first pricing option as default for new city
+    const firstPricingOption = cityPrice?.pricingOptions?.[0];
+    const basePrice = firstPricingOption?.price || 0;
+    const categoryName = firstPricingOption?.categoryName || '';
     setFormData(prev => ({
       ...prev,
       pickupCity: city,
+      selectedPricingOption: categoryName,
       pricePerPerson: basePrice
     }));
+  };
+
+  const handlePricingOptionChange = (e) => {
+    const categoryName = e.target.value;
+    const cityPrice = trek.cityPricing.find(cp => cp.city === selectedCity);
+    const selectedOption = cityPrice?.pricingOptions?.find(opt => opt.categoryName === categoryName);
+    const price = selectedOption?.price || 0;
+    setFormData(prev => ({
+      ...prev,
+      selectedPricingOption: categoryName,
+      pricePerPerson: price
+    }));
+  };
+
+  const handleAddOnToggle = (addonId) => {
+    setFormData(prev => {
+      const isSelected = prev.selectedAddOns.includes(addonId);
+      return {
+        ...prev,
+        selectedAddOns: isSelected
+          ? prev.selectedAddOns.filter(id => id !== addonId)
+          : [...prev.selectedAddOns, addonId]
+      };
+    });
   };
 
   const toggleItineraryDay = (dayIndex) => {
@@ -411,17 +447,24 @@ const BookTrek = () => {
     const cityPrice = trek.cityPricing?.find(cp => cp.city === selectedCity);
     if (!cityPrice) return 0;
     
-    // Calculate based on Version 2 pricing structure with different rates
-    const adultPrice = cityPrice.adultPrice || cityPrice.price || 0;
-    const womenPrice = cityPrice.womenPrice || cityPrice.price || 0;
-    const childrenPrice = cityPrice.childrenPrice || cityPrice.price || 0;
-    const infantPrice = cityPrice.infantPrice || 0; // Infants might be free
+    // Find the selected pricing option
+    const selectedOption = cityPrice.pricingOptions?.find(
+      opt => opt.categoryName === formData.selectedPricingOption
+    );
+    const basePrice = selectedOption ? selectedOption.price : 0;
     
-    const totalPrice = 
-      (formData.adults * adultPrice) +
-      (formData.women * womenPrice) +
-      (formData.children * childrenPrice) +
-      (formData.infants * infantPrice);
+    // Calculate base price total
+    let totalPrice = formData.numberOfMembers * basePrice;
+    
+    // Add selected add-ons (add-ons are typically per person)
+    if (trek.addOns && formData.selectedAddOns.length > 0) {
+      formData.selectedAddOns.forEach(addonId => {
+        const addon = trek.addOns.find(a => a._id === addonId);
+        if (addon) {
+          totalPrice += addon.price * formData.numberOfMembers;
+        }
+      });
+    }
     
     return totalPrice;
   };
@@ -481,7 +524,7 @@ const BookTrek = () => {
 
     try {
       const response = await axios.post(`${API_BASE_URL}/coupons/validate`, {
-        code: formData.couponCode,
+        code: formData.couponCode.toUpperCase(),
         bookingType: 'trek',
         itemId: trek._id,
         orderAmount: calculateTotalPrice()
@@ -491,12 +534,14 @@ const BookTrek = () => {
         setCouponData(response.data.data);
         setCouponApplied(true);
         setCouponError('');
+        showSuccess(`Coupon applied! You saved ₹${response.data.data.discountAmount}`);
       }
     } catch (err) {
       const errorMsg = err.response?.data?.message || 'Invalid coupon code';
       setCouponError(errorMsg);
       setCouponData(null);
       setCouponApplied(false);
+      showError(errorMsg);
     } finally {
       setApplyingCoupon(false);
     }
@@ -530,6 +575,7 @@ const BookTrek = () => {
     
     if (formData.numberOfMembers < 1) errors.numberOfMembers = 'At least 1 member required';
     if (!formData.pickupCity) errors.pickupCity = 'Please select pickup city';
+    if (!formData.selectedPricingOption) errors.selectedPricingOption = 'Please select a pricing category';
     if (!formData.bookingDate) errors.bookingDate = 'Booking date is required';
     
     const selectedDate = new Date(formData.bookingDate);
@@ -692,6 +738,8 @@ const BookTrek = () => {
         women: formData.women,
         children: formData.children,
         infants: formData.infants,
+        selectedCategory: formData.selectedPricingOption, // Selected pricing category name
+        selectedAddOns: formData.selectedAddOns, // Selected add-on IDs
         pickupCity: formData.pickupCity,
         bookingDate: formData.bookingDate,
         pricePerPerson: formData.pricePerPerson,
@@ -746,7 +794,11 @@ const BookTrek = () => {
             </div>
             <div>
               <h4 className="font-bold text-base mb-1" style={{ color: colors.text }}>{day.title}</h4>
-              <p className="text-sm line-clamp-1" style={{ color: colors.lightText }}>{day.description}</p>
+              <div 
+                className="text-sm line-clamp-1" 
+                style={{ color: colors.lightText }}
+                dangerouslySetInnerHTML={{ __html: day.description }}
+              />
             </div>
           </div>
           <div className={`transform transition-transform duration-300 ${isExpanded ? 'rotate-180' : ''}`}>
@@ -756,7 +808,11 @@ const BookTrek = () => {
         
         <div className={`overflow-hidden transition-all duration-300 ${isExpanded ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'}`}>
           <div className="p-4 border-t" style={{ borderColor: colors.border, backgroundColor: colors.background }}>
-            <p className="leading-relaxed mb-3 text-sm" style={{ color: colors.text }}>{day.description}</p>
+            <div 
+              className="leading-relaxed mb-3 text-sm rich-text-content" 
+              style={{ color: colors.text }}
+              dangerouslySetInnerHTML={{ __html: day.description }}
+            />
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
               {day.meals && (
@@ -803,7 +859,11 @@ const BookTrek = () => {
                   </div>
                   <div className="flex-1">
                     <p className="font-bold text-xs mb-1" style={{ color: colors.text }}>Important Note</p>
-                    <p className="text-xs leading-relaxed" style={{ color: colors.text }}>{day.note}</p>
+                    <div 
+                      className="text-xs leading-relaxed rich-text-content" 
+                      style={{ color: colors.text }}
+                      dangerouslySetInnerHTML={{ __html: day.note }}
+                    />
                   </div>
                 </div>
               </div>
@@ -1131,76 +1191,85 @@ const BookTrek = () => {
                     <span className="mr-2">💰</span>
                     Pricing Details
                   </h3>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-                    {trek.cityPricing && trek.cityPricing.length > 0 && trek.cityPricing.some(c => c.adultPrice > 0) && (
-                      <div className="bg-white rounded-lg p-3 border-2 transition-all duration-300 hover:shadow-md" style={{ borderColor: colors.primary }}>
-                        <div className="flex items-center gap-2 mb-2">
-                          <div className="w-7 h-7 rounded-full flex items-center justify-center" style={{ backgroundColor: colors.primary + '20' }}>
-                            <Users className="w-3.5 h-3.5" style={{ color: colors.primary }} />
+                  {selectedCity && trek.cityPricing?.find(cp => cp.city === selectedCity) ? (
+                    <>
+                      {(() => {
+                        const cityPrice = trek.cityPricing.find(cp => cp.city === selectedCity);
+                        if (!cityPrice || !cityPrice.pricingOptions || cityPrice.pricingOptions.length === 0) {
+                          return (
+                            <div className="text-center py-4 text-sm" style={{ color: colors.error }}>
+                              Pricing not available for selected city
+                            </div>
+                          );
+                        }
+                        
+                        const pricingOptions = cityPrice.pricingOptions || [];
+                        
+                        return (
+                          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                            {pricingOptions.map((option, index) => {
+                              const isSelected = formData.selectedPricingOption === option.categoryName;
+                              const colorIndex = index % 5;
+                              const optionColors = [
+                                colors.success,
+                                colors.primary, 
+                                colors.secondary,
+                                '#9333EA',
+                                '#DC2626'
+                              ];
+                              const optionColor = optionColors[colorIndex];
+                              
+                              return (
+                                <div 
+                                  key={index}
+                                  className={`bg-white rounded-lg p-3 border-2 transition-all duration-300 hover:shadow-md ${
+                                    isSelected ? 'ring-2' : ''
+                                  }`}
+                                  style={{ 
+                                    borderColor: isSelected ? optionColor : colors.border,
+                                    ringColor: optionColor
+                                  }}
+                                >
+                                  <div className="flex items-center gap-2 mb-2">
+                                    <span className="text-lg">🎫</span>
+                                    <span className="font-semibold text-xs" style={{ color: colors.text }}>
+                                      {option.categoryName}
+                                    </span>
+                                  </div>
+                                  <p className="text-xl font-bold" style={{ color: optionColor }}>
+                                    ₹{option.price.toLocaleString('en-IN')}
+                                  </p>
+                                  <p className="text-xs text-gray-500 mt-1">Per person</p>
+                                  {isSelected && (
+                                    <div className="mt-2 text-xs font-semibold flex items-center gap-1" style={{ color: optionColor }}>
+                                      <CheckCircle className="w-3 h-3" />
+                                      Selected
+                                    </div>
+                                  )}
+                                </div>
+                              );
+                            })}
                           </div>
-                          <span className="font-semibold text-xs" style={{ color: colors.text }}>Adults</span>
-                        </div>
-                        <p className="text-xl font-bold" style={{ color: colors.primary }}>
-                          ₹{Math.min(...trek.cityPricing.filter(c => c.adultPrice > 0).map(c => c.adultPrice)).toLocaleString()}
-                        </p>
-                        <p className="text-xs text-gray-500 mt-0.5">Per person</p>
-                      </div>
-                    )}
-                    
-                    {trek.cityPricing && trek.cityPricing.length > 0 && trek.cityPricing.some(c => c.womenPrice > 0) && (
-                      <div className="bg-white rounded-lg p-3 border-2 transition-all duration-300 hover:shadow-md" style={{ borderColor: colors.secondary }}>
-                        <div className="flex items-center gap-2 mb-2">
-                          <div className="w-7 h-7 rounded-full flex items-center justify-center" style={{ backgroundColor: colors.secondary + '20' }}>
-                            <Users className="w-3.5 h-3.5" style={{ color: colors.secondary }} />
-                          </div>
-                          <span className="font-semibold text-xs" style={{ color: colors.text }}>Women</span>
-                        </div>
-                        <p className="text-xl font-bold" style={{ color: colors.secondary }}>
-                          ₹{Math.min(...trek.cityPricing.filter(c => c.womenPrice > 0).map(c => c.womenPrice)).toLocaleString()}
-                        </p>
-                        <p className="text-xs text-gray-500 mt-0.5">Per person</p>
-                      </div>
-                    )}
-                    
-                    {trek.cityPricing && trek.cityPricing.length > 0 && trek.cityPricing.some(c => c.childrenPrice > 0) && (
-                      <div className="bg-white rounded-lg p-3 border-2 transition-all duration-300 hover:shadow-md" style={{ borderColor: colors.success }}>
-                        <div className="flex items-center gap-2 mb-2">
-                          <div className="w-7 h-7 rounded-full flex items-center justify-center" style={{ backgroundColor: colors.success + '20' }}>
-                            <Users className="w-3.5 h-3.5" style={{ color: colors.success }} />
-                          </div>
-                          <span className="font-semibold text-xs" style={{ color: colors.text }}>Children</span>
-                        </div>
-                        <p className="text-xl font-bold" style={{ color: colors.success }}>
-                          ₹{Math.min(...trek.cityPricing.filter(c => c.childrenPrice > 0).map(c => c.childrenPrice)).toLocaleString()}
-                        </p>
-                        <p className="text-xs text-gray-500 mt-0.5">Ages 5-18</p>
-                      </div>
-                    )}
-                    
-                    {trek.cityPricing && trek.cityPricing.length > 0 && trek.cityPricing.some(c => c.infantPrice > 0) && (
-                      <div className="bg-white rounded-lg p-3 border-2 transition-all duration-300 hover:shadow-md" style={{ borderColor: colors.warning }}>
-                        <div className="flex items-center gap-2 mb-2">
-                          <div className="w-7 h-7 rounded-full flex items-center justify-center" style={{ backgroundColor: colors.warning + '20' }}>
-                            <Users className="w-3.5 h-3.5" style={{ color: colors.warning }} />
-                          </div>
-                          <span className="font-semibold text-xs" style={{ color: colors.text }}>Infants</span>
-                        </div>
-                        <p className="text-xl font-bold" style={{ color: colors.warning }}>
-                          ₹{Math.min(...trek.cityPricing.filter(c => c.infantPrice > 0).map(c => c.infantPrice)).toLocaleString()}
-                        </p>
-                        <p className="text-xs text-gray-500 mt-0.5">Below 5 years</p>
-                      </div>
-                    )}
-                  </div>
-                  <p className="text-xs text-gray-600 mt-3 italic">
-                    *Prices shown are starting rates and may vary by pickup city. Select your city in the booking form for exact pricing.
-                  </p>
+                        );
+                      })()}
+                      
+                      <p className="text-xs text-gray-600 mt-3 italic">
+                        💡 Select your preferred category in the booking form. Prices are per person and vary by city.
+                      </p>
+                    </>
+                  ) : (
+                    <p className="text-sm text-gray-600">Select a city to view pricing options</p>
+                  )}
                 </div>
                 
                 {/* Trek Description */}
                 <div className="p-4 border-b" style={{ borderColor: colors.border }}>
                   <h3 className="text-lg font-bold mb-3" style={{ color: colors.text }}>About This Trek</h3>
-                  <p className="leading-relaxed text-sm" style={{ color: colors.text }}>{trek.description}</p>
+                  <div 
+                    className="leading-relaxed text-sm rich-text-content" 
+                    style={{ color: colors.text }}
+                    dangerouslySetInnerHTML={{ __html: trek.description }}
+                  />
                 </div>
 
                 {/* YouTube Video */}
@@ -1260,6 +1329,33 @@ const BookTrek = () => {
                           <CheckCircle className="w-3 h-3" style={{ color: colors.secondary }} />
                         </div>
                         <span className="text-sm pt-0.5" style={{ color: colors.text }}>{highlight}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Addon Facilities Section */}
+              {trek.addonFacilities && trek.addonFacilities.length > 0 && (
+                <div className="bg-white rounded-lg shadow-lg p-4 transition-all duration-300 border" style={{ borderColor: colors.border }}>
+                  <h3 className="text-lg font-bold mb-4 flex items-center" style={{ color: colors.text }}>
+                    <CheckCircle className="w-5 h-5 mr-2" style={{ color: '#10B981' }} />
+                    Additional Facilities
+                  </h3>
+                  <div className="space-y-3">
+                    {trek.addonFacilities.map((facility, index) => (
+                      <div key={index} className="border-l-4 pl-3 py-2" style={{ borderLeftColor: '#10B981' }}>
+                        <h4 className="font-bold text-sm mb-1" style={{ color: colors.text }}>
+                          {facility.header}
+                        </h4>
+                        <ul className="space-y-1">
+                          {facility.subPoints.map((point, pointIndex) => (
+                            <li key={pointIndex} className="text-xs text-gray-700 flex items-start">
+                              <span className="mr-2 text-xs" style={{ color: '#10B981' }}>●</span>
+                              {point}
+                            </li>
+                          ))}
+                        </ul>
                       </div>
                     ))}
                   </div>
@@ -1669,6 +1765,87 @@ const BookTrek = () => {
                     </div>
                   </div>
 
+                  {/* Pricing Option Selection */}
+                  <div className="border-t pt-3" style={{ borderColor: colors.border }}>
+                    <label className="block text-xs font-semibold mb-1" style={{ color: colors.text }}>
+                      Select Pricing Category * <span className="text-xs font-normal" style={{ color: colors.lightText }}>(per person)</span>
+                    </label>
+                    <select
+                      value={formData.selectedPricingOption}
+                      onChange={handlePricingOptionChange}
+                      className={`w-full px-3 py-2 border rounded-lg focus:ring-1 transition-all duration-300 text-sm ${
+                        formErrors.selectedPricingOption ? 'bg-red-50' : 'hover:border-gray-400'
+                      }`}
+                      style={{ 
+                        borderColor: formErrors.selectedPricingOption ? colors.error : colors.border,
+                        focusBorderColor: colors.primary,
+                        focusRingColor: colors.primary,
+                        color: colors.text,
+                        backgroundColor: '#FFFFFF'
+                      }}
+                    >
+                      {selectedCity && trek.cityPricing?.find(cp => cp.city === selectedCity)?.pricingOptions && (
+                        <>
+                          {trek.cityPricing
+                            .find(cp => cp.city === selectedCity)
+                            .pricingOptions.map((option, index) => (
+                              <option key={index} value={option.categoryName} style={{ color: colors.text }}>
+                                🎫 {option.categoryName} - ₹{option.price.toLocaleString('en-IN')}/person
+                              </option>
+                            ))}
+                        </>
+                      )}
+                    </select>
+                    {formErrors.selectedPricingOption && (
+                      <p className="error-message text-xs mt-1 flex items-center gap-1" style={{ color: colors.error }}>
+                        <AlertCircle className="w-3 h-3" />
+                        {formErrors.selectedPricingOption}
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Add-ons Selection */}
+                  {trek.addOns && trek.addOns.length > 0 && (
+                    <div className="border rounded-lg p-3" style={{ borderColor: colors.border, backgroundColor: colors.accentLight }}>
+                      <h4 className="font-semibold mb-2 flex items-center text-sm" style={{ color: colors.text }}>
+                        <CheckCircle className="w-3 h-3 mr-1" style={{ color: colors.secondary }} />
+                        Optional Add-ons
+                      </h4>
+                      <p className="text-xs text-gray-600 mb-2">Select additional services (price per person)</p>
+                      <div className="space-y-2">
+                        {trek.addOns.map((addon) => (
+                          <label 
+                            key={addon._id}
+                            className="flex items-start p-2 bg-white rounded-lg border cursor-pointer hover:shadow-sm transition-all text-sm"
+                            style={{ 
+                              borderColor: formData.selectedAddOns.includes(addon._id) ? colors.secondary : colors.border 
+                            }}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={formData.selectedAddOns.includes(addon._id)}
+                              onChange={() => handleAddOnToggle(addon._id)}
+                              className="mt-1 mr-2"
+                            />
+                            <div className="flex-1">
+                              <div className="flex items-center justify-between mb-0.5">
+                                <span className="font-semibold text-xs" style={{ color: colors.text }}>
+                                  {addon.name}
+                                </span>
+                                <span className="font-bold text-xs" style={{ color: colors.secondary }}>
+                                  +₹{addon.price.toLocaleString('en-IN')}/person
+                                </span>
+                              </div>
+                              {addon.description && (
+                                <p className="text-xs text-gray-600">{addon.description}</p>
+                              )}
+                            </div>
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
                   {/* Special Requests */}
                   <div>
                     <label className="block text-xs font-semibold mb-1" style={{ color: colors.text }}>
@@ -1741,7 +1918,7 @@ const BookTrek = () => {
                     )}
                     
                     <div className="space-y-2">
-                      {/* Show price breakdown by member type */}
+                      {/* Show price breakdown */}
                       {trek && selectedCity && trek.cityPricing ? (() => {
                         const cityPrice = trek.cityPricing.find(cp => cp.city === selectedCity);
                         if (!cityPrice) {
@@ -1752,51 +1929,56 @@ const BookTrek = () => {
                           );
                         }
                         
-                        const adultPrice = cityPrice.adultPrice || cityPrice.price || 0;
-                        const womenPrice = cityPrice.womenPrice || cityPrice.price || 0;
-                        const childrenPrice = cityPrice.childrenPrice || cityPrice.price || 0;
-                        const infantPrice = cityPrice.infantPrice || 0;
+                        const selectedOption = cityPrice.pricingOptions?.find(
+                          opt => opt.categoryName === formData.selectedPricingOption
+                        );
+                        const categoryPrice = selectedOption?.price || 0;
+                        const baseTotal = categoryPrice * formData.numberOfMembers;
                         
                         return (
                           <>
-                            {formData.adults > 0 && (
-                              <div className="flex justify-between items-center text-xs">
-                                <span style={{ color: colors.lightText }}>
-                                  Adults ({formData.adults}) × ₹{adultPrice.toLocaleString('en-IN')}
-                                </span>
-                                <span className="font-semibold text-sm" style={{ color: colors.text }}>
-                                  ₹{(formData.adults * adultPrice).toLocaleString('en-IN')}
-                                </span>
+                            <div className="flex justify-between items-center text-xs p-2 rounded" style={{ backgroundColor: colors.accentLight }}>
+                              <span style={{ color: colors.text }}>
+                                🎫 {formData.selectedPricingOption}
+                              </span>
+                              <span className="font-semibold" style={{ color: colors.secondary }}>
+                                ₹{categoryPrice.toLocaleString('en-IN')}/person
+                              </span>
+                            </div>
+                            <div className="flex justify-between items-center text-xs">
+                              <span style={{ color: colors.lightText }}>
+                                Total Members: {formData.numberOfMembers}
+                              </span>
+                              <span className="font-semibold text-sm" style={{ color: colors.text }}>
+                                ₹{baseTotal.toLocaleString('en-IN')}
+                              </span>
+                            </div>
+                            {/* Show demographics breakdown for reference */}
+                            <div className="text-xs pt-2 border-t" style={{ borderColor: colors.border, color: colors.lightText }}>
+                              <div className="flex justify-between mb-1">
+                                <span>Adults: {formData.adults}</span>
+                                <span>Women: {formData.women}</span>
                               </div>
-                            )}
-                            {formData.women > 0 && (
-                              <div className="flex justify-between items-center text-xs">
-                                <span style={{ color: colors.lightText }}>
-                                  Women ({formData.women}) × ₹{womenPrice.toLocaleString('en-IN')}
-                                </span>
-                                <span className="font-semibold text-sm" style={{ color: colors.text }}>
-                                  ₹{(formData.women * womenPrice).toLocaleString('en-IN')}
-                                </span>
+                              <div className="flex justify-between">
+                                <span>Children: {formData.children}</span>
+                                <span>Infants: {formData.infants}</span>
                               </div>
-                            )}
-                            {formData.children > 0 && (
-                              <div className="flex justify-between items-center text-xs">
-                                <span style={{ color: colors.lightText }}>
-                                  Children ({formData.children}) × ₹{childrenPrice.toLocaleString('en-IN')}
-                                </span>
-                                <span className="font-semibold text-sm" style={{ color: colors.text }}>
-                                  ₹{(formData.children * childrenPrice).toLocaleString('en-IN')}
-                                </span>
-                              </div>
-                            )}
-                            {formData.infants > 0 && (
-                              <div className="flex justify-between items-center text-xs">
-                                <span style={{ color: colors.lightText }}>
-                                  Infants ({formData.infants}) × ₹{infantPrice.toLocaleString('en-IN')}
-                                </span>
-                                <span className="font-semibold text-sm" style={{ color: colors.text }}>
-                                  ₹{(formData.infants * infantPrice).toLocaleString('en-IN')}
-                                </span>
+                            </div>
+                            {/* Show selected add-ons */}
+                            {formData.selectedAddOns.length > 0 && (
+                              <div className="text-xs pt-2 border-t" style={{ borderColor: colors.border }}>
+                                <div className="font-semibold mb-2" style={{ color: colors.text }}>Selected Add-ons:</div>
+                                {formData.selectedAddOns.map(addonId => {
+                                  const addon = trek.addOns?.find(a => a._id === addonId);
+                                  if (!addon) return null;
+                                  const addonTotal = addon.price * formData.numberOfMembers;
+                                  return (
+                                    <div key={addonId} className="flex justify-between mb-1" style={{ color: colors.lightText }}>
+                                      <span>{addon.name}</span>
+                                      <span style={{ color: colors.secondary }}>+₹{addonTotal.toLocaleString('en-IN')}</span>
+                                    </div>
+                                  );
+                                })}
                               </div>
                             )}
                           </>
@@ -1872,6 +2054,69 @@ const BookTrek = () => {
                     🔒 Secure booking · ✅ Best price guarantee · 🏔️ Instant confirmation
                   </p>
                 </form>
+              </div>
+
+              {/* Why Choose Aarohan Holidays Section */}
+              <div className="mt-8 rounded-2xl shadow-lg overflow-hidden" style={{ backgroundColor: colors.cardBg }}>
+                <div className="p-6" style={{ background: `linear-gradient(135deg, ${colors.primary} 0%, ${colors.secondary} 100%)` }}>
+                  <h3 className="text-2xl font-bold text-white text-center">Why Choose Aarohan Holidays?</h3>
+                </div>
+                <div className="p-6 space-y-4">
+                  {/* Card 1 */}
+                  <div className="flex items-start gap-4 p-4 rounded-xl transition-all duration-300 hover:shadow-md" style={{ backgroundColor: colors.accentBlue }}>
+                    <div className="w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0" style={{ backgroundColor: colors.primary }}>
+                      <CheckCircle className="w-6 h-6 text-white" />
+                    </div>
+                    <div>
+                      <h4 className="font-bold text-lg mb-1" style={{ color: colors.text }}>5+ Years of Excellence</h4>
+                      <p className="text-sm" style={{ color: colors.lightText }}>Trusted by 15,000+ travelers with expert-curated experiences across 250+ destinations</p>
+                    </div>
+                  </div>
+
+                  {/* Card 2 */}
+                  <div className="flex items-start gap-4 p-4 rounded-xl transition-all duration-300 hover:shadow-md" style={{ backgroundColor: colors.accentLight }}>
+                    <div className="w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0" style={{ backgroundColor: colors.secondary }}>
+                      <Shield className="w-6 h-6 text-white" />
+                    </div>
+                    <div>
+                      <h4 className="font-bold text-lg mb-1" style={{ color: colors.text }}>Safe & Secure Travel</h4>
+                      <p className="text-sm" style={{ color: colors.lightText }}>100% secure payments, verified partners, and comprehensive travel insurance options</p>
+                    </div>
+                  </div>
+
+                  {/* Card 3 */}
+                  <div className="flex items-start gap-4 p-4 rounded-xl transition-all duration-300 hover:shadow-md" style={{ backgroundColor: colors.accentBlue }}>
+                    <div className="w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0" style={{ backgroundColor: colors.primary }}>
+                      <Users className="w-6 h-6 text-white" />
+                    </div>
+                    <div>
+                      <h4 className="font-bold text-lg mb-1" style={{ color: colors.text }}>Expert Travel Guides</h4>
+                      <p className="text-sm" style={{ color: colors.lightText }}>Professional, certified guides with local knowledge to make your journey memorable</p>
+                    </div>
+                  </div>
+
+                  {/* Card 4 */}
+                  <div className="flex items-start gap-4 p-4 rounded-xl transition-all duration-300 hover:shadow-md" style={{ backgroundColor: colors.accentLight }}>
+                    <div className="w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0" style={{ backgroundColor: colors.secondary }}>
+                      <Heart className="w-6 h-6 text-white" />
+                    </div>
+                    <div>
+                      <h4 className="font-bold text-lg mb-1" style={{ color: colors.text }}>Personalized Experiences</h4>
+                      <p className="text-sm" style={{ color: colors.lightText }}>Customizable itineraries tailored to your preferences, budget, and travel style</p>
+                    </div>
+                  </div>
+
+                  {/* Card 5 */}
+                  <div className="flex items-start gap-4 p-4 rounded-xl transition-all duration-300 hover:shadow-md" style={{ backgroundColor: colors.accentBlue }}>
+                    <div className="w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0" style={{ backgroundColor: colors.primary }}>
+                      <Phone className="w-6 h-6 text-white" />
+                    </div>
+                    <div>
+                      <h4 className="font-bold text-lg mb-1" style={{ color: colors.text }}>24/7 Travel Support</h4>
+                      <p className="text-sm" style={{ color: colors.lightText }}>Round-the-clock assistance via phone, WhatsApp, and email for a worry-free journey</p>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>

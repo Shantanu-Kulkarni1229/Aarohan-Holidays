@@ -33,6 +33,7 @@ import NavigationLoader from './components/NavigationLoader'
 import { FaWhatsapp } from 'react-icons/fa'
 import CancellationPolicy from './pages/CancellationPolicy'
 import About from './pages/About'
+import OtherServicesPage from './pages/OtherServicesPage'
 
 // Wrapper component to use location as key
 const BookTourWrapper = () => {
@@ -54,7 +55,7 @@ const WhatsAppButton = () => {
 
   return (
     <a
-      href="https://wa.me/+919011268465?text=Hello! I'm interested in booking a tour/trek."
+      href="https://wa.me/+917276644221?text=Hello! I'm interested in booking a tour/trek."
       target="_blank"
       rel="noopener noreferrer"
       className="whatsapp-float group"
@@ -110,6 +111,7 @@ const App = () => {
           <Route path="/contact" element={<ContactSupport />} />
           <Route path="/cancellation-policy" element={<CancellationPolicy />} />
           <Route path="/about" element={<About />} />
+          <Route path="/other-services" element={<OtherServicesPage />} />
 
         
           {/* Admin Login Route */}
