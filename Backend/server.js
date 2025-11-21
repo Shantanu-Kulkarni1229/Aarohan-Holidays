@@ -32,6 +32,7 @@ const allowedOrigins = [
   "https://4zb5qb7j-5173.inc1.devtunnels.ms", 
   "http://localhost:5173",
 "https://aarohanholidays.com",
+"https://www.aarohanholidays.com",
   "https://lightyellow-ram-720840.hostingersite.com"
   // If using Netlify
   // Add any other frontend domains you're using
