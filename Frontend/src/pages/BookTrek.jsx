@@ -806,8 +806,8 @@ const BookTrek = () => {
           </div>
         </button>
         
-        <div className={`overflow-hidden transition-all duration-300 ${isExpanded ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'}`}>
-          <div className="p-4 border-t" style={{ borderColor: colors.border, backgroundColor: colors.background }}>
+        <div className={`overflow-hidden transition-all duration-500 ${isExpanded ? 'max-h-[2000px] opacity-100' : 'max-h-0 opacity-0'}`}>
+          <div className="p-4 border-t overflow-y-auto max-h-[1800px]" style={{ borderColor: colors.border, backgroundColor: colors.background }}>
             <div 
               className="leading-relaxed mb-3 text-sm rich-text-content" 
               style={{ color: colors.text }}
@@ -1454,6 +1454,70 @@ const BookTrek = () => {
                   </li>
                 </ul>
               </div>
+
+              {/* Why Choose Aarohan Holidays Section */}
+              <div className="bg-white rounded-xl shadow-lg p-6 border transition-all duration-300" style={{ borderColor: colors.border }}>
+                <div className="mb-6">
+                  <h3 className="text-2xl font-bold mb-2" style={{ color: colors.primary }}>Why Choose Aarohan Holidays?</h3>
+                  <div className="h-1 w-20 rounded" style={{ backgroundColor: colors.secondary }}></div>
+                </div>
+                <div className="space-y-4">
+                  {/* Card 1 */}
+                  <div className="flex items-start gap-4 p-4 rounded-xl transition-all duration-300 hover:shadow-md border" style={{ backgroundColor: colors.background, borderColor: colors.border }}>
+                    <div className="w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0" style={{ backgroundColor: colors.primary }}>
+                      <CheckCircle className="w-6 h-6 text-white" />
+                    </div>
+                    <div>
+                      <h4 className="font-bold text-lg mb-1" style={{ color: colors.text }}>5+ Years of Excellence</h4>
+                      <p className="text-sm" style={{ color: colors.lightText }}>Trusted by 15,000+ travelers with expert-curated experiences across 250+ destinations</p>
+                    </div>
+                  </div>
+
+                  {/* Card 2 */}
+                  <div className="flex items-start gap-4 p-4 rounded-xl transition-all duration-300 hover:shadow-md border" style={{ backgroundColor: colors.background, borderColor: colors.border }}>
+                    <div className="w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0" style={{ backgroundColor: colors.secondary }}>
+                      <Shield className="w-6 h-6 text-white" />
+                    </div>
+                    <div>
+                      <h4 className="font-bold text-lg mb-1" style={{ color: colors.text }}>Safe & Secure Travel</h4>
+                      <p className="text-sm" style={{ color: colors.lightText }}>100% secure payments, verified partners, and comprehensive travel insurance options</p>
+                    </div>
+                  </div>
+
+                  {/* Card 3 */}
+                  <div className="flex items-start gap-4 p-4 rounded-xl transition-all duration-300 hover:shadow-md border" style={{ backgroundColor: colors.background, borderColor: colors.border }}>
+                    <div className="w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0" style={{ backgroundColor: colors.primary }}>
+                      <Users className="w-6 h-6 text-white" />
+                    </div>
+                    <div>
+                      <h4 className="font-bold text-lg mb-1" style={{ color: colors.text }}>Expert Travel Guides</h4>
+                      <p className="text-sm" style={{ color: colors.lightText }}>Professional, certified guides with local knowledge to make your journey memorable</p>
+                    </div>
+                  </div>
+
+                  {/* Card 4 */}
+                  <div className="flex items-start gap-4 p-4 rounded-xl transition-all duration-300 hover:shadow-md border" style={{ backgroundColor: colors.background, borderColor: colors.border }}>
+                    <div className="w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0" style={{ backgroundColor: colors.secondary }}>
+                      <Heart className="w-6 h-6 text-white" />
+                    </div>
+                    <div>
+                      <h4 className="font-bold text-lg mb-1" style={{ color: colors.text }}>Personalized Experiences</h4>
+                      <p className="text-sm" style={{ color: colors.lightText }}>Customizable itineraries tailored to your preferences, budget, and travel style</p>
+                    </div>
+                  </div>
+
+                  {/* Card 5 */}
+                  <div className="flex items-start gap-4 p-4 rounded-xl transition-all duration-300 hover:shadow-md border" style={{ backgroundColor: colors.background, borderColor: colors.border }}>
+                    <div className="w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0" style={{ backgroundColor: colors.primary }}>
+                      <Phone className="w-6 h-6 text-white" />
+                    </div>
+                    <div>
+                      <h4 className="font-bold text-lg mb-1" style={{ color: colors.text }}>24/7 Travel Support</h4>
+                      <p className="text-sm" style={{ color: colors.lightText }}>Round-the-clock assistance via phone, WhatsApp, and email for a worry-free journey</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
 
             {/* Right Side - Sticky Booking Form */}
@@ -2054,69 +2118,6 @@ const BookTrek = () => {
                     🔒 Secure booking · ✅ Best price guarantee · 🏔️ Instant confirmation
                   </p>
                 </form>
-              </div>
-
-              {/* Why Choose Aarohan Holidays Section */}
-              <div className="mt-8 rounded-2xl shadow-lg overflow-hidden" style={{ backgroundColor: colors.cardBg }}>
-                <div className="p-6" style={{ background: `linear-gradient(135deg, ${colors.primary} 0%, ${colors.secondary} 100%)` }}>
-                  <h3 className="text-2xl font-bold text-white text-center">Why Choose Aarohan Holidays?</h3>
-                </div>
-                <div className="p-6 space-y-4">
-                  {/* Card 1 */}
-                  <div className="flex items-start gap-4 p-4 rounded-xl transition-all duration-300 hover:shadow-md" style={{ backgroundColor: colors.accentBlue }}>
-                    <div className="w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0" style={{ backgroundColor: colors.primary }}>
-                      <CheckCircle className="w-6 h-6 text-white" />
-                    </div>
-                    <div>
-                      <h4 className="font-bold text-lg mb-1" style={{ color: colors.text }}>5+ Years of Excellence</h4>
-                      <p className="text-sm" style={{ color: colors.lightText }}>Trusted by 15,000+ travelers with expert-curated experiences across 250+ destinations</p>
-                    </div>
-                  </div>
-
-                  {/* Card 2 */}
-                  <div className="flex items-start gap-4 p-4 rounded-xl transition-all duration-300 hover:shadow-md" style={{ backgroundColor: colors.accentLight }}>
-                    <div className="w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0" style={{ backgroundColor: colors.secondary }}>
-                      <Shield className="w-6 h-6 text-white" />
-                    </div>
-                    <div>
-                      <h4 className="font-bold text-lg mb-1" style={{ color: colors.text }}>Safe & Secure Travel</h4>
-                      <p className="text-sm" style={{ color: colors.lightText }}>100% secure payments, verified partners, and comprehensive travel insurance options</p>
-                    </div>
-                  </div>
-
-                  {/* Card 3 */}
-                  <div className="flex items-start gap-4 p-4 rounded-xl transition-all duration-300 hover:shadow-md" style={{ backgroundColor: colors.accentBlue }}>
-                    <div className="w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0" style={{ backgroundColor: colors.primary }}>
-                      <Users className="w-6 h-6 text-white" />
-                    </div>
-                    <div>
-                      <h4 className="font-bold text-lg mb-1" style={{ color: colors.text }}>Expert Travel Guides</h4>
-                      <p className="text-sm" style={{ color: colors.lightText }}>Professional, certified guides with local knowledge to make your journey memorable</p>
-                    </div>
-                  </div>
-
-                  {/* Card 4 */}
-                  <div className="flex items-start gap-4 p-4 rounded-xl transition-all duration-300 hover:shadow-md" style={{ backgroundColor: colors.accentLight }}>
-                    <div className="w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0" style={{ backgroundColor: colors.secondary }}>
-                      <Heart className="w-6 h-6 text-white" />
-                    </div>
-                    <div>
-                      <h4 className="font-bold text-lg mb-1" style={{ color: colors.text }}>Personalized Experiences</h4>
-                      <p className="text-sm" style={{ color: colors.lightText }}>Customizable itineraries tailored to your preferences, budget, and travel style</p>
-                    </div>
-                  </div>
-
-                  {/* Card 5 */}
-                  <div className="flex items-start gap-4 p-4 rounded-xl transition-all duration-300 hover:shadow-md" style={{ backgroundColor: colors.accentBlue }}>
-                    <div className="w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0" style={{ backgroundColor: colors.primary }}>
-                      <Phone className="w-6 h-6 text-white" />
-                    </div>
-                    <div>
-                      <h4 className="font-bold text-lg mb-1" style={{ color: colors.text }}>24/7 Travel Support</h4>
-                      <p className="text-sm" style={{ color: colors.lightText }}>Round-the-clock assistance via phone, WhatsApp, and email for a worry-free journey</p>
-                    </div>
-                  </div>
-                </div>
               </div>
             </div>
           </div>

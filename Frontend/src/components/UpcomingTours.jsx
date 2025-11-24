@@ -348,14 +348,16 @@ const UpcomingTours = () => {
   const formatPrice = (cityPricing) => {
     if (!cityPricing || cityPricing.length === 0) return 'Contact for Pricing';
     
-    // Extract all prices from all categories (budget, economy, deluxe, premium, luxury)
+    // Extract all prices from flexible pricingOptions array
     const allPrices = [];
     cityPricing.forEach(city => {
-      if (city.budget) allPrices.push(city.budget);
-      if (city.economy) allPrices.push(city.economy);
-      if (city.deluxe) allPrices.push(city.deluxe);
-      if (city.premium) allPrices.push(city.premium);
-      if (city.luxury) allPrices.push(city.luxury);
+      if (city.pricingOptions && Array.isArray(city.pricingOptions)) {
+        city.pricingOptions.forEach(option => {
+          if (option.price && option.price > 0) {
+            allPrices.push(option.price);
+          }
+        });
+      }
     });
     
     if (allPrices.length === 0) return 'Contact for Pricing';

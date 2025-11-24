@@ -9,6 +9,7 @@ const Blogs = () => {
   const navigate = useNavigate();
   const [blogs, setBlogs] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [navigatingId, setNavigatingId] = useState(null);
   const scrollContainerRef = useRef(null);
   const [isPaused, setIsPaused] = useState(false);
 
@@ -136,9 +137,10 @@ const Blogs = () => {
         )}
 
         {/* Excerpt */}
-        <p className="text-gray-700 mb-4 line-clamp-3">
-          {truncateText(blog.excerpt, 120)}
-        </p>
+        <div 
+          className="text-gray-700 mb-4 line-clamp-3"
+          dangerouslySetInnerHTML={{ __html: truncateText(blog.excerpt, 120) }}
+        />
 
         {/* Tags */}
         {blog.tags && blog.tags.length > 0 && (
@@ -164,13 +166,26 @@ const Blogs = () => {
           <button
             onClick={(e) => {
               e.stopPropagation();
-              navigate(`/blogs/${blog.slug || blog._id}`);
+              setNavigatingId(blog._id);
+              setTimeout(() => {
+                navigate(`/blogs/${blog.slug || blog._id}`);
+              }, 300);
             }}
-            className="flex items-center gap-2 text-white px-4 py-2 rounded-lg font-semibold hover:opacity-90 transition-opacity"
+            disabled={navigatingId === blog._id}
+            className="flex items-center gap-2 text-white px-4 py-2 rounded-lg font-semibold hover:opacity-90 transition-opacity disabled:opacity-50"
             style={{ backgroundColor: '#E66926' }}
           >
-            Read More
-            <ArrowRight size={16} />
+            {navigatingId === blog._id ? (
+              <>
+                <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
+                Loading...
+              </>
+            ) : (
+              <>
+                Read More
+                <ArrowRight size={16} />
+              </>
+            )}
           </button>
         </div>
       </div>
@@ -179,7 +194,7 @@ const Blogs = () => {
 
   if (loading) {
     return (
-      <div className="py-20 bg-gradient-to-br from-blue-50 via-white to-orange-50">
+      <div className="py-20 bg-gray-50">
         <div className="container mx-auto px-4">
           <div className="text-center mb-12">
             <h2 className="text-4xl font-bold text-gray-900 mb-4">Latest from Our Blog</h2>
@@ -204,7 +219,7 @@ const Blogs = () => {
   }
 
   return (
-    <div className="py-20 bg-gradient-to-br from-blue-50 via-white to-orange-50 overflow-hidden">
+    <div className="py-20 bg-gray-50 overflow-hidden">
       <div className="container mx-auto px-4">
         {/* Header */}
         <div className="text-center mb-12">
@@ -240,7 +255,7 @@ const Blogs = () => {
                 onClick={() => navigate('/blogs')}
                 className="px-8 py-4 text-white rounded-xl font-bold text-lg hover:opacity-90 transition-all transform hover:scale-105 shadow-lg"
                 style={{ 
-                  background: 'linear-gradient(135deg, #1E9ABF 0%, #E66926 100%)'
+                  backgroundColor: '#1E9ABF'
                 }}
               >
                 View All Blog Posts

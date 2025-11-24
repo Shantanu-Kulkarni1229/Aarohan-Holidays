@@ -9,6 +9,7 @@ const History = () => {
   const navigate = useNavigate();
   const [histories, setHistories] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [navigatingId, setNavigatingId] = useState(null);
   const scrollContainerRef = useRef(null);
   const [isPaused, setIsPaused] = useState(false);
 
@@ -51,11 +52,17 @@ const History = () => {
   const fetchFeaturedHistories = async () => {
     try {
       setLoading(true);
+      console.log('Fetching histories from:', `${API_BASE_URL}/history/featured?limit=6`);
       const response = await axios.get(`${API_BASE_URL}/history/featured?limit=6`);
+      console.log('History response:', response.data);
       if (response.data.success) {
         setHistories(response.data.data);
+        console.log('Histories set:', response.data.data);
+      } else {
+        console.log('Response not successful:', response.data);
       }
     } catch (error) {
+      console.error('Error fetching histories:', error);
       showApiError(error);
     } finally {
       setLoading(false);
@@ -70,7 +77,7 @@ const History = () => {
   const HistoryCard = ({ history }) => (
     <div className="group bg-white rounded-2xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2">
       {/* Featured Image */}
-      <div className="relative h-64 overflow-hidden bg-gradient-to-br from-gray-800 to-gray-600">
+      <div className="relative h-64 overflow-hidden bg-gray-800">
         {history.images && history.images.length > 0 ? (
           <img
             src={history.images[0]}
@@ -84,7 +91,7 @@ const History = () => {
         )}
         
         {/* Overlay with badges */}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent">
+        <div className="absolute inset-0 bg-black/40">
           <div className="absolute top-4 left-4">
             <span 
               className="px-3 py-1 rounded-full text-xs font-semibold text-white flex items-center gap-1"
@@ -131,9 +138,10 @@ const History = () => {
         </h3>
 
         {/* Description */}
-        <p className="text-gray-700 mb-4 line-clamp-3">
-          {truncateText(history.description, 150)}
-        </p>
+        <div 
+          className="text-gray-700 mb-4 line-clamp-3"
+          dangerouslySetInnerHTML={{ __html: truncateText(history.description, 150) }}
+        />
 
         {/* Stats and Button */}
         <div className="flex items-center justify-between pt-4 border-t border-gray-100">
@@ -144,13 +152,26 @@ const History = () => {
           <button
             onClick={(e) => {
               e.stopPropagation();
-              navigate(`/history/${history.slug || history._id}`);
+              setNavigatingId(history._id);
+              setTimeout(() => {
+                navigate(`/history/${history.slug || history._id}`);
+              }, 300);
             }}
-            className="flex items-center gap-2 text-white px-4 py-2 rounded-lg font-semibold hover:opacity-90 transition-opacity"
+            disabled={navigatingId === history._id}
+            className="flex items-center gap-2 text-white px-4 py-2 rounded-lg font-semibold hover:opacity-90 transition-opacity disabled:opacity-50"
             style={{ backgroundColor: '#E66926' }}
           >
-            Explore
-            <ArrowRight size={16} />
+            {navigatingId === history._id ? (
+              <>
+                <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
+                Loading...
+              </>
+            ) : (
+              <>
+                Explore
+                <ArrowRight size={16} />
+              </>
+            )}
           </button>
         </div>
       </div>
@@ -159,7 +180,7 @@ const History = () => {
 
   if (loading) {
     return (
-      <div className="py-20 bg-gradient-to-br from-orange-50 via-white to-blue-50">
+      <div className="py-20 bg-gray-50">
         <div className="container mx-auto px-4">
           <div className="text-center mb-12">
             <h2 className="text-4xl font-bold text-gray-900 mb-4">Historical Wonders</h2>
@@ -183,7 +204,7 @@ const History = () => {
   }
 
   return (
-    <div className="py-20 bg-gradient-to-br from-orange-50 via-white to-blue-50 overflow-hidden">
+    <div className="py-20 bg-gray-50 overflow-hidden">
       <div className="container mx-auto px-4">
         {/* Header */}
         <div className="text-center mb-12">
@@ -219,7 +240,7 @@ const History = () => {
                 onClick={() => navigate('/history')}
                 className="px-8 py-4 text-white rounded-xl font-bold text-lg hover:opacity-90 transition-all transform hover:scale-105 shadow-lg"
                 style={{ 
-                  background: 'linear-gradient(135deg, #E66926 0%, #1E9ABF 100%)'
+                  backgroundColor: '#E66926'
                 }}
               >
                 Explore All Historical Sites

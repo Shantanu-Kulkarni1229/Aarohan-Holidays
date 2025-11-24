@@ -3,6 +3,7 @@ import axios from 'axios';
 import { Plus, Edit2, Trash2, X, Calendar, Percent, CheckCircle, XCircle, Tag, TrendingUp, Clock, Users, BookOpen, MapPin, Eye, Heart, Star, Image, Video } from 'lucide-react';
 import { API_BASE_URL } from '../api/api';
 import { showSuccess, showError } from '../utils/toast';
+import RichTextEditor from '../components/RichTextEditor';
 
 const ExtrasManagement = () => {
   const [activeTab, setActiveTab] = useState('coupons');
@@ -51,7 +52,7 @@ const ExtrasManagement = () => {
     location: '',
     description: '',
     content: '',
-    images: [],
+    images: ['', '', '', '', ''],
     videoLink: '',
     featured: false,
     isActive: true
@@ -383,7 +384,7 @@ const ExtrasManagement = () => {
       location: '',
       description: '',
       content: '',
-      images: [],
+      images: ['', '', '', '', ''],
       videoLink: '',
       featured: false,
       isActive: true
@@ -398,7 +399,9 @@ const ExtrasManagement = () => {
     try {
       const payload = {
         ...historyFormData,
-        images: typeof historyFormData.images === 'string' ? historyFormData.images.split(',').map(i => i.trim()) : historyFormData.images
+        images: Array.isArray(historyFormData.images) 
+          ? historyFormData.images.filter(img => img.trim() !== '') 
+          : []
       };
 
       if (editingHistory) {
@@ -422,12 +425,17 @@ const ExtrasManagement = () => {
 
   const handleHistoryEdit = (history) => {
     setEditingHistory(history);
+    const imageArray = Array.isArray(history.images) ? history.images : [];
+    const images = ['', '', '', '', ''];
+    imageArray.slice(0, 5).forEach((img, idx) => {
+      images[idx] = img;
+    });
     setHistoryFormData({
       title: history.title,
       location: history.location,
       description: history.description,
       content: history.content,
-      images: Array.isArray(history.images) ? history.images.join(', ') : history.images,
+      images: images,
       videoLink: history.videoLink || '',
       featured: history.featured,
       isActive: history.isActive
@@ -1401,16 +1409,24 @@ const ExtrasManagement = () => {
 
                   {/* Excerpt */}
                   <div>
-                    <label className="block text-sm font-semibold mb-2" style={{ color: colors.text }}>Excerpt * (max 500 chars)</label>
-                    <textarea name="excerpt" value={blogFormData.excerpt} onChange={handleBlogInputChange} required rows="3" maxLength="500"
-                      className="w-full px-4 py-3 rounded-lg border focus:outline-none focus:ring-2" style={{ borderColor: colors.border }} />
+                    <label className="block text-sm font-semibold mb-2" style={{ color: colors.text }}>Excerpt *</label>
+                    <RichTextEditor
+                      value={blogFormData.excerpt}
+                      onChange={(html) => setBlogFormData(prev => ({ ...prev, excerpt: html }))}
+                      placeholder="Enter a brief excerpt or summary..."
+                      minHeight="120px"
+                    />
                   </div>
 
                   {/* Content */}
                   <div>
                     <label className="block text-sm font-semibold mb-2" style={{ color: colors.text }}>Content *</label>
-                    <textarea name="content" value={blogFormData.content} onChange={handleBlogInputChange} required rows="8"
-                      className="w-full px-4 py-3 rounded-lg border focus:outline-none focus:ring-2" style={{ borderColor: colors.border }} />
+                    <RichTextEditor
+                      value={blogFormData.content}
+                      onChange={(html) => setBlogFormData(prev => ({ ...prev, content: html }))}
+                      placeholder="Enter blog content with formatting..."
+                      minHeight="300px"
+                    />
                   </div>
 
                   {/* Featured Image */}
@@ -1484,24 +1500,51 @@ const ExtrasManagement = () => {
                   {/* Description */}
                   <div>
                     <label className="block text-sm font-semibold mb-2" style={{ color: colors.text }}>Description *</label>
-                    <textarea name="description" value={historyFormData.description} onChange={handleHistoryInputChange} required rows="3"
-                      className="w-full px-4 py-3 rounded-lg border focus:outline-none focus:ring-2" style={{ borderColor: colors.border }} />
+                    <RichTextEditor
+                      value={historyFormData.description}
+                      onChange={(html) => setHistoryFormData(prev => ({ ...prev, description: html }))}
+                      placeholder="Enter description with formatting..."
+                      minHeight="150px"
+                    />
                   </div>
 
                   {/* Content */}
                   <div>
                     <label className="block text-sm font-semibold mb-2" style={{ color: colors.text }}>Content *</label>
-                    <textarea name="content" value={historyFormData.content} onChange={handleHistoryInputChange} required rows="8"
-                      className="w-full px-4 py-3 rounded-lg border focus:outline-none focus:ring-2" style={{ borderColor: colors.border }} />
+                    <RichTextEditor
+                      value={historyFormData.content}
+                      onChange={(html) => setHistoryFormData(prev => ({ ...prev, content: html }))}
+                      placeholder="Enter detailed content with formatting..."
+                      minHeight="300px"
+                    />
                   </div>
 
                   {/* Images */}
                   <div>
-                    <label className="block text-sm font-semibold mb-2" style={{ color: colors.text }}>Images (comma-separated URLs, max 5)</label>
-                    <input type="text" name="images" value={historyFormData.images} onChange={handleHistoryInputChange}
-                      placeholder="url1, url2, url3"
-                      className="w-full px-4 py-3 rounded-lg border focus:outline-none focus:ring-2" style={{ borderColor: colors.border }} />
-                    <p className="text-xs mt-1" style={{ color: colors.lightText }}>Maximum 5 images allowed</p>
+                    <label className="block text-sm font-semibold mb-2" style={{ color: colors.text }}>Images (up to 5)</label>
+                    <div className="space-y-3">
+                      {historyFormData.images.map((image, index) => (
+                        <div key={index}>
+                          <label className="block text-xs font-medium mb-1" style={{ color: colors.lightText }}>
+                            Image {index + 1} URL {index === 0 && '*'}
+                          </label>
+                          <input
+                            type="url"
+                            value={image}
+                            onChange={(e) => {
+                              const newImages = [...historyFormData.images];
+                              newImages[index] = e.target.value;
+                              setHistoryFormData(prev => ({ ...prev, images: newImages }));
+                            }}
+                            placeholder={`Enter image ${index + 1} URL`}
+                            required={index === 0}
+                            className="w-full px-4 py-2 rounded-lg border focus:outline-none focus:ring-2"
+                            style={{ borderColor: colors.border }}
+                          />
+                        </div>
+                      ))}
+                    </div>
+                    <p className="text-xs mt-2" style={{ color: colors.lightText }}>First image is required. Others are optional.</p>
                   </div>
 
                   {/* Video Link */}

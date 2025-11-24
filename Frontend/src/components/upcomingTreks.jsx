@@ -279,13 +279,16 @@ const UpcomingTreks = () => {
   const formatPrice = (cityPricing) => {
     if (!cityPricing || cityPricing.length === 0) return 'Contact for Pricing';
     
-    // Treks use member-type pricing (adultPrice, womenPrice, childrenPrice, infantPrice)
+    // Extract all prices from flexible pricingOptions array
     const allPrices = [];
     cityPricing.forEach(city => {
-      if (city.adultPrice) allPrices.push(city.adultPrice);
-      if (city.womenPrice) allPrices.push(city.womenPrice);
-      if (city.childrenPrice) allPrices.push(city.childrenPrice);
-      if (city.infantPrice) allPrices.push(city.infantPrice);
+      if (city.pricingOptions && Array.isArray(city.pricingOptions)) {
+        city.pricingOptions.forEach(option => {
+          if (option.price && option.price > 0) {
+            allPrices.push(option.price);
+          }
+        });
+      }
     });
     
     if (allPrices.length === 0) return 'Contact for Pricing';

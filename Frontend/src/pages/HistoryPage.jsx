@@ -1,18 +1,18 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { 
   MapPin, ArrowLeft, Eye, Play, Image as ImageIcon,
-  Search, Filter, ChevronRight, X, ChevronLeft
+  Search, Filter, ChevronRight, X, ChevronLeft, Home
 } from 'lucide-react';
 import axios from 'axios';
 import { showApiError } from '../utils/toast';
-import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import { API_BASE_URL } from '../api/api';
 
 const HistoryPage = () => {
   const { identifier } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   
   // States
   const [view, setView] = useState(identifier ? 'detail' : 'list');
@@ -36,18 +36,24 @@ const HistoryPage = () => {
   };
 
   useEffect(() => {
+    // Scroll to top on route change
+    window.scrollTo(0, 0);
+    
     if (identifier) {
-      fetchHistoryDetail(identifier);
       setView('detail');
+      fetchHistoryDetail(identifier);
     } else {
       setView('list');
-    }
-  }, [identifier]);
-
-  useEffect(() => {
-    if (view === 'list') {
       fetchHistories();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [identifier, location.pathname]);
+
+  useEffect(() => {
+    if (view === 'list' && !identifier) {
+      fetchHistories();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentPage, selectedLocation, searchTerm]);
 
   useEffect(() => {
@@ -134,15 +140,22 @@ const HistoryPage = () => {
 
   const getYouTubeEmbedUrl = (url) => {
     if (!url) return null;
-    const videoId = url.match(/(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/)?.[1];
+    const videoId = url.match(/(?:youtube\.com\/(?:[^/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?/\s]{11})/)?.[1];
     return videoId ? `https://www.youtube.com/embed/${videoId}` : null;
   };
 
   // History List View
   const HistoryListView = () => (
     <>
-    <Navbar />
     <div className="min-h-screen bg-white">
+      {/* Home Button */}
+      <button
+        onClick={() => navigate('/')}
+        className="fixed top-4 left-4 z-50 flex items-center gap-2 px-4 py-2 bg-[#E66926] text-white rounded-lg shadow-lg hover:bg-[#d45a1f] transition-colors"
+      >
+        <Home size={20} />
+        Home
+      </button>
       {/* Hero Section */}
       <div className="bg-[#E66926] text-white py-20">
         <div className="container mx-auto px-4">
@@ -257,9 +270,10 @@ const HistoryPage = () => {
                       {history.title}
                     </h3>
                     
-                    <p className="text-gray-700 mb-4 line-clamp-3">
-                      {truncateText(history.description, 120)}
-                    </p>
+                    <div 
+                      className="text-gray-700 mb-4 line-clamp-3"
+                      dangerouslySetInnerHTML={{ __html: truncateText(history.description, 120) }}
+                    />
                     
                     <div className="flex items-center justify-between pt-4 border-t border-gray-100">
                       <div className="flex items-center gap-2 text-sm text-gray-600">
@@ -326,8 +340,15 @@ const HistoryPage = () => {
 
     return (
       <>
-      <Navbar />
       <div className="min-h-screen bg-white">
+        {/* Home Button */}
+        <button
+          onClick={() => navigate('/')}
+          className="fixed top-4 left-4 z-50 flex items-center gap-2 px-4 py-2 bg-[#E66926] text-white rounded-lg shadow-lg hover:bg-[#d45a1f] transition-colors"
+        >
+          <Home size={20} />
+          Home
+        </button>
         {/* Hero Section */}
         <div className="relative h-96 overflow-hidden">
           {selectedHistory.images && selectedHistory.images.length > 0 ? (
@@ -404,9 +425,10 @@ const HistoryPage = () => {
             {/* Description */}
             <div className="bg-white rounded-xl shadow-lg p-8 mb-8">
               <h2 className="text-2xl font-bold text-gray-900 mb-4">Overview</h2>
-              <p className="text-lg text-gray-700 leading-relaxed">
-                {selectedHistory.description}
-              </p>
+              <div 
+                className="text-lg text-gray-700 leading-relaxed rich-text-content"
+                dangerouslySetInnerHTML={{ __html: selectedHistory.description }}
+              />
             </div>
 
             {/* Main Content */}
@@ -414,8 +436,8 @@ const HistoryPage = () => {
               <h2 className="text-2xl font-bold text-gray-900 mb-6">History & Details</h2>
               <div className="prose prose-lg max-w-none">
                 <div 
-                  className="text-gray-800 leading-relaxed whitespace-pre-wrap"
-                  dangerouslySetInnerHTML={{ __html: selectedHistory.content.replace(/\n/g, '<br/>') }}
+                  className="text-gray-800 leading-relaxed rich-text-content"
+                  dangerouslySetInnerHTML={{ __html: selectedHistory.content }}
                 />
               </div>
             </div>

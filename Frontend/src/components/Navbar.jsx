@@ -499,27 +499,31 @@ export default function Navbar() {
     setMenuOpen(false);
 
     if (type === 'Tours') {
-      const tour = tours.find(t => t.name === item);
-      if (tour) {
-        const route = `/book-tour/${tour._id}`;
+      // item is already the tour object with _id
+      if (item && item._id) {
+        const route = `/book-tour/${item._id}`;
         // Dispatch custom event to trigger loader
         const navigationEvent = new CustomEvent('navigationStart', {
           detail: { path: route }
         });
         window.dispatchEvent(navigationEvent);
+        // Navigate to the booking page
+        navigate(route);
       }
     } else if (type === 'Treks') {
-      const trek = treks.find(t => t.name === item);
-      if (trek) {
-        const route = `/book-trek/${trek._id}`;
+      // item is already the trek object with _id
+      if (item && item._id) {
+        const route = `/book-trek/${item._id}`;
         // Dispatch custom event to trigger loader
         const navigationEvent = new CustomEvent('navigationStart', {
           detail: { path: route }
         });
         window.dispatchEvent(navigationEvent);
+        // Navigate to the booking page
+        navigate(route);
       }
     } else if (type === 'Other Services') {
-      // Navigate to other-services page with service type pre-filled
+      // For other services, item is a string
       sessionStorage.setItem('selectedServiceType', item);
       navigate('/other-services');
     }
