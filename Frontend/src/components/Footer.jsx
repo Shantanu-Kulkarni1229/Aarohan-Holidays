@@ -225,7 +225,7 @@ export default function Footer() {
             <div className="mb-6">
               <div className="inline-block p-3 rounded-xl" style={{ backgroundColor: 'white' }}>
                 <img 
-                  src="../../public/Logo/logo2.jpg" 
+                  src="https://res.cloudinary.com/dvlsgka21/image/upload/v1763733101/logo2_pdwnoo.jpg" 
                   alt="Aarohan Holidays Logo" 
                   className="h-16 w-auto object-contain transition-all duration-300 hover:scale-105"
                   style={{ maxWidth: '220px' }}

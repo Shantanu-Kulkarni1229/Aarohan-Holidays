@@ -29,7 +29,7 @@ const RichTextEditor = ({ value, onChange, placeholder = 'Enter text...', minHei
           ['clean']
         ]
       },
-      formats: ['bold', 'italic', 'underline', 'list', 'bullet', 'header', 'link']
+      formats: ['bold', 'italic', 'underline', 'list', 'header', 'link']
     });
 
     // Set initial content

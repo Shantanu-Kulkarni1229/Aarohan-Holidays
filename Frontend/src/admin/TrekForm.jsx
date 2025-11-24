@@ -121,7 +121,7 @@ const TrekForm = () => {
           availableDates: trek.availableDates?.map(date => new Date(date).toISOString().split('T')[0]) || [''],
           highlights: trek.highlights?.length > 0 ? trek.highlights : [''],
           faqs: trek.faqs?.length > 0 ? trek.faqs : [{ question: '', answer: '' }],
-          cityPricing: trek.cityPricing?.length > 0 ? trek.cityPricing : [{ city: '', adultPrice: '', womenPrice: '', childrenPrice: '', infantPrice: '' }],
+          cityPricing: trek.cityPricing?.length > 0 ? trek.cityPricing : [{ city: '', pricingOptions: [{ categoryName: '', price: '' }] }],
           // NEW: Load itinerary with note and activities support
           itinerary: trek.itinerary?.length > 0 ? trek.itinerary.map(item => ({
             ...item,
@@ -130,7 +130,14 @@ const TrekForm = () => {
           })) : [{ day: 1, title: '', description: '', meals: '', accommodation: '', note: '', activities: [] }],
           // NEW: Load inclusions and exclusions
           inclusions: trek.inclusions?.length > 0 ? trek.inclusions : [''],
-          exclusions: trek.exclusions?.length > 0 ? trek.exclusions : ['']
+          exclusions: trek.exclusions?.length > 0 ? trek.exclusions : [''],
+          // eslint-disable-next-line no-unused-vars
+          addOns: trek.addOns?.length > 0 ? trek.addOns.map(({ _id, __v, ...addon }) => addon) : [{ name: '', price: '', description: '' }],
+          // eslint-disable-next-line no-unused-vars
+          addonFacilities: trek.addonFacilities?.length > 0 ? trek.addonFacilities.map(({ _id, __v, ...facility }) => ({
+            ...facility,
+            subPoints: facility.subPoints || []
+          })) : [{ header: '', subPoints: [''] }]
         });
         
         // Set existing image previews
@@ -583,7 +590,7 @@ const TrekForm = () => {
               </label>
               <RichTextEditor
                 value={formData.description}
-                onChange={(html) => setFormData({ ...formData, description: html })}
+                onChange={(html) => setFormData(prev => ({ ...prev, description: html }))}
                 placeholder="Describe the trek experience, scenery, challenges, and highlights in detail. Use bold, italic, and bullet points to make it engaging."
                 minHeight="250px"
               />
@@ -1448,7 +1455,6 @@ const TrekForm = () => {
                   value={date}
                   onChange={(e) => handleArrayChange('availableDates', index, e.target.value)}
                   className="flex-1 px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all"
-                  min={new Date().toISOString().split('T')[0]}
                 />
                 {formData.availableDates.length > 1 && (
                   <button

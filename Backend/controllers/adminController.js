@@ -47,6 +47,10 @@ const validateRequiredFields = (fields, data) => {
 // Create Tour
 export const createTour = async (req, res) => {
   try {
+    console.log('📥 Received tour creation request');
+    console.log('📋 Request body keys:', Object.keys(req.body));
+    console.log('📋 Files:', req.files ? Object.keys(req.files) : 'No files');
+    
     const requiredFields = ["name", "description", "location", "duration", "regionType"];
     validateRequiredFields(requiredFields, req.body);
 
@@ -65,11 +69,23 @@ export const createTour = async (req, res) => {
     const parsedRest = { ...rest };
     const arrayFields = ['highlights', 'inclusions', 'exclusions', 'cityPricing', 'itinerary', 'faqs', 'availableDates', 'addOns', 'addonFacilities'];
     
+    console.log('📥 Raw cityPricing from request:', rest.cityPricing);
+    console.log('📥 Raw state:', rest.state, 'regionType:', rest.regionType);
+    console.log('📥 Raw country:', rest.country);
+    
     arrayFields.forEach(field => {
       if (parsedRest[field]) {
         parsedRest[field] = parseJSONField(parsedRest[field]);
       }
     });
+
+    // Clean up empty state/country fields to avoid validation errors
+    if (parsedRest.state === '' || parsedRest.state === null) {
+      delete parsedRest.state;
+    }
+    if (parsedRest.country === '' || parsedRest.country === null) {
+      delete parsedRest.country;
+    }
 
     // Convert string values to appropriate types
     if (parsedRest.maxGroupSize) {
@@ -120,6 +136,8 @@ export const createTour = async (req, res) => {
     console.error('❌ Error creating tour:', error);
     console.error('Error code:', error.code);
     console.error('Error name:', error.name);
+    console.error('Error message:', error.message);
+    console.error('Error stack:', error.stack);
     
     // Handle specific MongoDB errors
     if (error.code === 11000) {
@@ -191,8 +209,8 @@ export const updateTour = async (req, res) => {
     if (!tour) return res.status(404).json({ success: false, message: "Tour not found" });
 
     // Parse JSON strings from FormData
-    const arrayFields = ['highlights', 'inclusions', 'exclusions', 'cityPricing', 'accommodation', 'notes', 'availableDates', 'faqs', 'itinerary'];
-    const booleanFields = ['trending', 'featured'];
+    const arrayFields = ['highlights', 'inclusions', 'exclusions', 'cityPricing', 'accommodation', 'notes', 'availableDates', 'faqs', 'itinerary', 'addOns', 'addonFacilities'];
+    const booleanFields = ['trending', 'featured', 'isActive', 'isFeatured', 'isFixedDeparture', 'isOnlyFixedDeparture'];
     const numberFields = ['duration', 'maxGroupSize', 'minAge', 'maxAge', 'price', 'discountPrice'];
 
     const {
@@ -212,6 +230,14 @@ export const updateTour = async (req, res) => {
       } else {
         parsedRest[key] = value;
       }
+    }
+
+    // Clean up empty state/country fields to avoid validation errors
+    if (parsedRest.state === '' || parsedRest.state === null) {
+      delete parsedRest.state;
+    }
+    if (parsedRest.country === '' || parsedRest.country === null) {
+      delete parsedRest.country;
     }
 
     // Update images if new ones uploaded
@@ -398,8 +424,8 @@ export const updateTrek = async (req, res) => {
     if (!trek) return res.status(404).json({ success: false, message: "Trek not found" });
 
     // Parse JSON strings from FormData
-    const arrayFields = ['highlights', 'cityPricing', 'availableDates', 'faqs'];
-    const booleanFields = ['isActive', 'isFeatured'];
+    const arrayFields = ['highlights', 'cityPricing', 'availableDates', 'faqs', 'addOns', 'addonFacilities', 'inclusions', 'exclusions', 'itinerary'];
+    const booleanFields = ['isActive', 'isFeatured', 'isFixedDeparture', 'isOnlyFixedDeparture'];
     const numberFields = ['altitude', 'maxGroupSize', 'totalBookings', 'rating'];
 
     const {

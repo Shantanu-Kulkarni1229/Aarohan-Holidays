@@ -81,21 +81,33 @@ const tourSchema = new mongoose.Schema(
     // ✅ State (for Domestic tours)
     state: {
       type: String,
-      required: function() {
-        return this.regionType === "Domestic";
-      },
       trim: true,
-      default: "",
+      validate: {
+        validator: function(v) {
+          // Only require state if regionType is Domestic
+          if (this.regionType === "Domestic") {
+            return v != null && v.trim().length > 0;
+          }
+          return true; // Not required for International
+        },
+        message: "State is required for Domestic tours"
+      }
     },
 
     // ✅ Country (for International tours)
     country: {
       type: String,
-      required: function() {
-        return this.regionType === "International";
-      },
       trim: true,
-      default: "",
+      validate: {
+        validator: function(v) {
+          // Only require country if regionType is International
+          if (this.regionType === "International") {
+            return v != null && v.trim().length > 0;
+          }
+          return true; // Not required for Domestic
+        },
+        message: "Country is required for International tours"
+      }
     },
 
     // ✅ Special Type (Festival / Seasonal)

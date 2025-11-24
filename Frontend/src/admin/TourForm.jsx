@@ -118,13 +118,20 @@ const TourForm = () => {
           highlights: tour.highlights?.length > 0 ? tour.highlights : [''],
           inclusions: tour.inclusions?.length > 0 ? tour.inclusions : [''],
           exclusions: tour.exclusions?.length > 0 ? tour.exclusions : [''],
-          cityPricing: tour.cityPricing?.length > 0 ? tour.cityPricing : [{ city: '', budget: '', economy: '', deluxe: '', premium: '', luxury: '' }],
+          cityPricing: tour.cityPricing?.length > 0 ? tour.cityPricing : [{ city: '', pricingOptions: [{ categoryName: '', price: '' }] }],
           itinerary: tour.itinerary?.length > 0 ? tour.itinerary.map(item => ({
             ...item,
             note: item.note || '',
             activities: item.activities || []
           })) : [{ day: 1, title: '', description: '', meals: '', accommodation: '', note: '', activities: [] }],
-          faqs: tour.faqs?.length > 0 ? tour.faqs : [{ question: '', answer: '' }]
+          faqs: tour.faqs?.length > 0 ? tour.faqs : [{ question: '', answer: '' }],
+          // eslint-disable-next-line no-unused-vars
+          addOns: tour.addOns?.length > 0 ? tour.addOns.map(({ _id, __v, ...addon }) => addon) : [{ name: '', price: '', description: '' }],
+          // eslint-disable-next-line no-unused-vars
+          addonFacilities: tour.addonFacilities?.length > 0 ? tour.addonFacilities.map(({ _id, __v, ...facility }) => ({
+            ...facility,
+            subPoints: facility.subPoints || []
+          })) : [{ header: '', subPoints: [''] }]
         });
         
         // Set existing image previews
@@ -817,7 +824,7 @@ const TourForm = () => {
               </label>
               <RichTextEditor
                 value={formData.description}
-                onChange={(html) => setFormData({ ...formData, description: html })}
+                onChange={(html) => setFormData(prev => ({ ...prev, description: html }))}
                 placeholder="Describe your tour package in detail. What makes it special? What experiences will travelers have? Use bold, italic, and bullet points to highlight key features."
                 minHeight="250px"
               />
@@ -1109,17 +1116,17 @@ const TourForm = () => {
               <div className="flex space-x-4">
                 <input
                   type="date"
+                  id="tour-date-picker"
                   onChange={handleAddDate}
                   className="flex-1 px-4 py-3 border-2 rounded-xl transition-all"
                   style={{ 
                     borderColor: colors.border,
                     focusBorderColor: colors.primary
                   }}
-                  min={new Date().toISOString().split('T')[0]}
                 />
                 <button
                   type="button"
-                  onClick={() => document.querySelector('input[type="date"]').click()}
+                  onClick={() => document.getElementById('tour-date-picker').showPicker()}
                   className="px-6 py-3 rounded-xl transition-colors text-white"
                   style={{ backgroundColor: colors.secondary }}
                 >

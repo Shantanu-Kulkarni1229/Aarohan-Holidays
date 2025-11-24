@@ -4,9 +4,9 @@ import axios from 'axios';
 // 🌐 CENTRALIZED API BASE URL
 // ============================================
 // Change this URL in ONE place to update across the entire app
-// export const API_BASE_URL = 'http://localhost:5000/api';
+export const API_BASE_URL = 'http://localhost:5000/api';
 // export const API_BASE_URL = 'https://4zb5qb7j-5000.inc1.devtunnels.ms/api';
-export const API_BASE_URL = 'https://aarohan-holidays.vercel.app/api';
+// export const API_BASE_URL = 'https://aarohan-holidays.vercel.app/api';
 
 // Create axios instance with base configuration
 const api = axios.create({

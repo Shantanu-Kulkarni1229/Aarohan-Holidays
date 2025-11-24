@@ -701,7 +701,7 @@ export default function Navbar() {
               onClick={() => navigate('/')}
             >
               <img 
-                src="../../public/Logo/logo2.jpg" 
+                src="https://res.cloudinary.com/dvlsgka21/image/upload/v1763733101/logo2_pdwnoo.jpg" 
                 alt="Aarohan Holidays Logo" 
                 className="h-16 w-auto object-contain transition-all duration-300 group-hover:scale-105 group-hover:brightness-110"
                 style={{ maxWidth: '200px' }}
