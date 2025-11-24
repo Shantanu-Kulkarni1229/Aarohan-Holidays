@@ -47,24 +47,92 @@ body {
 }
 
 /* Rich Text Content Styles (Quill Editor Output) */
+/* Force bullet points for UL lists */
 .rich-text-content ul,
-.rich-text-content .ql-editor ul {
+div[class*="rich-text-content"] ul,
+.rich-text-content ul[data-list="bullet"] {
+  list-style: disc !important;
   list-style-type: disc !important;
-  padding-left: 1.5rem !important;
+  list-style-position: outside !important;
+  padding-left: 2.5rem !important;
+  margin-left: 0 !important;
   margin-bottom: 1rem !important;
 }
 
+/* Force numbers for OL lists */
 .rich-text-content ol,
-.rich-text-content .ql-editor ol {
+div[class*="rich-text-content"] ol,
+.rich-text-content ul[data-list="ordered"] {
+  list-style: decimal !important;
   list-style-type: decimal !important;
-  padding-left: 1.5rem !important;
+  list-style-position: outside !important;
+  padding-left: 2.5rem !important;
+  margin-left: 0 !important;
   margin-bottom: 1rem !important;
 }
 
-.rich-text-content li,
-.rich-text-content .ql-editor li {
-  margin-bottom: 0.5rem !important;
+/* Force list item display and markers */
+.rich-text-content ul > li,
+.rich-text-content ul li,
+div[class*="rich-text-content"] ul > li,
+div[class*="rich-text-content"] ul li {
   display: list-item !important;
+  list-style: disc !important;
+  list-style-type: disc !important;
+  list-style-position: outside !important;
+  margin-bottom: 0.5rem !important;
+  padding-left: 0.5rem !important;
+  margin-left: 0 !important;
+}
+
+.rich-text-content ol > li,
+.rich-text-content ol li,
+div[class*="rich-text-content"] ol > li,
+div[class*="rich-text-content"] ol li {
+  display: list-item !important;
+  list-style: decimal !important;
+  list-style-type: decimal !important;
+  list-style-position: outside !important;
+  margin-bottom: 0.5rem !important;
+  padding-left: 0.5rem !important;
+  margin-left: 0 !important;
+}
+
+/* Handle Quill's data-list attribute specifically */
+.rich-text-content li[data-list="bullet"],
+div[class*="rich-text-content"] li[data-list="bullet"] {
+  list-style: disc !important;
+  list-style-type: disc !important;
+  display: list-item !important;
+}
+
+.rich-text-content li[data-list="ordered"],
+div[class*="rich-text-content"] li[data-list="ordered"] {
+  list-style: decimal !important;
+  list-style-type: decimal !important;
+  display: list-item !important;
+}
+
+/* Nested lists */
+.rich-text-content ul ul,
+div[class*="rich-text-content"] ul ul {
+  list-style-type: circle !important;
+  padding-left: 2rem !important;
+  margin-top: 0.5rem !important;
+  margin-bottom: 0.5rem !important;
+}
+
+.rich-text-content ul ul ul,
+div[class*="rich-text-content"] ul ul ul {
+  list-style-type: square !important;
+}
+
+.rich-text-content ol ol,
+div[class*="rich-text-content"] ol ol {
+  list-style-type: lower-alpha !important;
+  padding-left: 2rem !important;
+  margin-top: 0.5rem !important;
+  margin-bottom: 0.5rem !important;
 }
 
 .rich-text-content p,

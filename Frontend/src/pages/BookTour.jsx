@@ -878,7 +878,7 @@ const BookTour = () => {
           </div>
           
           {/* NEW: Day Note - Display if present */}
-          {day.note && day.note.trim() && (
+          {day.note && day.note.trim() && day.note.replace(/<[^>]*>/g, '').trim() && (
             <div 
               className="mt-4 p-4 rounded-xl border-l-4 transition-all duration-300 hover:shadow-md"
               style={{ 

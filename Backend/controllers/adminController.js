@@ -211,7 +211,7 @@ export const updateTour = async (req, res) => {
     // Parse JSON strings from FormData
     const arrayFields = ['highlights', 'inclusions', 'exclusions', 'cityPricing', 'accommodation', 'notes', 'availableDates', 'faqs', 'itinerary', 'addOns', 'addonFacilities'];
     const booleanFields = ['trending', 'featured', 'isActive', 'isFeatured', 'isFixedDeparture', 'isOnlyFixedDeparture'];
-    const numberFields = ['duration', 'maxGroupSize', 'minAge', 'maxAge', 'price', 'discountPrice'];
+    const numberFields = ['maxGroupSize', 'minAge', 'maxAge', 'price', 'discountPrice'];
 
     const {
       thumbnail: thumbnailField,

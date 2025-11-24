@@ -841,7 +841,7 @@ const BookTrek = () => {
             </div>
             
             {/* NEW: Day Note - Display if present */}
-            {day.note && day.note.trim() && (
+            {day.note && day.note.trim() && day.note.replace(/<[^>]*>/g, '').trim() && (
               <div 
                 className="mt-3 p-3 rounded-lg border-l-4 transition-all duration-300 hover:shadow-md"
                 style={{ 
