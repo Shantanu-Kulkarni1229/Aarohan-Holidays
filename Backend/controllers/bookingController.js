@@ -367,7 +367,50 @@ const sendBookingConfirmationEmail = async (bookingData, itemDetails) => {
                   <span class="info-label">Pickup City:</span>
                   <span class="info-value">${bookingData.pickupCity}</span>
                 </div>
+                ${bookingData.pickupPoint ? `
+                <div class="info-row">
+                  <span class="info-label">Pickup Point:</span>
+                  <span class="info-value">${bookingData.pickupPoint}</span>
+                </div>
+                ` : ''}
+                ${bookingData.selectedCategory ? `
+                <div class="info-row">
+                  <span class="info-label">Category:</span>
+                  <span class="info-value">${bookingData.selectedCategory}</span>
+                </div>
+                ` : ''}
               </div>
+
+              <!-- Add-Ons Selected -->
+              ${bookingData.selectedAddOns && bookingData.selectedAddOns.length > 0 ? `
+              <div class="info-card">
+                <h2>🎁 Selected Add-Ons</h2>
+                ${bookingData.selectedAddOns.map(addon => `
+                <div class="info-row">
+                  <span class="info-label">${addon.name}:</span>
+                  <span class="info-value">₹${addon.price.toLocaleString('en-IN')}</span>
+                </div>
+                `).join('')}
+              </div>
+              ` : ''}
+
+              <!-- Itinerary Summary -->
+              ${itemDetails.itinerary && itemDetails.itinerary.length > 0 ? `
+              <div class="info-card">
+                <h2>📍 Itinerary Overview</h2>
+                ${itemDetails.itinerary.slice(0, 3).map((day, index) => `
+                <div style="margin-bottom: 15px; padding-bottom: 15px; border-bottom: 1px solid #e9ecef;">
+                  <div style="font-weight: 600; color: #28a745; margin-bottom: 5px;">Day ${index + 1}: ${day.title || `Day ${index + 1}`}</div>
+                  <div style="font-size: 13px; color: #666;">${day.description ? day.description.substring(0, 150) + '...' : 'Details will be shared soon'}</div>
+                </div>
+                `).join('')}
+                ${itemDetails.itinerary.length > 3 ? `
+                <p style="margin-top: 10px; font-size: 13px; color: #666;">
+                  ...and ${itemDetails.itinerary.length - 3} more days. Complete itinerary will be shared 3 days before departure.
+                </p>
+                ` : ''}
+              </div>
+              ` : ''}
 
               <!-- Traveler Information -->
               <div class="info-card">
@@ -715,7 +758,33 @@ const sendAdminNotification = async (bookingData, itemDetails) => {
                   <span class="detail-label">Pickup City:</span>
                   <span class="detail-value">${bookingData.pickupCity}</span>
                 </div>
+                
+                ${bookingData.pickupPoint ? `
+                <div class="detail-row">
+                  <span class="detail-label">Pickup Point:</span>
+                  <span class="detail-value">${bookingData.pickupPoint}</span>
+                </div>
+                ` : ''}
+                
+                ${bookingData.selectedCategory ? `
+                <div class="detail-row">
+                  <span class="detail-label">Category:</span>
+                  <span class="detail-value">${bookingData.selectedCategory}</span>
+                </div>
+                ` : ''}
               </div>
+
+              ${bookingData.selectedAddOns && bookingData.selectedAddOns.length > 0 ? `
+              <div class="booking-details">
+                <h3 style="color: #ef4444; margin-top: 0;">🎁 Selected Add-Ons</h3>
+                ${bookingData.selectedAddOns.map(addon => `
+                <div class="detail-row">
+                  <span class="detail-label">${addon.name}:</span>
+                  <span class="detail-value">₹${addon.price.toLocaleString('en-IN')}</span>
+                </div>
+                `).join('')}
+              </div>
+              ` : ''}
 
               <div class="booking-details">
                 <h3 style="color: #ef4444; margin-top: 0;">💰 Payment Details</h3>
@@ -1048,6 +1117,18 @@ export const createBooking = async (req, res) => {
       console.error("Email error details:", emailError);
     }
 
+    // Send admin notification email
+    let adminEmailSent = false;
+    try {
+      console.log("📧 Attempting to send admin notification email...");
+      await sendAdminNotification(newBooking, itemDetails);
+      adminEmailSent = true;
+      console.log("✅ Admin email sent successfully");
+    } catch (adminEmailError) {
+      console.error("⚠️ Admin email sending failed:", adminEmailError.message);
+      console.error("Admin email error details:", adminEmailError);
+    }
+
     // Send WhatsApp message
     let whatsappSent = false;
     try {
@@ -1083,6 +1164,7 @@ export const createBooking = async (req, res) => {
       data: newBooking,
       notifications: {
         email: emailSent,
+        adminEmail: adminEmailSent,
         whatsapp: whatsappSent,
       },
     });

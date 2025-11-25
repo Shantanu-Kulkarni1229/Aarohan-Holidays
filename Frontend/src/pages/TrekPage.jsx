@@ -193,13 +193,14 @@ const TrekPage = () => {
   const getMinPrice = (trek) => {
     if (!trek.cityPricing || trek.cityPricing.length === 0) return 0;
     
-    // Treks use member-type pricing (adultPrice, womenPrice, childrenPrice, infantPrice)
+    // Treks use pricingOptions array with flexible categoryName and price
     const allPrices = [];
     trek.cityPricing.forEach(city => {
-      if (city.adultPrice) allPrices.push(city.adultPrice);
-      if (city.womenPrice) allPrices.push(city.womenPrice);
-      if (city.childrenPrice) allPrices.push(city.childrenPrice);
-      if (city.infantPrice) allPrices.push(city.infantPrice);
+      if (city.pricingOptions && Array.isArray(city.pricingOptions)) {
+        city.pricingOptions.forEach(option => {
+          if (option.price) allPrices.push(option.price);
+        });
+      }
     });
     
     return allPrices.length > 0 ? Math.min(...allPrices) : 0;
@@ -216,13 +217,14 @@ const TrekPage = () => {
   const formatPrice = (cityPricing) => {
     if (!cityPricing || cityPricing.length === 0) return 'Contact for Pricing';
     
-    // Treks use member-type pricing
+    // Treks use pricingOptions array with flexible categoryName and price
     const allPrices = [];
     cityPricing.forEach(city => {
-      if (city.adultPrice) allPrices.push(city.adultPrice);
-      if (city.womenPrice) allPrices.push(city.womenPrice);
-      if (city.childrenPrice) allPrices.push(city.childrenPrice);
-      if (city.infantPrice) allPrices.push(city.infantPrice);
+      if (city.pricingOptions && Array.isArray(city.pricingOptions)) {
+        city.pricingOptions.forEach(option => {
+          if (option.price) allPrices.push(option.price);
+        });
+      }
     });
     
     if (allPrices.length === 0) return 'Contact for Pricing';
@@ -303,9 +305,9 @@ const TrekPage = () => {
   }
 
   return (
-    <div className="flex flex-col min-h-screen">
+    <>
       <Navbar />
-      <div className="flex-1" style={{ backgroundColor: colors.lightBg }}>
+      <div className="min-h-screen" style={{ backgroundColor: colors.lightBg }}>
         {/* Hero Section */}
       <div 
         className="relative py-20 overflow-hidden"
@@ -740,7 +742,7 @@ const TrekPage = () => {
       </div>
       </div>
       <Footer />
-    </div>
+    </>
   );
 };
 

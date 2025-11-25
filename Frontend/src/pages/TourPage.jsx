@@ -183,14 +183,14 @@ const TourPage = () => {
   const getMinPrice = (tour) => {
     if (!tour.cityPricing || tour.cityPricing.length === 0) return 0;
     
-    // Tours use category-based pricing (budget, economy, deluxe, premium, luxury)
+    // Tours use pricingOptions array with flexible categoryName and price
     const allPrices = [];
     tour.cityPricing.forEach(city => {
-      if (city.budget) allPrices.push(city.budget);
-      if (city.economy) allPrices.push(city.economy);
-      if (city.deluxe) allPrices.push(city.deluxe);
-      if (city.premium) allPrices.push(city.premium);
-      if (city.luxury) allPrices.push(city.luxury);
+      if (city.pricingOptions && Array.isArray(city.pricingOptions)) {
+        city.pricingOptions.forEach(option => {
+          if (option.price) allPrices.push(option.price);
+        });
+      }
     });
     
     return allPrices.length > 0 ? Math.min(...allPrices) : 0;
@@ -207,14 +207,14 @@ const TourPage = () => {
   const formatPrice = (cityPricing) => {
     if (!cityPricing || cityPricing.length === 0) return 'Contact for Pricing';
     
-    // Tours use category-based pricing
+    // Tours use pricingOptions array with flexible categoryName and price
     const allPrices = [];
     cityPricing.forEach(city => {
-      if (city.budget) allPrices.push(city.budget);
-      if (city.economy) allPrices.push(city.economy);
-      if (city.deluxe) allPrices.push(city.deluxe);
-      if (city.premium) allPrices.push(city.premium);
-      if (city.luxury) allPrices.push(city.luxury);
+      if (city.pricingOptions && Array.isArray(city.pricingOptions)) {
+        city.pricingOptions.forEach(option => {
+          if (option.price) allPrices.push(option.price);
+        });
+      }
     });
     
     if (allPrices.length === 0) return 'Contact for Pricing';
@@ -295,9 +295,9 @@ const TourPage = () => {
   }
 
   return (
-    <div className="flex flex-col min-h-screen">
+    <>
       <Navbar />
-      <div className="flex-1" style={{ backgroundColor: colors.lightBg }}>
+      <div className="min-h-screen" style={{ backgroundColor: colors.lightBg }}>
         {/* Hero Section */}
       <div 
         className="relative py-20 overflow-hidden"
@@ -732,7 +732,7 @@ const TourPage = () => {
       </div>
       </div>
       <Footer />
-    </div>
+    </>
   );
 };
 

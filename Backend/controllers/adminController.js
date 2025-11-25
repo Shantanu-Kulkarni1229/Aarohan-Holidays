@@ -79,6 +79,9 @@ export const createTour = async (req, res) => {
       }
     });
 
+    // DEBUG: Log parsed cityPricing with pickup points
+    console.log('🔍 DEBUG - Parsed cityPricing:', JSON.stringify(parsedRest.cityPricing, null, 2));
+
     // Clean up empty state/country fields to avoid validation errors
     if (parsedRest.state === '' || parsedRest.state === null) {
       delete parsedRest.state;
@@ -103,6 +106,9 @@ export const createTour = async (req, res) => {
     if (parsedRest.isOnlyFixedDeparture !== undefined) {
       parsedRest.isOnlyFixedDeparture = parsedRest.isOnlyFixedDeparture === 'true' || parsedRest.isOnlyFixedDeparture === true;
     }
+    if (parsedRest.isGroupTour !== undefined) {
+      parsedRest.isGroupTour = parsedRest.isGroupTour === 'true' || parsedRest.isGroupTour === true;
+    }
 
     // Upload images
     if (!req.files || !req.files.thumbnail) {
@@ -119,6 +125,14 @@ export const createTour = async (req, res) => {
       showcaseUrls = await Promise.all(uploads);
     }
 
+    let hotelImageUrls = [];
+    if (req.files.hotelImages) {
+      const uploads = req.files.hotelImages.map((file) =>
+        uploadImage(file.path, "Tours/Hotels")
+      );
+      hotelImageUrls = await Promise.all(uploads);
+    }
+
     const newTour = await Tour.create({
       name,
       description,
@@ -127,10 +141,12 @@ export const createTour = async (req, res) => {
       regionType,
       thumbnail: thumbnailUrl,
       showcaseImages: showcaseUrls,
+      hotelImages: hotelImageUrls,
       ...parsedRest,
     });
 
     console.log('✅ Tour created successfully:', newTour._id);
+    console.log('🔍 DEBUG - Saved cityPricing:', JSON.stringify(newTour.cityPricing, null, 2));
     res.status(201).json({ success: true, message: "Tour created successfully!", data: newTour });
   } catch (error) {
     console.error('❌ Error creating tour:', error);
@@ -210,7 +226,7 @@ export const updateTour = async (req, res) => {
 
     // Parse JSON strings from FormData
     const arrayFields = ['highlights', 'inclusions', 'exclusions', 'cityPricing', 'accommodation', 'notes', 'availableDates', 'faqs', 'itinerary', 'addOns', 'addonFacilities'];
-    const booleanFields = ['trending', 'featured', 'isActive', 'isFeatured', 'isFixedDeparture', 'isOnlyFixedDeparture'];
+    const booleanFields = ['trending', 'featured', 'isActive', 'isFeatured', 'isFixedDeparture', 'isOnlyFixedDeparture', 'isGroupTour'];
     const numberFields = ['maxGroupSize', 'minAge', 'maxAge', 'price', 'discountPrice'];
 
     const {
@@ -231,6 +247,9 @@ export const updateTour = async (req, res) => {
         parsedRest[key] = value;
       }
     }
+
+    // DEBUG: Log parsed cityPricing with pickup points
+    console.log('🔍 DEBUG UPDATE - Parsed cityPricing:', JSON.stringify(parsedRest.cityPricing, null, 2));
 
     // Clean up empty state/country fields to avoid validation errors
     if (parsedRest.state === '' || parsedRest.state === null) {
@@ -253,7 +272,15 @@ export const updateTour = async (req, res) => {
       parsedRest.showcaseImages = await Promise.all(showcaseUploads);
     }
 
+    if (req.files?.hotelImages) {
+      const hotelImageUploads = req.files.hotelImages.map((file) =>
+        uploadImage(file.path, "Tours/Hotels")
+      );
+      parsedRest.hotelImages = await Promise.all(hotelImageUploads);
+    }
+
     const updatedTour = await Tour.findByIdAndUpdate(id, parsedRest, { new: true });
+    console.log('🔍 DEBUG UPDATE - Saved cityPricing:', JSON.stringify(updatedTour.cityPricing, null, 2));
     res.status(200).json({ success: true, message: "Tour updated successfully!", data: updatedTour });
   } catch (error) {
     console.error('Error updating tour:', error);
@@ -294,7 +321,7 @@ export const createTrek = async (req, res) => {
 
     // Parse JSON strings from FormData
     const arrayFields = ['highlights', 'cityPricing', 'availableDates', 'faqs', 'addOns', 'addonFacilities', 'inclusions', 'exclusions', 'itinerary'];
-    const booleanFields = ['isActive', 'isFeatured', 'isFixedDeparture', 'isOnlyFixedDeparture'];
+    const booleanFields = ['isActive', 'isFeatured', 'isFixedDeparture', 'isOnlyFixedDeparture', 'isGroupTour'];
     const numberFields = ['altitude', 'maxGroupSize', 'totalBookings', 'rating'];
 
     const {
@@ -333,6 +360,14 @@ export const createTrek = async (req, res) => {
       showcaseUrls = await Promise.all(uploads);
     }
 
+    let hotelImageUrls = [];
+    if (req.files.hotelImages) {
+      const uploads = req.files.hotelImages.map((file) =>
+        uploadImage(file.path, "Treks/Hotels")
+      );
+      hotelImageUrls = await Promise.all(uploads);
+    }
+
     // Debug: Log final data before creating trek
     console.log('💾 Data being sent to MongoDB:', {
       ...parsedRest,
@@ -343,6 +378,7 @@ export const createTrek = async (req, res) => {
     const newTrek = await Trek.create({
       thumbnail: thumbnailUrl,
       showcaseImages: showcaseUrls,
+      hotelImages: hotelImageUrls,
       ...parsedRest,
     });
 
@@ -425,7 +461,7 @@ export const updateTrek = async (req, res) => {
 
     // Parse JSON strings from FormData
     const arrayFields = ['highlights', 'cityPricing', 'availableDates', 'faqs', 'addOns', 'addonFacilities', 'inclusions', 'exclusions', 'itinerary'];
-    const booleanFields = ['isActive', 'isFeatured', 'isFixedDeparture', 'isOnlyFixedDeparture'];
+    const booleanFields = ['isActive', 'isFeatured', 'isFixedDeparture', 'isOnlyFixedDeparture', 'isGroupTour'];
     const numberFields = ['altitude', 'maxGroupSize', 'totalBookings', 'rating'];
 
     const {
@@ -464,6 +500,13 @@ export const updateTrek = async (req, res) => {
         uploadImage(file.path, "Treks/Showcase")
       );
       parsedRest.showcaseImages = await Promise.all(showcaseUploads);
+    }
+
+    if (req.files?.hotelImages) {
+      const hotelImageUploads = req.files.hotelImages.map((file) =>
+        uploadImage(file.path, "Treks/Hotels")
+      );
+      parsedRest.hotelImages = await Promise.all(hotelImageUploads);
     }
 
     // Debug: Log final data before updating trek

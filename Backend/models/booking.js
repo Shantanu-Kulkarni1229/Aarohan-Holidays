@@ -87,6 +87,10 @@ const bookingSchema = new mongoose.Schema(
       required: [true, "Pickup city is required"],
       trim: true,
     },
+    pickupPoint: {
+      type: String,
+      trim: true,
+    },
 
     // Booking Date
     bookingDate: {
@@ -158,6 +162,13 @@ const bookingSchema = new mongoose.Schema(
       type: String,
       default: "",
       trim: true,
+    },
+    selectedAddOns: {
+      type: [{
+        name: String,
+        price: Number
+      }],
+      default: []
     },
 
     // Payment Details

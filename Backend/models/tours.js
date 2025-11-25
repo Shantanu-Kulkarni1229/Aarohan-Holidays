@@ -3,6 +3,7 @@ import mongoose from "mongoose";
 // ✅ Flexible pricing schema for city-specific pricing (admin can add custom price categories)
 const categoryPriceSchema = new mongoose.Schema({
   city: { type: String, required: true },
+  pickupPoints: { type: [String], default: [] }, // Pickup locations for this city
   pricingOptions: [{
     categoryName: { type: String, required: true }, // e.g., "Economy", "Deluxe", custom names
     price: { type: Number, required: true, min: 0 }
@@ -45,6 +46,16 @@ const tourSchema = new mongoose.Schema(
           return v.length <= 5;
         },
         message: "You can upload up to 5 showcase images only.",
+      },
+      default: [],
+    },
+    hotelImages: {
+      type: [String],
+      validate: {
+        validator: function (v) {
+          return v.length <= 5;
+        },
+        message: "You can upload up to 5 hotel images only.",
       },
       default: [],
     },
@@ -229,6 +240,7 @@ const tourSchema = new mongoose.Schema(
     isFeatured: { type: Boolean, default: false },
     isFixedDeparture: { type: Boolean, default: false }, // Fixed departure flag
     isOnlyFixedDeparture: { type: Boolean, default: false }, // Only show as fixed departure (not in normal tours)
+    isGroupTour: { type: Boolean, default: false }, // Group tour flag
   },
   { timestamps: true }
 );

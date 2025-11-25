@@ -32,6 +32,7 @@ router.post(
   upload.fields([
     { name: "thumbnail", maxCount: 1 },
     { name: "showcaseImages", maxCount: 5 },
+    { name: "hotelImages", maxCount: 5 },
   ]),
   createTour
 );
@@ -42,6 +43,7 @@ router.put(
   upload.fields([
     { name: "thumbnail", maxCount: 1 },
     { name: "showcaseImages", maxCount: 5 },
+    { name: "hotelImages", maxCount: 5 },
   ]),
   updateTour
 );
@@ -53,6 +55,7 @@ router.post(
   upload.fields([
     { name: "thumbnail", maxCount: 1 },
     { name: "showcaseImages", maxCount: 5 },
+    { name: "hotelImages", maxCount: 5 },
   ]),
   createTrek
 );
@@ -63,6 +66,7 @@ router.put(
   upload.fields([
     { name: "thumbnail", maxCount: 1 },
     { name: "showcaseImages", maxCount: 5 },
+    { name: "hotelImages", maxCount: 5 },
   ]),
   updateTrek
 );

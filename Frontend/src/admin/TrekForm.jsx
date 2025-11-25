@@ -64,14 +64,17 @@ const TrekForm = () => {
     isActive: true,
     isFeatured: false,
     isFixedDeparture: false,
-    isOnlyFixedDeparture: false // Only show as fixed departure
+    isOnlyFixedDeparture: false, // Only show as fixed departure
+    isGroupTour: false // Group tour flag
   });
 
   // File states
   const [thumbnailFile, setThumbnailFile] = useState(null);
   const [showcaseFiles, setShowcaseFiles] = useState([]);
+  const [hotelImageFiles, setHotelImageFiles] = useState([]);
   const [thumbnailPreview, setThumbnailPreview] = useState('');
   const [showcasePreviews, setShowcasePreviews] = useState([]);
+  const [hotelImagePreviews, setHotelImagePreviews] = useState([]);
 
   // Section navigation
   const sections = [
@@ -106,8 +109,13 @@ const TrekForm = () => {
           URL.revokeObjectURL(preview);
         }
       });
+      hotelImagePreviews.forEach(preview => {
+        if (preview.startsWith('blob:')) {
+          URL.revokeObjectURL(preview);
+        }
+      });
     };
-  }, [thumbnailPreview, showcasePreviews]);
+  }, [thumbnailPreview, showcasePreviews, hotelImagePreviews]);
 
   const loadTrekData = async (trekId) => {
     try {
@@ -146,6 +154,9 @@ const TrekForm = () => {
         }
         if (trek.showcaseImages && trek.showcaseImages.length > 0) {
           setShowcasePreviews(trek.showcaseImages);
+        }
+        if (trek.hotelImages && trek.hotelImages.length > 0) {
+          setHotelImagePreviews(trek.hotelImages);
         }
       } else {
         setError('❌ Failed to load trek data: ' + response.data.message);
@@ -231,6 +242,30 @@ const TrekForm = () => {
     setShowcasePreviews(prev => [...prev, ...newPreviews]);
   };
 
+  const handleHotelImageChange = (e) => {
+    const files = Array.from(e.target.files);
+    const currentCount = hotelImageFiles.length;
+    
+    if (currentCount + files.length > 5) {
+      setError('Maximum 5 hotel images allowed');
+      return;
+    }
+
+    setHotelImageFiles(prev => [...prev, ...files]);
+    const newPreviews = files.map(file => URL.createObjectURL(file));
+    setHotelImagePreviews(prev => [...prev, ...newPreviews]);
+  };
+
+  const removeHotelImage = (index) => {
+    const previewToRemove = hotelImagePreviews[index];
+    if (previewToRemove && previewToRemove.startsWith('blob:')) {
+      URL.revokeObjectURL(previewToRemove);
+    }
+    
+    setHotelImageFiles(prev => prev.filter((_, i) => i !== index));
+    setHotelImagePreviews(prev => prev.filter((_, i) => i !== index));
+  };
+
   // Clean and validate form data
   const cleanFormData = () => {
     return {
@@ -242,7 +277,8 @@ const TrekForm = () => {
         .filter(cp => cp.city.trim() && cp.pricingOptions && cp.pricingOptions.length > 0)
         .map(cp => ({
           city: cp.city.trim(),
-          pricingOptions: cp.pricingOptions.filter(opt => opt.categoryName.trim() && opt.price)
+          pricingOptions: cp.pricingOptions.filter(opt => opt.categoryName.trim() && opt.price),
+          pickupPoints: (cp.pickupPoints || []).filter(point => point && point.trim()) // Include pickup points
         }))
         .filter(cp => cp.pricingOptions.length > 0), // Remove cities with no valid pricing options
       // Filter out empty add-ons
@@ -327,6 +363,12 @@ const TrekForm = () => {
       if (showcaseFiles.length > 0) {
         showcaseFiles.forEach((file) => {
           submitFormData.append('showcaseImages', file);
+        });
+      }
+      
+      if (hotelImageFiles.length > 0) {
+        hotelImageFiles.forEach((file) => {
+          submitFormData.append('hotelImages', file);
         });
       }
 
@@ -682,6 +724,28 @@ const TrekForm = () => {
                   🔒 Only Fixed Departure
                 </span>
               </label>
+
+              {/* Group Tour Toggle */}
+              <label className="flex items-center space-x-3 cursor-pointer">
+                <div className="relative">
+                  <input
+                    type="checkbox"
+                    name="isGroupTour"
+                    checked={formData.isGroupTour}
+                    onChange={handleInputChange}
+                    className="sr-only"
+                  />
+                  <div className={`w-12 h-6 rounded-full transition-colors ${
+                    formData.isGroupTour ? 'bg-green-500' : 'bg-gray-300'
+                  }`}></div>
+                  <div className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full transition-transform ${
+                    formData.isGroupTour ? 'transform translate-x-6' : ''
+                  }`}></div>
+                </div>
+                <span className="text-sm font-medium text-gray-700 flex items-center gap-1">
+                  👥 Group Tour
+                </span>
+              </label>
             </div>
           </div>
 
@@ -850,6 +914,56 @@ const TrekForm = () => {
                                 setShowcasePreviews(newPreviews);
                                 setShowcaseFiles(newFiles);
                               }}
+                              className="opacity-0 group-hover:opacity-100 bg-red-500 text-white p-2 rounded-full transition-all"
+                            >
+                              <X className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-3">
+                  Hotel Images
+                  <span className="text-gray-500 font-normal ml-2">(Up to 5 hotel/accommodation images)</span>
+                </label>
+                <div className="border-2 border-dashed border-gray-300 rounded-xl p-6 text-center hover:border-green-400 transition-colors">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    onChange={handleHotelImageChange}
+                    className="hidden"
+                    id="hotel-upload"
+                  />
+                  <label htmlFor="hotel-upload" className="cursor-pointer">
+                    <ImageIcon className="w-12 h-12 text-gray-400 mx-auto mb-3" />
+                    <p className="text-gray-600 mb-2">Click to upload hotel images</p>
+                    <p className="text-sm text-gray-500">Showcase accommodation for this trek</p>
+                  </label>
+                </div>
+                
+                {hotelImagePreviews.length > 0 && (
+                  <div className="mt-4">
+                    <p className="text-sm font-medium text-gray-700 mb-2">
+                      Preview ({hotelImagePreviews.length}/5):
+                    </p>
+                    <div className="grid grid-cols-3 gap-3">
+                      {hotelImagePreviews.map((preview, index) => (
+                        <div key={index} className="relative group">
+                          <img
+                            src={preview}
+                            alt={`Hotel ${index + 1}`}
+                            className="w-full h-24 object-cover rounded-lg shadow-md"
+                          />
+                          <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-40 transition-all rounded-lg flex items-center justify-center">
+                            <button
+                              type="button"
+                              onClick={() => removeHotelImage(index)}
                               className="opacity-0 group-hover:opacity-100 bg-red-500 text-white p-2 rounded-full transition-all"
                             >
                               <X className="w-4 h-4" />
@@ -1169,6 +1283,54 @@ const TrekForm = () => {
                       className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-all"
                       placeholder="Enter departure city"
                     />
+                  </div>
+                  
+                  <div className="lg:col-span-2">
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                      Pickup Points (Optional)
+                    </label>
+                    <div className="space-y-2">
+                      {(cityPrice.pickupPoints || []).map((point, pointIndex) => (
+                        <div key={pointIndex} className="flex gap-2">
+                          <input
+                            type="text"
+                            value={point}
+                            onChange={(e) => {
+                              const updated = [...formData.cityPricing];
+                              if (!updated[index].pickupPoints) updated[index].pickupPoints = [];
+                              updated[index].pickupPoints[pointIndex] = e.target.value;
+                              setFormData({ ...formData, cityPricing: updated });
+                            }}
+                            className="flex-1 px-4 py-2 border-2 border-gray-200 rounded-lg text-sm"
+                            placeholder="e.g., Railway Station, Bus Stand, Airport"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const updated = [...formData.cityPricing];
+                              updated[index].pickupPoints = (updated[index].pickupPoints || []).filter((_, i) => i !== pointIndex);
+                              setFormData({ ...formData, cityPricing: updated });
+                            }}
+                            className="px-3 py-2 bg-red-500 text-white rounded-lg"
+                          >
+                            <X className="w-4 h-4" />
+                          </button>
+                        </div>
+                      ))}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const updated = [...formData.cityPricing];
+                          if (!updated[index].pickupPoints) updated[index].pickupPoints = [];
+                          updated[index].pickupPoints.push('');
+                          setFormData({ ...formData, cityPricing: updated });
+                        }}
+                        className="inline-flex items-center px-3 py-2 bg-teal-500 text-white rounded-lg text-sm"
+                      >
+                        <Plus className="w-3 h-3 mr-1" />
+                        Add Pickup Point
+                      </button>
+                    </div>
                   </div>
                 </div>
 

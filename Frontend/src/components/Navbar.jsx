@@ -4,7 +4,6 @@ import { FiPhone, FiSearch, FiMapPin, FiMenu, FiX, FiChevronDown, FiHome, FiCame
 import { FaMountain, FaRoute, FaConciergeBell, FaWhatsapp } from "react-icons/fa";
 import { gsap } from "gsap";
 import { toursAPI, treksAPI } from "../api/userAPI";
-import { publicAPI } from "../api/api";
 import { showApiError } from "../utils/toast";
 import EnquiryForm from "./EnquiryForm";
 
@@ -23,7 +22,6 @@ export default function Navbar() {
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState([]);
   const [showSearchResults, setShowSearchResults] = useState(false);
-  const [coupons, setCoupons] = useState([]);
   const navRef = useRef(null);
   const searchRef = useRef(null);
   const dropdownRef = useRef(null);
@@ -97,24 +95,10 @@ export default function Navbar() {
     }
   };
 
-  // Fetch active coupons
-  const fetchCoupons = async () => {
-    try {
-      const response = await publicAPI.coupons.getActive();
-      if (response.data.success) {
-        setCoupons(response.data.data);
-      }
-    } catch (error) {
-      // Silently fail for coupons as they're not critical
-      console.error('Failed to fetch coupons:', error);
-    }
-  };
-
   // Fetch data on mount
   useEffect(() => {
     fetchTours();
     fetchTreks();
-    fetchCoupons();
   }, []);
 
   // Initial navbar animation
@@ -247,6 +231,14 @@ export default function Navbar() {
       acc['📅 Fixed Departure'].push(tour);
     }
     
+    // Add to Group Tours category if applicable
+    if (tour.isGroupTour) {
+      if (!acc['👥 Group Tours']) {
+        acc['👥 Group Tours'] = [];
+      }
+      acc['👥 Group Tours'].push(tour);
+    }
+    
     if (tour.regionType === 'Domestic') {
       const state = tour.state || 'Other Domestic';
       if (!acc[state]) {
@@ -360,11 +352,8 @@ export default function Navbar() {
       ? `/book-tour/${result._id}` 
       : `/book-trek/${result._id}`;
     
-    // Dispatch custom event to trigger loader
-    const navigationEvent = new CustomEvent('navigationStart', {
-      detail: { path: route }
-    });
-    window.dispatchEvent(navigationEvent);
+    // Navigate to booking page
+    navigate(route);
     
     // Clear search
     setSearchQuery("");
@@ -617,71 +606,20 @@ export default function Navbar() {
 
   return (
     <>
-      {/* Announcement Bar */}
+      {/* Inquiry CTA Bar */}
       <div 
-        className="fixed w-full z-50 overflow-hidden"
+        className="fixed w-full z-50 cursor-pointer hover:opacity-90 transition-opacity"
         style={{ 
           background: colors.primary,
           height: '32px'
         }}
+        onClick={openEnquiryForm}
       >
-        <div className="flex items-center h-full">
-          <div className="animate-marquee whitespace-nowrap flex items-center">
-            {/* Display Coupons */}
-            {coupons.length > 0 && coupons.map((coupon, index) => (
-              <span key={`coupon-${index}`} className="text-white text-sm font-medium mx-8">
-                🎉 {coupon.description} - Use Code: <strong>{coupon.code}</strong> ({coupon.discountPercentage}% OFF)
-              </span>
-            ))}
-            
-            {/* Display Available Treks */}
-            {treks.length > 0 && (
-              <span className="text-white text-sm font-medium mx-8">
-                🏔️ Available Treks: {treks.slice(0, 6).map(trek => trek.name).join(' | ')}
-              </span>
-            )}
-            
-            {/* Display Available Tours */}
-            {tours.length > 0 && (
-              <span className="text-white text-sm font-medium mx-8">
-                🌴 Available Tours: {tours.slice(0, 6).map(tour => tour.name).join(' | ')}
-              </span>
-            )}
-            
-            {/* Fallback if no data */}
-            {coupons.length === 0 && tours.length === 0 && treks.length === 0 && (
-              <span className="text-white text-sm font-medium mx-8">⛰️ Adventure Awaits: Explore Amazing Destinations with Aarohan Holidays</span>
-            )}
-          </div>
-          
-          {/* Duplicate for seamless loop */}
-          <div className="animate-marquee whitespace-nowrap flex items-center" aria-hidden="true">
-            {/* Display Coupons */}
-            {coupons.length > 0 && coupons.map((coupon, index) => (
-              <span key={`coupon-dup-${index}`} className="text-white text-sm font-medium mx-8">
-                🎉 {coupon.description} - Use Code: <strong>{coupon.code}</strong> ({coupon.discountPercentage}% OFF)
-              </span>
-            ))}
-            
-            {/* Display Available Treks */}
-            {treks.length > 0 && (
-              <span className="text-white text-sm font-medium mx-8">
-                🏔️ Available Treks: {treks.slice(0, 6).map(trek => trek.name).join(' | ')}
-              </span>
-            )}
-            
-            {/* Display Available Tours */}
-            {tours.length > 0 && (
-              <span className="text-white text-sm font-medium mx-8">
-                🌴 Available Tours: {tours.slice(0, 6).map(tour => tour.name).join(' | ')}
-              </span>
-            )}
-            
-            {/* Fallback if no data */}
-            {coupons.length === 0 && tours.length === 0 && treks.length === 0 && (
-              <span className="text-white text-sm font-medium mx-8">⛰️ Adventure Awaits: Explore Amazing Destinations with Aarohan Holidays</span>
-            )}
-          </div>
+        <div className="flex items-center justify-center h-full">
+          <span className="text-white text-sm font-semibold flex items-center gap-2">
+            <FiMail size={16} />
+            Still confused about destination? Fill out inquiry form
+          </span>
         </div>
       </div>
 
@@ -931,6 +869,9 @@ export default function Navbar() {
                                     // Fixed Departure always first
                                     if (catA.includes('Fixed Departure')) return -1;
                                     if (catB.includes('Fixed Departure')) return 1;
+                                    // Group Tours second
+                                    if (catA.includes(' Upcoming Group Tours')) return -1;
+                                    if (catB.includes(' Upcoming Group Tours')) return 1;
                                     return catA.localeCompare(catB);
                                   })
                                   .map(([category, items]) => (
@@ -1267,6 +1208,9 @@ export default function Navbar() {
                                   // Fixed Departure always first
                                   if (catA.includes('Fixed Departure')) return -1;
                                   if (catB.includes('Fixed Departure')) return 1;
+                                  // Group Tours second
+                                  if (catA.includes('Group Tours')) return -1;
+                                  if (catB.includes('Group Tours')) return 1;
                                   return catA.localeCompare(catB);
                                 })
                                 .map(([category, items]) => (

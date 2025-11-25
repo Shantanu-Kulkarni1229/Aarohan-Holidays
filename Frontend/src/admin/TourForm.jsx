@@ -63,16 +63,19 @@ const TourForm = () => {
     isFeatured: false,
     isFixedDeparture: false,
     isOnlyFixedDeparture: false, // Only show as fixed departure
+    isGroupTour: false, // Group tour flag
   });
 
   const [files, setFiles] = useState({
     thumbnail: null,
-    showcaseImages: []
+    showcaseImages: [],
+    hotelImages: []
   });
 
   // Image preview states
   const [thumbnailPreview, setThumbnailPreview] = useState('');
   const [showcasePreviews, setShowcasePreviews] = useState([]);
+  const [hotelImagePreviews, setHotelImagePreviews] = useState([]);
   const [lightboxImage, setLightboxImage] = useState(null);
   const [lightboxIndex, setLightboxIndex] = useState(0);
 
@@ -141,6 +144,9 @@ const TourForm = () => {
         if (tour.showcaseImages && tour.showcaseImages.length > 0) {
           setShowcasePreviews(tour.showcaseImages);
         }
+        if (tour.hotelImages && tour.hotelImages.length > 0) {
+          setHotelImagePreviews(tour.hotelImages);
+        }
       } else {
         setErrors({ submit: 'Failed to load tour data: ' + response.data.message });
       }
@@ -171,8 +177,13 @@ const TourForm = () => {
           URL.revokeObjectURL(preview);
         }
       });
+      hotelImagePreviews.forEach(preview => {
+        if (preview.startsWith('blob:')) {
+          URL.revokeObjectURL(preview);
+        }
+      });
     };
-  }, [thumbnailPreview, showcasePreviews]);
+  }, [thumbnailPreview, showcasePreviews, hotelImagePreviews]);
 
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -240,6 +251,37 @@ const TourForm = () => {
       const combinedPreviews = [...showcasePreviews, ...newPreviews];
       setShowcasePreviews(combinedPreviews);
       setErrors(prev => ({ ...prev, showcaseImages: '' }));
+      
+    } else if (name === 'hotelImages' && selectedFiles.length > 0) {
+      const filesArray = Array.from(selectedFiles);
+      
+      // Combine existing and new files
+      const existingFiles = files.hotelImages || [];
+      const combinedFiles = [...existingFiles, ...filesArray];
+      
+      // Validate max 5 images total
+      if (combinedFiles.length > 5) {
+        setErrors(prev => ({ 
+          ...prev, 
+          hotelImages: `You can upload maximum 5 hotel images. Currently ${combinedFiles.length} selected.` 
+        }));
+        return;
+      }
+      
+      // Validate file sizes
+      const oversizedFiles = filesArray.filter(file => file.size > 5 * 1024 * 1024);
+      if (oversizedFiles.length > 0) {
+        setErrors(prev => ({ ...prev, hotelImages: 'Each hotel image must be less than 5MB' }));
+        return;
+      }
+      
+      setFiles(prev => ({ ...prev, hotelImages: combinedFiles }));
+      
+      // Create previews using URL.createObjectURL
+      const newPreviews = filesArray.map(file => URL.createObjectURL(file));
+      const combinedPreviews = [...hotelImagePreviews, ...newPreviews];
+      setHotelImagePreviews(combinedPreviews);
+      setErrors(prev => ({ ...prev, hotelImages: '' }));
     }
   };
 
@@ -294,6 +336,20 @@ const TourForm = () => {
       ...prev,
       availableDates: prev.availableDates.filter(d => d !== date)
     }));
+  };
+
+  // Remove hotel image
+  const removeHotelImage = (index) => {
+    const previewToRemove = hotelImagePreviews[index];
+    if (previewToRemove && previewToRemove.startsWith('blob:')) {
+      URL.revokeObjectURL(previewToRemove);
+    }
+    
+    setFiles(prev => ({
+      ...prev,
+      hotelImages: prev.hotelImages.filter((_, i) => i !== index)
+    }));
+    setHotelImagePreviews(prev => prev.filter((_, i) => i !== index));
   };
 
   const validateForm = () => {
@@ -390,7 +446,8 @@ const TourForm = () => {
           .filter(cp => cp.city.trim() && cp.pricingOptions && cp.pricingOptions.length > 0)
           .map(cp => ({
             city: cp.city.trim(),
-            pricingOptions: cp.pricingOptions.filter(opt => opt.categoryName.trim() && opt.price)
+            pricingOptions: cp.pricingOptions.filter(opt => opt.categoryName.trim() && opt.price),
+            pickupPoints: (cp.pickupPoints || []).filter(point => point && point.trim()) // Include pickup points
           }))
           .filter(cp => cp.pricingOptions.length > 0), // Remove cities with no valid pricing options
         // Filter out empty add-ons
@@ -437,6 +494,12 @@ const TourForm = () => {
       if (files.showcaseImages.length > 0) {
         files.showcaseImages.forEach((file) => {
           submitFormData.append('showcaseImages', file);
+        });
+      }
+      
+      if (files.hotelImages.length > 0) {
+        files.hotelImages.forEach((file) => {
+          submitFormData.append('hotelImages', file);
         });
       }
 
@@ -920,6 +983,27 @@ const TourForm = () => {
                   🔒 Only Fixed Departure (Hide from normal tours)
                 </span>
               </label>
+
+              <label className="flex items-center space-x-3 cursor-pointer">
+                <div className="relative">
+                  <input
+                    type="checkbox"
+                    name="isGroupTour"
+                    checked={formData.isGroupTour}
+                    onChange={handleInputChange}
+                    className="sr-only"
+                  />
+                  <div className={`w-12 h-6 rounded-full transition-colors ${
+                    formData.isGroupTour ? 'bg-green-500' : 'bg-gray-300'
+                  }`}></div>
+                  <div className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full transition-transform ${
+                    formData.isGroupTour ? 'transform translate-x-6' : ''
+                  }`}></div>
+                </div>
+                <span className="text-sm font-medium" style={{ color: colors.darkBg }}>
+                  👥 Group Tour
+                </span>
+              </label>
             </div>
           </div>
 
@@ -1093,6 +1177,84 @@ const TourForm = () => {
                   </div>
                 )}
               </div>
+
+              {/* Hotel Images */}
+              <div className="mb-8">
+                <label className="block text-sm font-semibold mb-3" style={{ color: colors.darkBg }}>
+                  Hotel Images
+                  <span className="font-normal ml-2" style={{ color: colors.textDark }}>(Up to 5 hotel/accommodation images)</span>
+                </label>
+                <div 
+                  className="border-2 border-dashed rounded-xl p-6 text-center hover:border-green-400 transition-colors cursor-pointer"
+                  style={{ borderColor: colors.border }}
+                >
+                  <input
+                    type="file"
+                    name="hotelImages"
+                    accept="image/*"
+                    multiple
+                    onChange={handleFileChange}
+                    className="hidden"
+                    id="hotel-upload"
+                  />
+                  <label htmlFor="hotel-upload" className="cursor-pointer">
+                    <Upload size={48} className="text-gray-400 mx-auto mb-3" />
+                    <p className="mb-2" style={{ color: colors.textDark }}>Click to upload hotel images</p>
+                    <p className="text-sm" style={{ color: colors.textDark }}>Showcase accommodation for this tour</p>
+                  </label>
+                </div>
+                {errors.hotelImages && <p className="text-red-500 text-sm mt-2">{errors.hotelImages}</p>}
+                
+                {/* Hotel Images Preview */}
+                {hotelImagePreviews.length > 0 && (
+                  <div className="mt-4">
+                    <p className="text-sm font-medium mb-2" style={{ color: colors.darkBg }}>
+                      Preview ({hotelImagePreviews.length}/5):
+                    </p>
+                    <div className="grid grid-cols-3 gap-3">
+                      {hotelImagePreviews.map((preview, index) => (
+                        <div key={index} className="relative group">
+                          <img
+                            src={preview}
+                            alt={`Hotel ${index + 1}`}
+                            className="w-full h-24 object-cover rounded-lg shadow-md cursor-pointer hover:opacity-90 transition-opacity"
+                            onClick={() => {
+                              setLightboxImage(preview);
+                              setLightboxIndex(index + 1);
+                            }}
+                          />
+                          <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-40 transition-all rounded-lg flex items-center justify-center">
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setLightboxImage(preview);
+                                setLightboxIndex(index + 1);
+                              }}
+                              className="opacity-0 group-hover:opacity-100 text-white p-2 rounded-full transition-all transform scale-75 group-hover:scale-100 mr-1"
+                              style={{ backgroundColor: colors.secondary }}
+                              title="View full size"
+                            >
+                              <Eye size={16} />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                removeHotelImage(index);
+                              }}
+                              className="opacity-0 group-hover:opacity-100 bg-red-500 text-white p-2 rounded-full transition-all transform scale-75 group-hover:scale-100"
+                              title="Remove image"
+                            >
+                              <Trash2 size={16} />
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
 
@@ -1209,6 +1371,57 @@ const TourForm = () => {
                       placeholder="Enter departure city"
                     />
                     {errors[`cityCity_${index}`] && <p className="text-red-500 text-sm mt-2">{errors[`cityCity_${index}`]}</p>}
+                  </div>
+                  
+                  <div className="lg:col-span-2">
+                    <label className="block text-sm font-semibold mb-2" style={{ color: colors.darkBg }}>
+                      Pickup Points (Optional)
+                    </label>
+                    <div className="space-y-2">
+                      {(cityPrice.pickupPoints || []).map((point, pointIndex) => (
+                        <div key={pointIndex} className="flex gap-2">
+                          <input
+                            type="text"
+                            value={point}
+                            onChange={(e) => {
+                              const updated = [...formData.cityPricing];
+                              if (!updated[index].pickupPoints) updated[index].pickupPoints = [];
+                              updated[index].pickupPoints[pointIndex] = e.target.value;
+                              setFormData({ ...formData, cityPricing: updated });
+                            }}
+                            className="flex-1 px-4 py-2 border-2 rounded-lg text-sm"
+                            style={{ borderColor: colors.border }}
+                            placeholder="e.g., Railway Station, Bus Stand, Airport"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const updated = [...formData.cityPricing];
+                              updated[index].pickupPoints = (updated[index].pickupPoints || []).filter((_, i) => i !== pointIndex);
+                              setFormData({ ...formData, cityPricing: updated });
+                            }}
+                            className="px-3 py-2 rounded-lg text-white"
+                            style={{ backgroundColor: '#EF4444' }}
+                          >
+                            <X size={16} />
+                          </button>
+                        </div>
+                      ))}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const updated = [...formData.cityPricing];
+                          if (!updated[index].pickupPoints) updated[index].pickupPoints = [];
+                          updated[index].pickupPoints.push('');
+                          setFormData({ ...formData, cityPricing: updated });
+                        }}
+                        className="inline-flex items-center px-3 py-2 rounded-lg text-sm text-white"
+                        style={{ backgroundColor: colors.secondary }}
+                      >
+                        <Plus size={14} className="mr-1" />
+                        Add Pickup Point
+                      </button>
+                    </div>
                   </div>
                 </div>
 

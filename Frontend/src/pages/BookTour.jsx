@@ -4,7 +4,7 @@ import { toursAPI } from '../api/userAPI';
 import axios from 'axios';
 import { showSuccess, showError, showApiError } from '../utils/toast';
 import { gsap } from 'gsap';
-import { Calendar, MapPin, Clock, Users, Star, ChevronDown, ChevronUp, CheckCircle, XCircle, AlertCircle, Loader, Play, X, Shield, Heart, Phone } from 'lucide-react';
+import { Calendar, MapPin, Clock, Users, Star, ChevronDown, ChevronUp, CheckCircle, XCircle, AlertCircle, Loader, Play, X, Shield, Heart, Phone, Building } from 'lucide-react';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import { API_BASE_URL } from '../api/api';
@@ -33,6 +33,7 @@ const BookTour = () => {
     children: 0,
     infants: 0,
     pickupCity: '',
+    pickupPoint: '',
     bookingDate: '',
     selectedPricingOption: '', // Selected pricing option (categoryName from pricingOptions)
     pricePerPerson: 0,
@@ -119,6 +120,7 @@ const BookTour = () => {
           children: 0,
           infants: 0,
           pickupCity: '',
+          pickupPoint: '',
           bookingDate: '',
           pricePerPerson: 0,
           specialRequests: '',
@@ -374,6 +376,7 @@ const BookTour = () => {
     setFormData(prev => ({
       ...prev,
       pickupCity: city,
+      pickupPoint: '', // Reset pickup point when city changes
       pricePerPerson: basePrice
     }));
   };
@@ -722,6 +725,7 @@ const BookTour = () => {
         selectedCategory: formData.selectedPricingOption, // Selected pricing category name
         selectedAddOns: formData.selectedAddOns, // Selected add-on IDs
         pickupCity: formData.pickupCity,
+        pickupPoint: formData.pickupPoint,
         bookingDate: formData.bookingDate,
         pricePerPerson: formData.pricePerPerson,
         totalPrice: finalAmount, // Send the final calculated price (after discount)
@@ -809,11 +813,7 @@ const BookTour = () => {
             <span className="text-sm font-semibold tracking-wide">DAY {day.day}</span>
           </div>
           <div className="flex-1">
-            <h4 className="font-bold text-gray-900 text-lg mb-2 leading-tight">{day.title}</h4>
-            <div 
-              className="text-gray-600 text-base leading-relaxed line-clamp-1"
-              dangerouslySetInnerHTML={{ __html: day.description }}
-            />
+            <h4 className="font-bold text-gray-900 text-lg leading-tight">{day.title}</h4>
           </div>
         </div>
         <div 
@@ -1360,6 +1360,32 @@ const BookTour = () => {
                 )}
               </div>
 
+              {/* Hotel Images Gallery */}
+              {tour.hotelImages && tour.hotelImages.length > 0 && (
+                <div className="bg-white rounded-xl shadow-lg p-5 transition-all duration-300 border" style={{ borderColor: colors.border }}>
+                  <h3 className="text-xl font-bold mb-5 flex items-center" style={{ color: colors.text }}>
+                    <Building className="w-5 h-5 mr-3" style={{ color: colors.secondary }} />
+                    Hotels & Accommodation
+                  </h3>
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                    {tour.hotelImages.map((image, index) => (
+                      <div
+                        key={index}
+                        className="aspect-video rounded-lg overflow-hidden cursor-pointer group relative border-2 transition-all duration-300 hover:border-orange-500"
+                        style={{ borderColor: colors.border }}
+                        onClick={() => openImageModal(image)}
+                      >
+                        <img
+                          src={image}
+                          alt={`Hotel ${index + 1}`}
+                          className="w-full h-full object-cover hover:scale-110 transition-transform duration-500"
+                        />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               {/* Enhanced Highlights */}
               {tour.highlights && tour.highlights.length > 0 && (
                 <div className="bg-white rounded-xl shadow-lg p-5 transition-all duration-300 border" style={{ borderColor: colors.border }}>
@@ -1796,6 +1822,35 @@ const BookTour = () => {
                         </p>
                       )}
                     </div>
+
+                    {/* Pickup Point Selection */}
+                    {selectedCity && tour.cityPricing?.find(cp => cp.city === selectedCity)?.pickupPoints?.length > 0 && (
+                      <div>
+                        <label className="block text-sm font-semibold mb-2" style={{ color: colors.text }}>
+                          Select Pickup Point <span className="text-xs font-normal" style={{ color: colors.lightText }}>(optional)</span>
+                        </label>
+                        <select
+                          name="pickupPoint"
+                          value={formData.pickupPoint}
+                          onChange={handleInputChange}
+                          className="w-full px-3 py-2 border-2 rounded-lg focus:ring-2 transition-all duration-300 hover:border-gray-400"
+                          style={{ 
+                            borderColor: colors.border,
+                            focusBorderColor: colors.primary,
+                            focusRingColor: colors.primary,
+                            color: colors.text,
+                            backgroundColor: '#FFFFFF'
+                          }}
+                        >
+                          <option value="" style={{ color: colors.lightText }}>Choose pickup location</option>
+                          {tour.cityPricing.find(cp => cp.city === selectedCity)?.pickupPoints?.map((point, index) => (
+                            <option key={index} value={point} style={{ color: colors.text }}>
+                              {point}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    )}
 
                     {/* Pricing Option Selection */}
                     <div>

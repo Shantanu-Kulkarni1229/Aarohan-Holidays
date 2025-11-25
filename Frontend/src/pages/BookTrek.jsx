@@ -32,6 +32,7 @@ const BookTrek = () => {
     children: 0,
     infants: 0,
     pickupCity: '',
+    pickupPoint: '',
     bookingDate: '',
     selectedPricingOption: '', // Selected pricing option (categoryName from pricingOptions)
     pricePerPerson: 0,
@@ -119,6 +120,7 @@ const BookTrek = () => {
           children: 0,
           infants: 0,
           pickupCity: '',
+          pickupPoint: '',
           bookingDate: '',
           selectedPricingOption: '',
           pricePerPerson: 0,
@@ -404,6 +406,7 @@ const BookTrek = () => {
     setFormData(prev => ({
       ...prev,
       pickupCity: city,
+      pickupPoint: '', // Reset pickup point when city changes
       selectedPricingOption: categoryName,
       pricePerPerson: basePrice
     }));
@@ -741,6 +744,7 @@ const BookTrek = () => {
         selectedCategory: formData.selectedPricingOption, // Selected pricing category name
         selectedAddOns: formData.selectedAddOns, // Selected add-on IDs
         pickupCity: formData.pickupCity,
+        pickupPoint: formData.pickupPoint,
         bookingDate: formData.bookingDate,
         pricePerPerson: formData.pricePerPerson,
         totalPrice: finalAmount, // Send the final calculated price (after discount)
@@ -793,12 +797,7 @@ const BookTrek = () => {
               DAY {day.day}
             </div>
             <div>
-              <h4 className="font-bold text-base mb-1" style={{ color: colors.text }}>{day.title}</h4>
-              <div 
-                className="text-sm line-clamp-1" 
-                style={{ color: colors.lightText }}
-                dangerouslySetInnerHTML={{ __html: day.description }}
-              />
+              <h4 className="font-bold text-base" style={{ color: colors.text }}>{day.title}</h4>
             </div>
           </div>
           <div className={`transform transition-transform duration-300 ${isExpanded ? 'rotate-180' : ''}`}>
@@ -1315,6 +1314,32 @@ const BookTrek = () => {
                 )}
               </div>
 
+              {/* Hotel Images Gallery */}
+              {trek.hotelImages && trek.hotelImages.length > 0 && (
+                <div className="bg-white rounded-xl shadow-lg p-5 transition-all duration-300 border" style={{ borderColor: colors.border }}>
+                  <h3 className="text-xl font-bold mb-5 flex items-center" style={{ color: colors.text }}>
+                    <Building className="w-5 h-5 mr-3" style={{ color: colors.secondary }} />
+                    Hotels & Accommodation
+                  </h3>
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                    {trek.hotelImages.map((image, index) => (
+                      <div
+                        key={index}
+                        className="aspect-video rounded-lg overflow-hidden cursor-pointer group relative border-2 transition-all duration-300 hover:border-orange-500"
+                        style={{ borderColor: colors.border }}
+                        onClick={() => openImageModal(image)}
+                      >
+                        <img
+                          src={image}
+                          alt={`Hotel ${index + 1}`}
+                          className="w-full h-full object-cover hover:scale-110 transition-transform duration-500"
+                        />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               {/* Trek Highlights */}
               {trek.highlights && trek.highlights.length > 0 && (
                 <div className="bg-white rounded-lg shadow-lg p-4 transition-all duration-300 border" style={{ borderColor: colors.border }}>
@@ -1754,6 +1779,35 @@ const BookTrek = () => {
                         </p>
                       )}
                     </div>
+
+                    {/* Pickup Point Selection */}
+                    {selectedCity && trek.cityPricing?.find(cp => cp.city === selectedCity)?.pickupPoints?.length > 0 && (
+                      <div className="mb-3">
+                        <label className="block text-xs font-semibold mb-1" style={{ color: colors.text }}>
+                          Select Pickup Point <span className="text-xs font-normal" style={{ color: colors.lightText }}>(optional)</span>
+                        </label>
+                        <select
+                          name="pickupPoint"
+                          value={formData.pickupPoint}
+                          onChange={handleInputChange}
+                          className="w-full px-3 py-2 border rounded-lg focus:ring-1 transition-all duration-300 text-sm hover:border-gray-400"
+                          style={{ 
+                            borderColor: colors.border,
+                            focusBorderColor: colors.primary,
+                            focusRingColor: colors.primary,
+                            color: colors.text,
+                            backgroundColor: '#FFFFFF'
+                          }}
+                        >
+                          <option value="" style={{ color: colors.lightText }}>Choose pickup location</option>
+                          {trek.cityPricing.find(cp => cp.city === selectedCity)?.pickupPoints?.map((point, index) => (
+                            <option key={index} value={point} style={{ color: colors.text }}>
+                              {point}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    )}
 
                     <div>
                       <label className="block text-xs font-semibold mb-1" style={{ color: colors.text }}>
