@@ -33,6 +33,13 @@ const trekSchema = new mongoose.Schema(
   {
     // Basic Info
     name: { type: String, required: true, trim: true },
+    
+    // ✅ Introduction Section (Optional - appears before description)
+    introSection: {
+      header: { type: String, default: '' }, // e.g., "History", "About This Trek", "Overview"
+      content: { type: String, default: '' } // Rich text content
+    },
+    
     description: { type: String, required: true, minlength: 20 },
     location: { type: String, required: true },
     duration: { type: String, required: true },

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { adminAPI } from '../api/api';
 import { showSuccess, showError } from '../utils/toast';
@@ -6,13 +6,14 @@ import RichTextEditor from '../components/RichTextEditor';
 import {
   ArrowLeft, Info, Mountain, ImageIcon, Star, DollarSign,
   Calendar, HelpCircle, TrendingUp, Users, MapPin, Save,
-  Upload, X, AlertCircle, CheckCircle, Plus
+  Upload, X, AlertCircle, CheckCircle, Plus, FileText, Trash2
 } from 'lucide-react';
 
 const TrekForm = () => {
   const navigate = useNavigate();
   const { id } = useParams();
   const isEdit = Boolean(id);
+  const hasFetchedRef = useRef(false);
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -23,6 +24,7 @@ const TrekForm = () => {
   const [formData, setFormData] = useState({
     // Basic Info
     name: '',
+    introSection: { header: '', content: '' },
     description: '',
     location: '',
     duration: '',
@@ -93,7 +95,8 @@ const TrekForm = () => {
 
   // Load trek data for edit
   useEffect(() => {
-    if (isEdit && id) {
+    if (isEdit && id && !hasFetchedRef.current) {
+      hasFetchedRef.current = true;
       loadTrekData(id);
     }
   }, [isEdit, id]);
@@ -126,6 +129,8 @@ const TrekForm = () => {
         const trek = response.data.data;
         setFormData({
           ...trek,
+          // Ensure introSection is properly loaded
+          introSection: trek.introSection || { header: '', content: '' },
           availableDates: trek.availableDates?.map(date => new Date(date).toISOString().split('T')[0]) || [''],
           highlights: trek.highlights?.length > 0 ? trek.highlights : [''],
           faqs: trek.faqs?.length > 0 ? trek.faqs : [{ question: '', answer: '' }],
@@ -133,6 +138,7 @@ const TrekForm = () => {
           // NEW: Load itinerary with note and activities support
           itinerary: trek.itinerary?.length > 0 ? trek.itinerary.map(item => ({
             ...item,
+            description: item.description || '',
             note: item.note || '',
             activities: item.activities || []
           })) : [{ day: 1, title: '', description: '', meals: '', accommodation: '', note: '', activities: [] }],
@@ -270,6 +276,11 @@ const TrekForm = () => {
   const cleanFormData = () => {
     return {
       ...formData,
+      // Ensure introSection is properly included
+      introSection: {
+        header: formData.introSection?.header || '',
+        content: formData.introSection?.content || ''
+      },
       highlights: formData.highlights.filter(h => h.trim()),
       availableDates: formData.availableDates.filter(d => d.trim()),
       // Filter out empty city pricing entries (optional - can be empty array)
@@ -350,6 +361,9 @@ const TrekForm = () => {
           if (cleanedData[key].length > 0) {
             submitFormData.append(key, JSON.stringify(cleanedData[key]));
           }
+        } else if (typeof cleanedData[key] === 'object' && cleanedData[key] !== null && key !== 'thumbnail' && key !== 'showcaseImages' && key !== 'hotelImages') {
+          // Stringify objects (like introSection)
+          submitFormData.append(key, JSON.stringify(cleanedData[key]));
         } else if (cleanedData[key] !== null && cleanedData[key] !== undefined) {
           submitFormData.append(key, cleanedData[key]);
         }
@@ -601,7 +615,7 @@ const TrekForm = () => {
               </div>
 
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-3">Max Group Size</label>
+                <label className="block text-sm font-semibold text-gray-700 mb-3">Max Group Size (0 for viewing-only)</label>
                 <input
                   type="number"
                   name="maxGroupSize"
@@ -609,7 +623,7 @@ const TrekForm = () => {
                   onChange={handleInputChange}
                   className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
                   placeholder="15"
-                  min="1"
+                  min="0"
                 />
               </div>
 
@@ -626,12 +640,64 @@ const TrekForm = () => {
               </div>
             </div>
 
+            {/* NEW: Introduction Section */}
+            <div className="mt-8 p-6 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl border-2 border-blue-200">
+              <div className="flex items-center mb-4">
+                <div className="w-10 h-10 bg-blue-500 rounded-lg flex items-center justify-center mr-3">
+                  <FileText className="w-5 h-5 text-white" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-gray-900">Introduction Section</h3>
+                  <p className="text-sm text-gray-600">Add history, overview, or any introductory content before the main description</p>
+                </div>
+              </div>
+              
+              <div className="mb-4">
+                <label className="block text-sm font-semibold text-gray-700 mb-3">
+                  Section Header <span className="text-gray-500 font-normal">(Optional - e.g., "History", "Overview", "About This Trek")</span>
+                </label>
+                <input
+                  type="text"
+                  value={formData.introSection?.header || ''}
+                  onChange={(e) => setFormData(prev => ({
+                    ...prev,
+                    introSection: {
+                      ...prev.introSection,
+                      header: e.target.value
+                    }
+                  }))}
+                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+                  placeholder="e.g., History of the Trek, Overview, Background"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-3">
+                  Content <span className="text-gray-500 font-normal">(Optional - Will appear before the main description)</span>
+                </label>
+                <RichTextEditor
+                  key="intro-section-content"
+                  value={formData.introSection?.content || ''}
+                  onChange={(html) => setFormData(prev => ({
+                    ...prev,
+                    introSection: {
+                      ...prev.introSection,
+                      content: html
+                    }
+                  }))}
+                  placeholder="Add historical information, background story, or any introductory content about this trek..."
+                  minHeight="180px"
+                />
+              </div>
+            </div>
+
             <div className="mt-8">
               <label className="block text-sm font-semibold text-gray-700 mb-3">
                 Trek Description * <span className="text-gray-500 font-normal">(Use toolbar for formatting - min 20 characters)</span>
               </label>
               <RichTextEditor
-                value={formData.description}
+                key="main-description"
+                value={formData.description || ''}
                 onChange={(html) => setFormData(prev => ({ ...prev, description: html }))}
                 placeholder="Describe the trek experience, scenery, challenges, and highlights in detail. Use bold, italic, and bullet points to make it engaging."
                 minHeight="250px"
@@ -1068,7 +1134,8 @@ const TrekForm = () => {
                       Description * <span className="text-xs font-normal text-gray-500">(Use toolbar for formatting)</span>
                     </label>
                     <RichTextEditor
-                      value={day.description}
+                      key={`trek-description-${index}-${day.day}`}
+                      value={day.description || ''}
                       onChange={(html) => handleObjectArrayChange('itinerary', index, 'description', html)}
                       placeholder="Describe the day's activities, terrain, and what trekkers will experience. Use bullet points, bold, italic for better formatting."
                       minHeight="180px"
@@ -1102,6 +1169,7 @@ const TrekForm = () => {
                       📝 Day Note <span className="text-xs font-normal text-gray-500">(Optional - Use toolbar for formatting)</span>
                     </label>
                     <RichTextEditor
+                      key={`trek-note-${index}-${day.day}`}
                       value={day.note || ''}
                       onChange={(html) => handleObjectArrayChange('itinerary', index, 'note', html)}
                       placeholder="Add any special notes or important information for this day. Use formatting for emphasis."

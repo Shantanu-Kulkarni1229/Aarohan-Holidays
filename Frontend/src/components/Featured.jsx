@@ -269,7 +269,20 @@ const Featured = () => {
 
   const formatPrice = (cityPricing) => {
     if (!cityPricing || cityPricing.length === 0) return 'Contact for Price';
-    const minPrice = Math.min(...cityPricing.map(city => city.price));
+    
+    const allPrices = [];
+    cityPricing.forEach(city => {
+      if (city.pricingOptions && Array.isArray(city.pricingOptions)) {
+        city.pricingOptions.forEach(option => {
+          if (option.price) {
+            allPrices.push(option.price);
+          }
+        });
+      }
+    });
+    
+    if (allPrices.length === 0) return 'Contact for Price';
+    const minPrice = Math.min(...allPrices);
     return `₹${minPrice.toLocaleString()}`;
   };
 
@@ -325,15 +338,7 @@ const Featured = () => {
     window.dispatchEvent(navigationEvent);
   };
 
-  const handleBookNow = (item, e) => {
-    e.stopPropagation();
-    const route = item.type === 'tour' ? `/book-tour/${item._id}` : `/book-trek/${item._id}`;
-    // Dispatch custom event to trigger loader
-    const navigationEvent = new CustomEvent('navigationStart', {
-      detail: { path: route }
-    });
-    window.dispatchEvent(navigationEvent);
-  };
+
 
   // Enhanced skeleton loader - Compact
   const SkeletonCard = () => (
@@ -480,51 +485,24 @@ const Featured = () => {
                     alt={item.title}
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                   />
-                  
-                  {/* Gradient Overlay */}
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-70"></div>
-                  
-                  {/* Special Offer Badge */}
-                  <div className="absolute top-3 left-3">
-                    <div className="px-3 py-1.5 rounded-lg text-xs font-bold text-white shadow-lg"
-                         style={{ backgroundColor: special.bgColor }}>
-                      {special.label}
-                    </div>
-                  </div>
-
-                  {/* Type Badge */}
-                  <div className="absolute top-3 right-3">
-                    <div className="px-2.5 py-1 rounded-lg text-xs font-bold text-white shadow-lg"
-                         style={{ 
-                           backgroundColor: item.type === 'tour' ? colors.primary : colors.secondary 
-                         }}>
-                      {item.type === 'tour' ? '🚌' : '🏔️'}
-                    </div>
-                  </div>
-
-                  {/* Price Badge - Bottom Right */}
-                  <div className="absolute bottom-3 right-3">
-                    <div className="px-3 py-2 rounded-lg text-white font-bold shadow-lg backdrop-blur-sm"
-                         style={{ backgroundColor: colors.primary }}>
-                      {formatPrice(item.cityPricing)}
-                    </div>
-                  </div>
-
-                  {/* Book Now Button - Hover Effect */}
-                  <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                    <button
-                      onClick={(e) => handleBookNow(item, e)}
-                      className="px-6 py-3 rounded-xl font-semibold text-sm text-white shadow-xl transition-all duration-300 transform scale-90 group-hover:scale-100 flex items-center gap-2"
-                      style={{ backgroundColor: colors.primary }}
-                    >
-                      <Star className="h-4 w-4 fill-current" />
-                      Book Now
-                    </button>
-                  </div>
                 </div>
 
                 {/* Compact Content */}
                 <div className="p-4">
+                  {/* Badges Row */}
+                  <div className="flex flex-wrap items-center gap-2 mb-3">
+                    <div className="px-2 py-1 rounded-lg text-xs font-bold text-white"
+                         style={{ backgroundColor: special.bgColor }}>
+                      {special.label}
+                    </div>
+                    <div className="px-2 py-1 rounded-lg text-xs font-bold text-white"
+                         style={{ 
+                           backgroundColor: item.type === 'tour' ? colors.primary : colors.secondary 
+                         }}>
+                      {item.type === 'tour' ? '🚌 Tour' : '🏔️ Trek'}
+                    </div>
+                  </div>
+
                   <h3 className="text-base font-bold line-clamp-2 group-hover:text-blue-600 transition-colors duration-300 min-h-[48px]"
                       style={{ color: colors.text }}>
                     {item.title}
@@ -539,6 +517,14 @@ const Featured = () => {
                       </span>
                     </div>
                   )}
+
+                  {/* Price */}
+                  <div className="flex items-center justify-between mt-4 pt-3 border-t" style={{ borderColor: colors.border }}>
+                    <span className="text-xs font-medium" style={{ color: colors.lightText }}>Starting from</span>
+                    <div className="text-lg font-bold" style={{ color: colors.primary }}>
+                      {formatPrice(item.cityPricing)}
+                    </div>
+                  </div>
                 </div>
               </div>
             );

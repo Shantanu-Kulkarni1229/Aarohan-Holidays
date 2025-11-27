@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { adminAPI } from '../api/api';
 import { showSuccess, showError } from '../utils/toast';
@@ -28,6 +28,7 @@ const TourForm = () => {
   const navigate = useNavigate();
   const { id } = useParams();
   const isEditing = Boolean(id);
+  const hasFetchedRef = useRef(false);
 
   const [formData, setFormData] = useState({
     // Basic Information
@@ -115,6 +116,21 @@ const TourForm = () => {
       const response = await adminAPI.tours.getById(id);
       if (response.data.success) {
         const tour = response.data.data;
+        
+        console.log('🎯 TOUR DATA LOADED:', {
+          tourName: tour.name,
+          hasDescription: !!tour.description,
+          descriptionLength: tour.description?.length,
+          descriptionPreview: tour.description?.substring(0, 100),
+          itineraryCount: tour.itinerary?.length,
+          firstItinerary: tour.itinerary?.[0] ? {
+            day: tour.itinerary[0].day,
+            hasDescription: !!tour.itinerary[0].description,
+            descriptionLength: tour.itinerary[0].description?.length,
+            descriptionPreview: tour.itinerary[0].description?.substring(0, 100)
+          } : null
+        });
+        
         setFormData({
           ...tour,
           availableDates: tour.availableDates?.map(date => new Date(date).toISOString().split('T')[0]) || [],
@@ -124,6 +140,7 @@ const TourForm = () => {
           cityPricing: tour.cityPricing?.length > 0 ? tour.cityPricing : [{ city: '', pricingOptions: [{ categoryName: '', price: '' }] }],
           itinerary: tour.itinerary?.length > 0 ? tour.itinerary.map(item => ({
             ...item,
+            description: item.description || '',
             note: item.note || '',
             activities: item.activities || []
           })) : [{ day: 1, title: '', description: '', meals: '', accommodation: '', note: '', activities: [] }],
@@ -160,7 +177,8 @@ const TourForm = () => {
   };
 
   useEffect(() => {
-    if (isEditing) {
+    if (isEditing && !hasFetchedRef.current) {
+      hasFetchedRef.current = true;
       fetchTourData();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -411,9 +429,9 @@ const TourForm = () => {
       }
     }
 
-    // Validate maxGroupSize
-    if (formData.maxGroupSize < 1) {
-      newErrors.maxGroupSize = 'Max group size must be at least 1';
+    // Validate maxGroupSize (allow 0 for viewing-only tours)
+    if (formData.maxGroupSize < 0) {
+      newErrors.maxGroupSize = 'Max group size cannot be negative';
     }
 
     setErrors(newErrors);
@@ -780,7 +798,7 @@ const TourForm = () => {
                 { label: 'Tour Name *', name: 'name', type: 'text', placeholder: 'Enter an attractive tour name' },
                 { label: 'Location *', name: 'location', type: 'text', placeholder: 'e.g., Delhi, Agra, Jaipur' },
                 { label: 'Duration *', name: 'duration', type: 'text', placeholder: 'e.g., 7 days 6 nights' },
-                { label: 'Max Group Size', name: 'maxGroupSize', type: 'number', placeholder: '20', min: 1 },
+                { label: 'Max Group Size', name: 'maxGroupSize', type: 'number', placeholder: '20', min: 0 },
                 { label: 'Video Link', name: 'videoLink', type: 'url', placeholder: 'https://youtube.com/...' }
               ].map((field) => (
                 <div key={field.name}>
@@ -1981,7 +1999,8 @@ const TourForm = () => {
                     Day Description <span className="text-xs font-normal text-gray-500">(Use toolbar for formatting)</span>
                   </label>
                   <RichTextEditor
-                    value={item.description}
+                    key={`description-${index}-${item.day}`}
+                    value={item.description || ''}
                     onChange={(html) => handleObjectArrayChange('itinerary', index, 'description', html)}
                     placeholder="Describe the day's activities, sights, and experiences in detail. Use bullet points, bold, italic for better formatting."
                     minHeight="200px"
@@ -2025,6 +2044,7 @@ const TourForm = () => {
                     📝 Day Note <span className="text-xs font-normal" style={{ color: colors.textDark }}>(Optional - Use toolbar for formatting)</span>
                   </label>
                   <RichTextEditor
+                    key={`note-${index}-${item.day}`}
                     value={item.note || ''}
                     onChange={(html) => handleObjectArrayChange('itinerary', index, 'note', html)}
                     placeholder="Add any special notes or important information for this day. Use formatting for emphasis."

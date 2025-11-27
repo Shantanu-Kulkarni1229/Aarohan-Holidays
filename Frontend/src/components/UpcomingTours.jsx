@@ -735,66 +735,33 @@ const UpcomingTours = () => {
                             <Camera className="h-12 w-12 opacity-30" style={{ color: colors.textLight }} />
                           </div>
                         )}
-                        
-                        {/* Overlay Gradient */}
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent opacity-60"></div>
-                        
-                        {/* Price Badge */}
-                        <div className="absolute top-4 right-4">
-                          <div className="px-3 py-2 rounded-lg text-white font-bold shadow-lg"
-                               style={{ backgroundColor: colors.primary }}>
-                            {formatPrice(tour.cityPricing)}
-                          </div>
-                        </div>
-
-                        {/* Featured Badge */}
-                        {tour.featured && (
-                          <div className="absolute top-4 left-4">
-                            <div className="px-3 py-1.5 rounded-lg text-xs font-bold text-white shadow-lg flex items-center gap-1"
-                                 style={{ backgroundColor: colors.secondary }}>
-                              <Star className="h-3 w-3 fill-current" />
-                              POPULAR
-                            </div>
-                          </div>
-                        )}
-
-                        {/* Fixed Departure Badge */}
-                        {tour.isFixedDeparture && (
-                          <div className={`absolute ${tour.featured ? 'top-14' : 'top-4'} left-4`}>
-                            <div className="px-3 py-1.5 rounded-lg text-xs font-bold text-white shadow-lg flex items-center gap-1"
-                                 style={{ backgroundColor: '#059669' }}>
-                              📅 FIXED DEPARTURE
-                            </div>
-                          </div>
-                        )}
-
-                        {/* Tour Type Badge */}
-                        {tour.category && (
-                          <div className={`absolute ${(tour.featured || tour.isFixedDeparture) ? 'top-14' : 'top-4'} ${(tour.featured && tour.isFixedDeparture) ? 'top-24' : ''} left-4`}>
-                            <div className="px-3 py-1.5 rounded-lg text-xs font-medium text-white shadow-lg bg-black/70 backdrop-blur-sm">
-                              {tour.category}
-                            </div>
-                          </div>
-                        )}
-
-                        {/* Book Now Button */}
-                        <div className="book-now-button absolute bottom-4 left-1/2 transform -translate-x-1/2 opacity-0 translate-y-4">
-                          <button 
-                            className="px-6 py-3 text-white font-semibold rounded-lg shadow-lg transition-all duration-300 hover:scale-105 flex items-center gap-2"
-                            style={{ backgroundColor: colors.primary }}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleCardClick(tour._id);
-                            }}
-                          >
-                            <BookOpen className="h-4 w-4" />
-                            Book Tour
-                          </button>
-                        </div>
                       </div>
 
                       {/* Tour Info */}
                       <div className="p-6">
+                        {/* Badges Row */}
+                        <div className="flex flex-wrap items-center gap-2 mb-3">
+                          {tour.featured && (
+                            <div className="px-2 py-1 rounded-lg text-xs font-bold text-white flex items-center gap-1"
+                                 style={{ backgroundColor: colors.secondary }}>
+                              <Star className="h-3 w-3 fill-current" />
+                              POPULAR
+                            </div>
+                          )}
+                          {tour.isFixedDeparture && (
+                            <div className="px-2 py-1 rounded-lg text-xs font-bold text-white flex items-center gap-1"
+                                 style={{ backgroundColor: '#059669' }}>
+                              📅 FIXED
+                            </div>
+                          )}
+                          {tour.category && (
+                            <div className="px-2 py-1 rounded-lg text-xs font-medium"
+                                 style={{ backgroundColor: `${colors.primary}15`, color: colors.primary }}>
+                              {tour.category}
+                            </div>
+                          )}
+                        </div>
+
                         <h3 className="text-lg font-bold mb-2 line-clamp-2 group-hover:text-blue-600 transition-colors" style={{ color: colors.text }}>
                           {tour.name}
                         </h3>
@@ -812,9 +779,8 @@ const UpcomingTours = () => {
                             <Calendar className="h-4 w-4" />
                             <span>{getTourDuration(tour)}</span>
                           </div>
-                          <div className="text-sm font-medium px-3 py-1 rounded-full"
-                               style={{ backgroundColor: `${colors.success}15`, color: colors.success }}>
-                            Available
+                          <div className="text-lg font-bold" style={{ color: colors.primary }}>
+                            {formatPrice(tour.cityPricing)}
                           </div>
                         </div>
                       </div>
@@ -834,7 +800,7 @@ const UpcomingTours = () => {
             </div>
 
             {/* Grouped Tours by Category */}
-            {Object.keys(groupedTours).sort().map((categoryName, categoryIndex) => (
+            {Object.keys(groupedTours).sort().map((categoryName) => (
               <div 
                 key={categoryName}
                 id={`category-${categoryName.replace(/\s+/g, '-')}`}
@@ -859,7 +825,7 @@ const UpcomingTours = () => {
                 </div>
                 
                 <div className="flex gap-6 pb-8 overflow-x-auto scrollbar-hide snap-x snap-mandatory">
-                  {groupedTours[categoryName].map((tour, index) => {
+                  {groupedTours[categoryName].map((tour) => {
                     const globalIndex = allTours.findIndex(t => t._id === tour._id);
                     return (
                       <div
@@ -889,47 +855,33 @@ const UpcomingTours = () => {
                               <Camera className="h-12 w-12 opacity-30" style={{ color: colors.textLight }} />
                             </div>
                           )}
-                          
-                          {/* Overlay Gradient */}
-                          <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent opacity-60"></div>
-                          
-                          {/* Price Badge */}
-                          <div className="absolute top-4 right-4">
-                            <div className="px-3 py-2 rounded-lg text-white font-bold shadow-lg"
-                                 style={{ backgroundColor: colors.primary }}>
-                              {formatPrice(tour.cityPricing)}
-                            </div>
-                          </div>
-
-                          {/* Featured Badge */}
-                          {tour.featured && (
-                            <div className="absolute top-4 left-4">
-                              <div className="px-3 py-1.5 rounded-lg text-xs font-bold text-white shadow-lg flex items-center gap-1"
-                                   style={{ backgroundColor: colors.secondary }}>
-                                <Star className="h-3 w-3 fill-current" />
-                                POPULAR
-                              </div>
-                            </div>
-                          )}
-
-                          {/* Book Now Button */}
-                          <div className="book-now-button absolute bottom-4 left-1/2 transform -translate-x-1/2 opacity-0 translate-y-4">
-                            <button 
-                              className="px-6 py-3 text-white font-semibold rounded-lg shadow-lg transition-all duration-300 hover:scale-105 flex items-center gap-2"
-                              style={{ backgroundColor: colors.primary }}
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleCardClick(tour._id);
-                              }}
-                            >
-                              <BookOpen className="h-4 w-4" />
-                              Book Tour
-                            </button>
-                          </div>
                         </div>
 
                         {/* Tour Info */}
                         <div className="p-6">
+                          {/* Badges Row */}
+                          <div className="flex flex-wrap items-center gap-2 mb-3">
+                            {tour.featured && (
+                              <div className="px-2 py-1 rounded-lg text-xs font-bold text-white flex items-center gap-1"
+                                   style={{ backgroundColor: colors.secondary }}>
+                                <Star className="h-3 w-3 fill-current" />
+                                POPULAR
+                              </div>
+                            )}
+                            {tour.isFixedDeparture && (
+                              <div className="px-2 py-1 rounded-lg text-xs font-bold text-white flex items-center gap-1"
+                                   style={{ backgroundColor: '#059669' }}>
+                                📅 FIXED
+                              </div>
+                            )}
+                            {tour.category && (
+                              <div className="px-2 py-1 rounded-lg text-xs font-medium"
+                                   style={{ backgroundColor: `${colors.primary}15`, color: colors.primary }}>
+                                {tour.category}
+                              </div>
+                            )}
+                          </div>
+
                           <h3 className="text-lg font-bold mb-2 line-clamp-2 group-hover:text-blue-600 transition-colors" style={{ color: colors.text }}>
                             {tour.name}
                           </h3>
@@ -947,9 +899,8 @@ const UpcomingTours = () => {
                               <Calendar className="h-4 w-4" />
                               <span>{getTourDuration(tour)}</span>
                             </div>
-                            <div className="text-sm font-medium px-3 py-1 rounded-full"
-                                 style={{ backgroundColor: `${colors.success}15`, color: colors.success }}>
-                              Available
+                            <div className="text-lg font-bold" style={{ color: colors.primary }}>
+                              {formatPrice(tour.cityPricing)}
                             </div>
                           </div>
                         </div>

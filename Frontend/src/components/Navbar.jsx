@@ -361,6 +361,14 @@ export default function Navbar() {
     setSearchResults([]);
   };
 
+  // Handle Enter key press in search
+  const handleSearchKeyPress = (e) => {
+    if (e.key === 'Enter' && searchResults.length > 0) {
+      // Navigate to the first search result
+      handleSearchResultClick(searchResults[0]);
+    }
+  };
+
   // Close search results when clicking outside
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -574,13 +582,16 @@ export default function Navbar() {
   };
 
   const handleSearchBlur = () => {
-    gsap.to(searchRef.current, {
-      scale: 1,
-      boxShadow: "none",
-      borderColor: colors.border,
-      duration: 0.3,
-      ease: "power2.out",
-    });
+    // Small delay to allow click events to fire before hiding results
+    setTimeout(() => {
+      gsap.to(searchRef.current, {
+        scale: 1,
+        boxShadow: "none",
+        borderColor: colors.border,
+        duration: 0.3,
+        ease: "power2.out",
+      });
+    }, 200);
   };
 
   const handleNavItemHover = (e, isEnter) => {
@@ -671,6 +682,7 @@ export default function Navbar() {
                   type="text"
                   value={searchQuery}
                   onChange={(e) => handleSearch(e.target.value)}
+                  onKeyPress={handleSearchKeyPress}
                   placeholder={placeholder}
                   onFocus={() => {
                     handleSearchFocus();
@@ -708,7 +720,10 @@ export default function Navbar() {
                       {searchResults.map((result) => (
                         <div
                           key={`${result.type}-${result._id}`}
-                          onClick={() => handleSearchResultClick(result)}
+                          onMouseDown={(e) => {
+                            e.preventDefault();
+                            handleSearchResultClick(result);
+                          }}
                           className="px-4 py-3 hover:bg-gray-50 cursor-pointer transition-all duration-200 border-b last:border-b-0 group"
                           style={{ borderColor: colors.border }}
                         >
@@ -1074,6 +1089,7 @@ export default function Navbar() {
                   type="text"
                   value={searchQuery}
                   onChange={(e) => handleSearch(e.target.value)}
+                  onKeyPress={handleSearchKeyPress}
                   placeholder="Search tours & treks..."
                   onFocus={() => {
                     if (searchQuery.trim().length >= 2) {
@@ -1099,7 +1115,10 @@ export default function Navbar() {
                       {searchResults.map((result) => (
                         <div
                           key={`mobile-${result.type}-${result._id}`}
-                          onClick={() => handleSearchResultClick(result)}
+                          onMouseDown={(e) => {
+                            e.preventDefault();
+                            handleSearchResultClick(result);
+                          }}
                           className="px-3 py-2.5 hover:bg-gray-50 cursor-pointer transition-colors border-b last:border-b-0"
                           style={{ borderColor: colors.border }}
                         >
