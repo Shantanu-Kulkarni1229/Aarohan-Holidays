@@ -24,18 +24,21 @@ const EnquiriesManagement = () => {
   const [priority, setPriority] = useState('');
 
   const serviceTypes = [
-    { value: 'carRental', label: 'Car Rental' },
-    { value: 'hotelBooking', label: 'Hotel Booking' },
-    { value: 'flightTickets', label: 'Flight Tickets' },
-    { value: 'trainTickets', label: 'Train Tickets' },
-    { value: 'cabService', label: 'Cab Service' },
-    { value: 'railwayReservation', label: 'Railway Reservation' },
-    { value: 'airTicketing', label: 'Air Ticketing' },
-    { value: 'holidayPackage', label: 'Holiday Package' },
-    { value: 'hotelReservation', label: 'Hotel Reservation' },
-    { value: 'eventManagement', label: 'Event Management' },
-    { value: 'corporateTravel', label: 'Corporate Travel' },
-    { value: 'visaAssistance', label: 'Visa Assistance' }
+    { value: 'Tour Package', label: 'Tour Package' },
+    { value: 'Trek Package', label: 'Trek Package' },
+    { value: 'Taxi Booking Services', label: 'Taxi Booking Services' },
+    { value: 'Online Taxi Booking - Local & Outstation', label: 'Online Taxi Booking' },
+    { value: 'Hotel Bookings and Accommodation', label: 'Hotel Bookings' },
+    { value: 'Visa and Passport Assistance', label: 'Visa & Passport' },
+    { value: 'Season-Wise Segregated Tours', label: 'Season-Wise Tours' },
+    { value: 'Cruise Holidays', label: 'Cruise Holidays' },
+    { value: 'Bus, Train, and Flight Booking', label: 'Bus/Train/Flight Booking' },
+    { value: 'Parcel and Courier Services', label: 'Parcel & Courier' },
+    { value: 'Customized Tours', label: 'Customized Tours' },
+    { value: 'Tour Packages', label: 'Tour Packages' },
+    { value: 'Treks and Adventure Packages', label: 'Treks & Adventure' },
+    { value: 'Tours and Travel Services', label: 'Tours & Travel' },
+    { value: 'Other', label: 'Other' }
   ];
 
   useEffect(() => {
@@ -57,14 +60,29 @@ const EnquiriesManagement = () => {
       params.append('sortBy', 'createdAt');
       params.append('order', 'desc');
 
+      // Fetch from other-services endpoint where OtherServices form submits
       const response = await axios.get(
-        `${API_BASE_URL}/admin/enquiries?${params.toString()}`
+        `${API_BASE_URL}/other-services?${params.toString()}`
       );
 
       if (response.data.success) {
-        setEnquiries(response.data.enquiries);
-        setStatistics(response.data.statistics);
-        setPagination(response.data.pagination);
+        // Backend returns 'data' not 'enquiries'
+        setEnquiries(response.data.data || []);
+        setPagination({
+          currentPage: response.data.currentPage,
+          totalPages: response.data.totalPages,
+          totalCount: response.data.totalCount
+        });
+        
+        // Fetch statistics separately
+        try {
+          const statsResponse = await axios.get(`${API_BASE_URL}/other-services/stats`);
+          if (statsResponse.data.success) {
+            setStatistics(statsResponse.data.data);
+          }
+        } catch (statsError) {
+          console.log('Stats fetch failed:', statsError);
+        }
       }
     } catch (error) {
       setError(error.response?.data?.message || 'Failed to fetch enquiries');
@@ -82,7 +100,7 @@ const EnquiriesManagement = () => {
 
     try {
       const response = await axios.delete(
-        `${API_BASE_URL}/admin/enquiries/${enquiryId}`
+        `${API_BASE_URL}/other-services/${enquiryId}`
       );
 
       if (response.data.success) {
@@ -109,13 +127,15 @@ const EnquiriesManagement = () => {
     }
 
     try {
-      const response = await axios.patch(
-        `${API_BASE_URL}/admin/enquiries/bulk-update`,
-        { 
-          action,
-          ids: selectedEnquiries 
-        }
-      );
+      // Bulk update not available for other-services yet
+      // Process individually
+      for (const id of selectedEnquiries) {
+        await axios.put(
+          `${API_BASE_URL}/other-services/${id}/status`,
+          { enquiryStatus: action === 'markContacted' ? 'Contacted' : 'In Progress' }
+        );
+      }
+      const response = { data: { success: true, message: `${selectedEnquiries.length} enquiries updated` } };
 
       if (response.data.success) {
         setSuccessMessage(response.data.message);
@@ -158,8 +178,8 @@ const EnquiriesManagement = () => {
     if (!selectedEnquiry) return;
 
     try {
-      const response = await axios.patch(
-        `${API_BASE_URL}/admin/enquiries/${selectedEnquiry._id}/status`,
+      const response = await axios.put(
+        `${API_BASE_URL}/other-services/${selectedEnquiry._id}/status`,
         { 
           enquiryStatus,
           priority,

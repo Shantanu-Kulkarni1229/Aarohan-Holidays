@@ -285,3 +285,58 @@ html.has-scroll-smooth .whatsapp-float {
   transition: all 0.3s ease-out !important;
 }
 
+/* Custom Scrollbar for Horizontal Card Containers */
+.custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: #E66926 #E2E8F0;
+  -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  height: 8px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: #E2E8F0;
+  border-radius: 4px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #E66926;
+  border-radius: 4px;
+  transition: background 0.3s ease;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #D45A1F;
+}
+
+/* Hide scrollbar utility class */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+/* Mobile-friendly touch scrolling */
+@media (max-width: 768px) {
+  .custom-scrollbar {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  
+  .custom-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+/* Ensure smooth native scroll on touch devices */
+@supports (-webkit-touch-callout: none) {
+  .custom-scrollbar {
+    -webkit-overflow-scrolling: touch;
+  }
+}
+

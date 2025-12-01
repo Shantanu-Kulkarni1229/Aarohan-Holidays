@@ -51,7 +51,7 @@ const TourForm = () => {
     inclusions: [''],
     exclusions: [''],
     cityPricing: [{ city: '', pricingOptions: [{ categoryName: '', price: '' }] }],  // FLEXIBLE PRICING
-    itinerary: [{ day: 1, title: '', description: '', meals: '', accommodation: '', note: '', activities: [] }],
+    itinerary: [{ day: 1, title: '', description: '', meals: '', accommodation: '', cabType: '', note: '', activities: [] }],
     availableDates: [],
     faqs: [{ question: '', answer: '' }],
     addOns: [{ name: '', price: '', description: '' }],  // ADD-ON OPTIONS
@@ -60,6 +60,7 @@ const TourForm = () => {
     // Optional fields
     videoLink: '',
     maxGroupSize: 20,
+    contactForPricing: false, // NEW: If true, hide pricing and show "Contact for Pricing"
     isActive: true,
     isFeatured: false,
     isFixedDeparture: false,
@@ -141,9 +142,10 @@ const TourForm = () => {
           itinerary: tour.itinerary?.length > 0 ? tour.itinerary.map(item => ({
             ...item,
             description: item.description || '',
+            cabType: item.cabType || '',
             note: item.note || '',
             activities: item.activities || []
-          })) : [{ day: 1, title: '', description: '', meals: '', accommodation: '', note: '', activities: [] }],
+          })) : [{ day: 1, title: '', description: '', meals: '', accommodation: '', cabType: '', note: '', activities: [] }],
           faqs: tour.faqs?.length > 0 ? tour.faqs : [{ question: '', answer: '' }],
           // eslint-disable-next-line no-unused-vars
           addOns: tour.addOns?.length > 0 ? tour.addOns.map(({ _id, __v, ...addon }) => addon) : [{ name: '', price: '', description: '' }],
@@ -1346,18 +1348,50 @@ const TourForm = () => {
 
           {/* Flexible Pricing */}
           <div id="pricing" className="bg-white rounded-xl shadow-lg border p-8" style={{ borderColor: colors.border }}>
-            <div className="flex items-center mb-6">
-              <div 
-                className="w-12 h-12 rounded-xl flex items-center justify-center mr-4"
-                style={{ backgroundColor: colors.primary + '15' }}
-              >
-                <DollarSign size={24} style={{ color: colors.primary }} />
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center">
+                <div 
+                  className="w-12 h-12 rounded-xl flex items-center justify-center mr-4"
+                  style={{ backgroundColor: colors.primary + '15' }}
+                >
+                  <DollarSign size={24} style={{ color: colors.primary }} />
+                </div>
+                <div>
+                  <h2 className="text-2xl font-bold mb-2" style={{ color: colors.darkBg }}>Flexible Pricing</h2>
+                  <p style={{ color: colors.textDark }}>Add custom pricing categories for each departure city - per person pricing</p>
+                </div>
               </div>
-              <div>
-                <h2 className="text-2xl font-bold mb-2" style={{ color: colors.darkBg }}>Flexible Pricing</h2>
-                <p style={{ color: colors.textDark }}>Add custom pricing categories for each departure city - per person pricing</p>
+              
+              {/* Contact for Pricing Toggle */}
+              <div className="flex items-center gap-3 p-4 rounded-xl border-2" style={{ borderColor: formData.contactForPricing ? colors.primary : colors.border, backgroundColor: formData.contactForPricing ? colors.primary + '10' : 'transparent' }}>
+                <label className="flex items-center cursor-pointer">
+                  <div className="relative">
+                    <input
+                      type="checkbox"
+                      checked={formData.contactForPricing}
+                      onChange={(e) => setFormData({ ...formData, contactForPricing: e.target.checked })}
+                      className="sr-only"
+                    />
+                    <div className={`w-14 h-7 rounded-full transition-colors duration-300 ${formData.contactForPricing ? 'bg-orange-500' : 'bg-gray-300'}`}></div>
+                    <div className={`absolute top-0.5 left-0.5 w-6 h-6 bg-white rounded-full shadow-md transition-transform duration-300 ${formData.contactForPricing ? 'translate-x-7' : ''}`}></div>
+                  </div>
+                  <span className="ml-3 font-semibold text-sm" style={{ color: colors.darkBg }}>📞 Contact for Pricing</span>
+                </label>
               </div>
             </div>
+            
+            {/* Show message when Contact for Pricing is enabled */}
+            {formData.contactForPricing && (
+              <div className="mb-6 p-4 rounded-xl border-2 border-dashed" style={{ borderColor: colors.primary, backgroundColor: colors.primary + '10' }}>
+                <div className="flex items-center gap-3">
+                  <span className="text-2xl">📱</span>
+                  <div>
+                    <p className="font-semibold" style={{ color: colors.darkBg }}>Contact for Pricing Enabled</p>
+                    <p className="text-sm" style={{ color: colors.textDark }}>Pricing will be hidden on the booking page. Customers will see a WhatsApp button to contact you directly.</p>
+                  </div>
+                </div>
+              </div>
+            )}
             
             {errors.cityPricing && (
               <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
@@ -1365,6 +1399,9 @@ const TourForm = () => {
               </div>
             )}
             
+            {/* Hide pricing inputs when contactForPricing is enabled */}
+            {!formData.contactForPricing && (
+              <>
             {formData.cityPricing.map((cityPrice, index) => (
               <div 
                 key={index} 
@@ -1556,6 +1593,8 @@ const TourForm = () => {
               <Plus size={20} className="mr-2" />
               Add Another City
             </button>
+              </>
+            )}
           </div>
 
           {/* Add-ons Section */}
@@ -2036,6 +2075,20 @@ const TourForm = () => {
                       placeholder="e.g., 4-star Hotel, Camping, Resort"
                     />
                   </div>
+                  <div>
+                    <label className="block text-sm font-semibold mb-2" style={{ color: colors.darkBg }}>🚗 Cab Type</label>
+                    <input
+                      type="text"
+                      value={item.cabType || ''}
+                      onChange={(e) => handleObjectArrayChange('itinerary', index, 'cabType', e.target.value)}
+                      className="w-full px-4 py-3 border-2 rounded-xl transition-all"
+                      style={{ 
+                        borderColor: colors.border,
+                        focusBorderColor: colors.primary
+                      }}
+                      placeholder="e.g., Innova, Tempo Traveller, AC Bus"
+                    />
+                  </div>
                 </div>
 
                 {/* NEW: Note and Activities Fields */}
@@ -2115,6 +2168,7 @@ const TourForm = () => {
                 description: '', 
                 meals: '', 
                 accommodation: '',
+                cabType: '',
                 note: '',
                 activities: []
               })}

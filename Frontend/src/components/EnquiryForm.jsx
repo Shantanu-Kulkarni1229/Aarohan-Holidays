@@ -129,14 +129,14 @@ export default function EnquiryForm({ isOpen, onClose }) {
     setSubmitStatus(null);
 
     try {
-      // Prepare data - convert empty strings to undefined/null for optional fields
+      // Prepare data for other-services endpoint (same as OtherServices component)
       const submitData = {
         name: formData.name.trim(),
         email: formData.email.trim(),
         phone: formData.phone.trim(),
         serviceType: formData.serviceType,
-        message: formData.message.trim(),
-        budget: formData.budget
+        specialRequests: formData.message.trim(),
+        additionalDetails: formData.message.trim()
       };
 
       // Add optional fields only if they have values
@@ -145,23 +145,25 @@ export default function EnquiryForm({ isOpen, onClose }) {
       }
 
       if (formData.numberOfPeople && formData.numberOfPeople !== '') {
-        submitData.numberOfPeople = parseInt(formData.numberOfPeople);
+        submitData.numberOfMembers = parseInt(formData.numberOfPeople);
+        submitData.adults = parseInt(formData.numberOfPeople);
       }
 
       if (formData.startDate) {
-        submitData.startDate = formData.startDate;
+        submitData.travelStartDate = formData.startDate;
       }
 
       if (formData.endDate) {
-        submitData.endDate = formData.endDate;
+        submitData.travelEndDate = formData.endDate;
       }
 
-      const response = await axios.post(`${API_BASE_URL}/enquiries`, submitData);
+      // Submit to other-services endpoint (unified with OtherServices component)
+      const response = await axios.post(`${API_BASE_URL}/other-services/enquiry`, submitData);
 
       if (response.data.success) {
         setSubmitStatus('success');
-        setReferenceNumber(response.data.data.referenceNumber);
-        showSuccess(`Enquiry submitted successfully! Reference: ${response.data.data.referenceNumber}`);
+        setReferenceNumber(response.data.enquiryReference);
+        showSuccess(`Enquiry submitted successfully! Reference: ${response.data.enquiryReference}`);
         
         // Reset form
         setFormData({

@@ -71,15 +71,21 @@ const UpcomingTreks = () => {
     });
   };
 
-  // Enhanced horizontal scroll with momentum
+  // Enhanced horizontal scroll - mobile-friendly
   useEffect(() => {
     const scrollContainer = scrollContainerRef.current;
     if (!scrollContainer) return;
 
     checkScrollPosition(scrollContainer);
 
+    // Only handle wheel events on desktop, not mobile
     const handleWheel = (e) => {
+      // Skip if horizontal scroll is already happening
       if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) return;
+      
+      // Only convert vertical to horizontal on non-touch devices
+      const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+      if (isTouchDevice) return; // Let native scroll work on touch devices
       
       e.preventDefault();
       scrollContainer.scrollBy({
@@ -92,8 +98,9 @@ const UpcomingTreks = () => {
       checkScrollPosition(scrollContainer);
     };
 
+    // Use passive: true for scroll events to improve performance
     scrollContainer.addEventListener('wheel', handleWheel, { passive: false });
-    scrollContainer.addEventListener('scroll', handleScrollUpdate);
+    scrollContainer.addEventListener('scroll', handleScrollUpdate, { passive: true });
 
     const resizeObserver = new ResizeObserver(() => {
       checkScrollPosition(scrollContainer);
@@ -276,7 +283,11 @@ const UpcomingTreks = () => {
     }
   };
 
-  const formatPrice = (cityPricing) => {
+  const formatPrice = (trek) => {
+    // Check if admin has enabled "Contact for Pricing"
+    if (trek.contactForPricing) return 'Contact for Pricing';
+    
+    const cityPricing = trek.cityPricing;
     if (!cityPricing || cityPricing.length === 0) return 'Contact for Pricing';
     
     // Extract all prices from flexible pricingOptions array
@@ -578,33 +589,33 @@ const UpcomingTreks = () => {
           <div className="mb-12">
             {/* Scroll Container with Navigation */}
             <div className="relative group/scroll">
-              {/* Left Scroll Button */}
+              {/* Left Scroll Button - Always visible on mobile */}
               {canScrollLeft && (
                 <button
                   onClick={() => handleScroll('left')}
-                  className="absolute left-0 top-1/2 -translate-y-1/2 z-20 w-12 h-12 rounded-full shadow-2xl flex items-center justify-center transition-all duration-300 hover:scale-110 opacity-0 group-hover/scroll:opacity-100"
+                  className="absolute left-2 top-1/2 -translate-y-1/2 z-20 w-10 h-10 md:w-12 md:h-12 rounded-full shadow-lg flex items-center justify-center transition-all duration-300 hover:scale-110 md:opacity-0 md:group-hover/scroll:opacity-100 opacity-90 active:scale-95"
                   style={{ 
                     backgroundColor: colors.primary,
                     color: 'white'
                   }}
                   aria-label="Scroll left"
                 >
-                  <ChevronLeft className="h-6 w-6" />
+                  <ChevronLeft className="h-5 w-5 md:h-6 md:w-6" />
                 </button>
               )}
 
-              {/* Right Scroll Button */}
+              {/* Right Scroll Button - Always visible on mobile */}
               {canScrollRight && (
                 <button
                   onClick={() => handleScroll('right')}
-                  className="absolute right-0 top-1/2 -translate-y-1/2 z-20 w-12 h-12 rounded-full shadow-2xl flex items-center justify-center transition-all duration-300 hover:scale-110 opacity-0 group-hover/scroll:opacity-100"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 z-20 w-10 h-10 md:w-12 md:h-12 rounded-full shadow-lg flex items-center justify-center transition-all duration-300 hover:scale-110 md:opacity-0 md:group-hover/scroll:opacity-100 opacity-90 active:scale-95"
                   style={{ 
                     backgroundColor: colors.primary,
                     color: 'white'
                   }}
                   aria-label="Scroll right"
                 >
-                  <ChevronRight className="h-6 w-6" />
+                  <ChevronRight className="h-5 w-5 md:h-6 md:w-6" />
                 </button>
               )}
 
@@ -716,7 +727,7 @@ const UpcomingTreks = () => {
                           </div>
                         )}
                         <div className="text-lg font-bold" style={{ color: colors.primary }}>
-                          {formatPrice(trek.cityPricing)}
+                          {formatPrice(trek)}
                         </div>
                       </div>
                     </div>
@@ -726,7 +737,7 @@ const UpcomingTreks = () => {
               </div>
 
               {/* Scroll Hint */}
-              <div className="text-center mt-6">
+              <div className="text-center mt-4">
                 <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium bg-white border shadow-sm"
                      style={{ borderColor: colors.border, color: colors.textLight }}>
                   <ArrowRight className="h-4 w-4" />

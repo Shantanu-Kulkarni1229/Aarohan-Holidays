@@ -573,74 +573,6 @@ const sendBookingConfirmationEmail = async (bookingData, itemDetails) => {
   }
 };
 
-// Function to send WhatsApp message
-const sendWhatsAppMessage = async (bookingData, itemDetails) => {
-  try {
-    // Option 1: Using WhatsApp Business API (Meta)
-    if (process.env.WHATSAPP_API_URL && process.env.WHATSAPP_API_TOKEN) {
-      const message = `🎉 *Booking Confirmed!*
-
-Dear ${bookingData.name},
-
-Your booking with *Aarohan Holidays* has been confirmed!
-
-📋 *Booking Reference:* ${bookingData.bookingReference}
-
-📍 *${bookingData.bookingType === 'tour' ? 'Tour' : 'Trek'} Details:*
-${bookingData.bookingType === 'tour' ? '🏖️' : '⛰️'} Name: ${itemDetails.name}
-📍 Location: ${itemDetails.location}
-⏱️ Duration: ${itemDetails.duration}
-📅 Date: ${new Date(bookingData.bookingDate).toLocaleDateString('en-IN')}
-
-👥 *Group Details:*
-Total Members: ${bookingData.numberOfMembers}
-Adults: ${bookingData.adults} | Women: ${bookingData.women} | Infants: ${bookingData.infants}
-🚗 Pickup: ${bookingData.pickupCity}
-
-💰 *Payment:*
-Per Person: ₹${bookingData.pricePerPerson.toLocaleString('en-IN')}
-*Total: ₹${bookingData.totalPrice.toLocaleString('en-IN')}*
-
-⚠️ *Important:*
-• Carry valid ID proof
-• Reach 15 mins before departure
-• Contact us for any changes
-
-Need help? Reply to this message!
-
-Thank you for choosing Aarohan Holidays! 🌟`;
-
-      const response = await axios.post(
-        `${process.env.WHATSAPP_API_URL}/${process.env.WHATSAPP_PHONE_NUMBER_ID}/messages`,
-        {
-          messaging_product: "whatsapp",
-          to: `91${bookingData.mobile}`, // Assuming Indian numbers
-          type: "text",
-          text: {
-            body: message,
-          },
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${process.env.WHATSAPP_API_TOKEN}`,
-            "Content-Type": "application/json",
-          },
-        }
-      );
-
-      console.log("✅ WhatsApp message sent successfully:", response.data);
-      return true;
-    } else {
-      console.warn("⚠️ WhatsApp API credentials not configured. Skipping WhatsApp notification.");
-      return false;
-    }
-  } catch (error) {
-    console.error("❌ Error sending WhatsApp message:", error.response?.data || error.message);
-    // Don't throw error - we don't want to fail the booking if WhatsApp fails
-    return false;
-  }
-};
-
 // Function to send admin notification email
 const sendAdminNotification = async (bookingData, itemDetails) => {
   try {
@@ -1129,20 +1061,6 @@ export const createBooking = async (req, res) => {
       console.error("Admin email error details:", adminEmailError);
     }
 
-    // Send WhatsApp message
-    let whatsappSent = false;
-    try {
-      console.log("📱 Attempting to send WhatsApp message...");
-      whatsappSent = await sendWhatsAppMessage(newBooking, itemDetails);
-      if (whatsappSent) {
-        newBooking.whatsappSent = true;
-        await newBooking.save();
-        console.log("✅ WhatsApp sent successfully");
-      }
-    } catch (whatsappError) {
-      console.error("⚠️ WhatsApp sending failed:", whatsappError.message);
-    }
-
     // Update tour/trek total bookings
     if (bookingType === "tour") {
       await Tour.findByIdAndUpdate(tourId, {
@@ -1165,7 +1083,6 @@ export const createBooking = async (req, res) => {
       notifications: {
         email: emailSent,
         adminEmail: adminEmailSent,
-        whatsapp: whatsappSent,
       },
     });
   } catch (error) {
@@ -1339,23 +1256,13 @@ export const updateBookingStatus = async (req, res) => {
         } catch (emailError) {
           console.error("❌ Failed to send confirmation email:", emailError.message);
         }
-
-        // Send WhatsApp message
-        try {
-          await sendWhatsAppMessage(booking, itemDetails);
-          booking.whatsappSent = true;
-          await booking.save();
-          console.log(`✅ WhatsApp message sent to ${booking.mobile}`);
-        } catch (whatsappError) {
-          console.error("❌ Failed to send WhatsApp message:", whatsappError.message);
-        }
       }
     }
 
     res.status(200).json({
       success: true,
       message: nowConfirmed 
-        ? "Booking confirmed! Confirmation email and WhatsApp message sent to customer."
+        ? "Booking confirmed! Confirmation email sent to customer."
         : "Booking status updated successfully",
       data: booking,
     });
@@ -1475,20 +1382,11 @@ export const resendConfirmation = async (req, res) => {
       console.error("⚠️ Email resend failed:", emailError.message);
     }
 
-    // Resend WhatsApp
-    let whatsappSent = false;
-    try {
-      whatsappSent = await sendWhatsAppMessage(booking, itemDetails);
-    } catch (whatsappError) {
-      console.error("⚠️ WhatsApp resend failed:", whatsappError.message);
-    }
-
     res.status(200).json({
       success: true,
       message: "Confirmation resent",
       notifications: {
         email: emailSent,
-        whatsapp: whatsappSent,
       },
     });
   } catch (error) {

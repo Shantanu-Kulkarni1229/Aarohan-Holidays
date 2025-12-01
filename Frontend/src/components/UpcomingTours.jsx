@@ -79,33 +79,21 @@ const UpcomingTours = () => {
     });
   };
 
-  // Enhanced horizontal scroll with momentum
+  // Enhanced horizontal scroll - mobile-friendly
   useEffect(() => {
     const scrollContainer = scrollContainerRef.current;
     if (!scrollContainer) return;
 
     checkScrollPosition(scrollContainer);
 
-    let isScrolling = false;
-    let startX;
-    let scrollLeft;
-
-    const handleTouchStart = (e) => {
-      isScrolling = true;
-      startX = e.touches[0].pageX - scrollContainer.offsetLeft;
-      scrollLeft = scrollContainer.scrollLeft;
-    };
-
-    const handleTouchMove = (e) => {
-      if (!isScrolling) return;
-      e.preventDefault();
-      const x = e.touches[0].pageX - scrollContainer.offsetLeft;
-      const walk = (x - startX) * 2;
-      scrollContainer.scrollLeft = scrollLeft - walk;
-    };
-
+    // Only handle wheel events on desktop, not mobile
     const handleWheel = (e) => {
+      // Skip if horizontal scroll is already happening
       if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) return;
+      
+      // Only convert vertical to horizontal on non-touch devices
+      const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+      if (isTouchDevice) return; // Let native scroll work on touch devices
       
       e.preventDefault();
       scrollContainer.scrollBy({
@@ -118,10 +106,9 @@ const UpcomingTours = () => {
       checkScrollPosition(scrollContainer);
     };
 
-    scrollContainer.addEventListener('touchstart', handleTouchStart);
-    scrollContainer.addEventListener('touchmove', handleTouchMove, { passive: false });
+    // Use passive: true for touch events to improve scroll performance
     scrollContainer.addEventListener('wheel', handleWheel, { passive: false });
-    scrollContainer.addEventListener('scroll', handleScrollUpdate);
+    scrollContainer.addEventListener('scroll', handleScrollUpdate, { passive: true });
 
     const resizeObserver = new ResizeObserver(() => {
       checkScrollPosition(scrollContainer);
@@ -129,8 +116,6 @@ const UpcomingTours = () => {
     resizeObserver.observe(scrollContainer);
 
     return () => {
-      scrollContainer.removeEventListener('touchstart', handleTouchStart);
-      scrollContainer.removeEventListener('touchmove', handleTouchMove);
       scrollContainer.removeEventListener('wheel', handleWheel);
       scrollContainer.removeEventListener('scroll', handleScrollUpdate);
       resizeObserver.disconnect();
@@ -345,7 +330,11 @@ const UpcomingTours = () => {
     }
   };
 
-  const formatPrice = (cityPricing) => {
+  const formatPrice = (tour) => {
+    // Check if admin has enabled "Contact for Pricing"
+    if (tour.contactForPricing) return 'Contact for Pricing';
+    
+    const cityPricing = tour.cityPricing;
     if (!cityPricing || cityPricing.length === 0) return 'Contact for Pricing';
     
     // Extract all prices from flexible pricingOptions array
@@ -673,33 +662,33 @@ const UpcomingTours = () => {
               
               {/* Scroll Container with Navigation */}
               <div className="relative group/scroll">
-                {/* Left Scroll Button */}
+                {/* Left Scroll Button - Always visible on mobile */}
                 {canScrollLeft && (
                   <button
                     onClick={() => handleScroll('left')}
-                    className="absolute left-0 top-1/2 -translate-y-1/2 z-20 w-12 h-12 rounded-full shadow-2xl flex items-center justify-center transition-all duration-300 hover:scale-110 opacity-0 group-hover/scroll:opacity-100"
+                    className="absolute left-2 top-1/2 -translate-y-1/2 z-20 w-10 h-10 md:w-12 md:h-12 rounded-full shadow-lg flex items-center justify-center transition-all duration-300 hover:scale-110 md:opacity-0 md:group-hover/scroll:opacity-100 opacity-90 active:scale-95"
                     style={{ 
                       backgroundColor: colors.primary,
                       color: 'white'
                     }}
                     aria-label="Scroll left"
                   >
-                    <ChevronLeft className="h-6 w-6" />
+                    <ChevronLeft className="h-5 w-5 md:h-6 md:w-6" />
                   </button>
                 )}
 
-                {/* Right Scroll Button */}
+                {/* Right Scroll Button - Always visible on mobile */}
                 {canScrollRight && (
                   <button
                     onClick={() => handleScroll('right')}
-                    className="absolute right-0 top-1/2 -translate-y-1/2 z-20 w-12 h-12 rounded-full shadow-2xl flex items-center justify-center transition-all duration-300 hover:scale-110 opacity-0 group-hover/scroll:opacity-100"
+                    className="absolute right-2 top-1/2 -translate-y-1/2 z-20 w-10 h-10 md:w-12 md:h-12 rounded-full shadow-lg flex items-center justify-center transition-all duration-300 hover:scale-110 md:opacity-0 md:group-hover/scroll:opacity-100 opacity-90 active:scale-95"
                     style={{ 
                       backgroundColor: colors.primary,
                       color: 'white'
                     }}
                     aria-label="Scroll right"
                   >
-                    <ChevronRight className="h-6 w-6" />
+                    <ChevronRight className="h-5 w-5 md:h-6 md:w-6" />
                   </button>
                 )}
 
@@ -780,7 +769,7 @@ const UpcomingTours = () => {
                             <span>{getTourDuration(tour)}</span>
                           </div>
                           <div className="text-lg font-bold" style={{ color: colors.primary }}>
-                            {formatPrice(tour.cityPricing)}
+                            {formatPrice(tour)}
                           </div>
                         </div>
                       </div>
@@ -789,7 +778,7 @@ const UpcomingTours = () => {
                 </div>
 
                 {/* Scroll Hint */}
-                <div className="text-center mt-6">
+                <div className="text-center mt-4">
                   <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium bg-white border shadow-sm"
                        style={{ borderColor: colors.border, color: colors.textLight }}>
                     <ArrowRight className="h-4 w-4" />
@@ -900,7 +889,7 @@ const UpcomingTours = () => {
                               <span>{getTourDuration(tour)}</span>
                             </div>
                             <div className="text-lg font-bold" style={{ color: colors.primary }}>
-                              {formatPrice(tour.cityPricing)}
+                              {formatPrice(tour)}
                             </div>
                           </div>
                         </div>

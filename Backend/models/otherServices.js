@@ -37,6 +37,8 @@ const otherServiceSchema = new mongoose.Schema(
       type: String,
       required: [true, "Service type is required"],
       enum: [
+        "Tour Package",
+        "Trek Package",
         "Taxi Booking Services",
         "Online Taxi Booking - Local & Outstation",
         "Season-Wise Segregated Tours",
@@ -48,7 +50,8 @@ const otherServiceSchema = new mongoose.Schema(
         "Bus, Train, and Flight Booking",
         "Tour Packages",
         "Treks and Adventure Packages",
-        "Customized Tours"
+        "Customized Tours",
+        "Other"
       ]
     },
 

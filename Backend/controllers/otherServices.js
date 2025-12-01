@@ -338,109 +338,6 @@ const sendAdminNotificationEmail = async (enquiryData) => {
   }
 };
 
-// ✅ Function to send WhatsApp message to customer
-const sendCustomerWhatsAppMessage = async (enquiryData) => {
-  try {
-    if (process.env.WHATSAPP_API_URL && process.env.WHATSAPP_API_TOKEN) {
-      const message = `✅ *Enquiry Received!*
-
-Dear ${enquiryData.name},
-
-Thank you for your enquiry with *Aarohan Holidays*!
-
-📋 *Enquiry Reference:* ${enquiryData.enquiryReference}
-🎯 *Service:* ${enquiryData.serviceType}
-${enquiryData.destination ? `📍 *Destination:* ${enquiryData.destination}` : ''}
-
-Our team will review your request and contact you within 24 hours.
-
-For urgent queries, please call us at: +91-XXXXXXXXXX
-
-Thank you for choosing Aarohan Holidays! 🌟`;
-
-      const response = await axios.post(
-        `${process.env.WHATSAPP_API_URL}/${process.env.WHATSAPP_PHONE_NUMBER_ID}/messages`,
-        {
-          messaging_product: "whatsapp",
-          to: `91${enquiryData.phone}`,
-          type: "text",
-          text: { body: message }
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${process.env.WHATSAPP_API_TOKEN}`,
-            "Content-Type": "application/json"
-          }
-        }
-      );
-
-      console.log("✅ Customer WhatsApp message sent successfully");
-      return true;
-    } else {
-      console.log("⚠️ WhatsApp API not configured");
-      return false;
-    }
-  } catch (error) {
-    console.error("❌ Error sending WhatsApp message:", error.response?.data || error.message);
-    return false;
-  }
-};
-
-// ✅ Function to send WhatsApp notification to admin
-const sendAdminWhatsAppNotification = async (enquiryData) => {
-  try {
-    if (process.env.WHATSAPP_API_URL && process.env.WHATSAPP_API_TOKEN) {
-      const urgencyEmoji = enquiryData.urgency === 'Very Urgent' ? '🚨 ' : enquiryData.urgency === 'Urgent' ? '⚠️ ' : '';
-      
-      const message = `${urgencyEmoji}*New Service Enquiry Received*
-
-📋 *Reference:* ${enquiryData.enquiryReference}
-🎯 *Service:* ${enquiryData.serviceType}
-
-👤 *Customer Details:*
-Name: ${enquiryData.name}
-Phone: ${enquiryData.phone}
-Email: ${enquiryData.email}
-
-${enquiryData.destination ? `📍 Destination: ${enquiryData.destination}` : ''}
-${enquiryData.membersExpected ? `� Members Expected: ${enquiryData.membersExpected}` : ''}
-${enquiryData.travelStartDate ? `📅 Travel Date: ${new Date(enquiryData.travelStartDate).toLocaleDateString('en-IN')}` : ''}
-
-⏰ *Action Required:* Contact customer within 24 hours
-
-📧 Check email for full details`;
-
-      // Send to admin's WhatsApp (you'll need to configure admin's phone number)
-      const adminPhone = process.env.ADMIN_WHATSAPP_NUMBER || "XXXXXXXXXX";
-      
-      const response = await axios.post(
-        `${process.env.WHATSAPP_API_URL}/${process.env.WHATSAPP_PHONE_NUMBER_ID}/messages`,
-        {
-          messaging_product: "whatsapp",
-          to: `91${adminPhone}`,
-          type: "text",
-          text: { body: message }
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${process.env.WHATSAPP_API_TOKEN}`,
-            "Content-Type": "application/json"
-          }
-        }
-      );
-
-      console.log("✅ Admin WhatsApp notification sent successfully");
-      return true;
-    } else {
-      console.log("⚠️ WhatsApp API not configured");
-      return false;
-    }
-  } catch (error) {
-    console.error("❌ Error sending admin WhatsApp notification:", error.response?.data || error.message);
-    return false;
-  }
-};
-
 // ========================================
 // MAIN CONTROLLER FUNCTIONS
 // ========================================
@@ -462,27 +359,12 @@ export const createEnquiry = async (req, res) => {
       console.error("Failed to send customer email:", emailError);
     }
 
-    // Send WhatsApp message to customer
-    try {
-      const whatsappSent = await sendCustomerWhatsAppMessage(newEnquiry);
-      newEnquiry.whatsappSent = whatsappSent;
-    } catch (whatsappError) {
-      console.error("Failed to send customer WhatsApp:", whatsappError);
-    }
-
     // Send notification email to admin
     try {
       await sendAdminNotificationEmail(newEnquiry);
       newEnquiry.adminNotified = true;
     } catch (adminEmailError) {
       console.error("Failed to send admin email:", adminEmailError);
-    }
-
-    // Send WhatsApp notification to admin
-    try {
-      await sendAdminWhatsAppNotification(newEnquiry);
-    } catch (adminWhatsappError) {
-      console.error("Failed to send admin WhatsApp:", adminWhatsappError);
     }
 
     // Save updated flags
@@ -507,10 +389,11 @@ export const createEnquiry = async (req, res) => {
 // ✅ Get all enquiries (Admin only)
 export const getAllEnquiries = async (req, res) => {
   try {
-    const { status, serviceType, priority, page = 1, limit = 20 } = req.query;
+    const { status, enquiryStatus, serviceType, priority, page = 1, limit = 20 } = req.query;
 
     const filter = {};
-    if (status) filter.enquiryStatus = status;
+    // Accept both 'status' and 'enquiryStatus' for backwards compatibility
+    if (status || enquiryStatus) filter.enquiryStatus = status || enquiryStatus;
     if (serviceType) filter.serviceType = serviceType;
     if (priority) filter.priority = priority;
 

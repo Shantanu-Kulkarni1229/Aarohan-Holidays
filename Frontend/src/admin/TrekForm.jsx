@@ -47,7 +47,7 @@ const TrekForm = () => {
     cityPricing: [{ city: '', pricingOptions: [{ categoryName: '', price: '' }] }],
     
     // NEW: Itinerary with note and activities
-    itinerary: [{ day: 1, title: '', description: '', meals: '', accommodation: '', note: '', activities: [] }],
+    itinerary: [{ day: 1, title: '', description: '', meals: '', accommodation: '', cabType: '', note: '', activities: [] }],
     
     // NEW: Inclusions and Exclusions
     inclusions: [''],
@@ -63,6 +63,7 @@ const TrekForm = () => {
     rating: 0,
     
     // Booleans
+    contactForPricing: false, // NEW: If true, hide pricing and show "Contact for Pricing"
     isActive: true,
     isFeatured: false,
     isFixedDeparture: false,
@@ -139,9 +140,10 @@ const TrekForm = () => {
           itinerary: trek.itinerary?.length > 0 ? trek.itinerary.map(item => ({
             ...item,
             description: item.description || '',
+            cabType: item.cabType || '',
             note: item.note || '',
             activities: item.activities || []
-          })) : [{ day: 1, title: '', description: '', meals: '', accommodation: '', note: '', activities: [] }],
+          })) : [{ day: 1, title: '', description: '', meals: '', accommodation: '', cabType: '', note: '', activities: [] }],
           // NEW: Load inclusions and exclusions
           inclusions: trek.inclusions?.length > 0 ? trek.inclusions : [''],
           exclusions: trek.exclusions?.length > 0 ? trek.exclusions : [''],
@@ -1164,6 +1166,17 @@ const TrekForm = () => {
                     />
                   </div>
 
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">🚗 Cab Type</label>
+                    <input
+                      type="text"
+                      value={day.cabType || ''}
+                      onChange={(e) => handleObjectArrayChange('itinerary', index, 'cabType', e.target.value)}
+                      className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all"
+                      placeholder="e.g., Innova, Tempo Traveller, Jeep"
+                    />
+                  </div>
+
                   <div className="lg:col-span-2">
                     <label className="block text-sm font-semibold text-gray-700 mb-2">
                       📝 Day Note <span className="text-xs font-normal text-gray-500">(Optional - Use toolbar for formatting)</span>
@@ -1230,6 +1243,7 @@ const TrekForm = () => {
                 description: '', 
                 meals: '', 
                 accommodation: '',
+                cabType: '',
                 note: '',
                 activities: []
               })}
@@ -1329,16 +1343,51 @@ const TrekForm = () => {
 
           {/* City-wise Pricing */}
           <div id="pricing" className="bg-white rounded-2xl shadow-xl border border-gray-200 p-8">
-            <div className="flex items-center mb-6">
-              <div className="w-12 h-12 bg-teal-100 rounded-xl flex items-center justify-center mr-4">
-                <DollarSign className="w-6 h-6 text-teal-600" />
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center">
+                <div className="w-12 h-12 bg-teal-100 rounded-xl flex items-center justify-center mr-4">
+                  <DollarSign className="w-6 h-6 text-teal-600" />
+                </div>
+                <div>
+                  <h2 className="text-2xl font-bold text-gray-900">City-wise Pricing</h2>
+                  <p className="text-gray-600">Set different pricing based on departure cities</p>
+                </div>
               </div>
-              <div>
-                <h2 className="text-2xl font-bold text-gray-900">City-wise Pricing</h2>
-                <p className="text-gray-600">Set different pricing based on departure cities</p>
+              
+              {/* Contact for Pricing Toggle */}
+              <div className={`flex items-center gap-3 p-4 rounded-xl border-2 transition-all ${formData.contactForPricing ? 'border-teal-500 bg-teal-50' : 'border-gray-200'}`}>
+                <label className="flex items-center cursor-pointer">
+                  <div className="relative">
+                    <input
+                      type="checkbox"
+                      checked={formData.contactForPricing}
+                      onChange={(e) => setFormData({ ...formData, contactForPricing: e.target.checked })}
+                      className="sr-only"
+                    />
+                    <div className={`w-14 h-7 rounded-full transition-colors duration-300 ${formData.contactForPricing ? 'bg-teal-500' : 'bg-gray-300'}`}></div>
+                    <div className={`absolute top-0.5 left-0.5 w-6 h-6 bg-white rounded-full shadow-md transition-transform duration-300 ${formData.contactForPricing ? 'translate-x-7' : ''}`}></div>
+                  </div>
+                  <span className="ml-3 font-semibold text-sm text-gray-800">📞 Contact for Pricing</span>
+                </label>
               </div>
             </div>
             
+            {/* Show message when Contact for Pricing is enabled */}
+            {formData.contactForPricing && (
+              <div className="mb-6 p-4 rounded-xl border-2 border-dashed border-teal-500 bg-teal-50">
+                <div className="flex items-center gap-3">
+                  <span className="text-2xl">📱</span>
+                  <div>
+                    <p className="font-semibold text-gray-800">Contact for Pricing Enabled</p>
+                    <p className="text-sm text-gray-600">Pricing will be hidden on the booking page. Customers will see a WhatsApp button to contact you directly.</p>
+                  </div>
+                </div>
+              </div>
+            )}
+            
+            {/* Hide pricing inputs when contactForPricing is enabled */}
+            {!formData.contactForPricing && (
+              <>
             {formData.cityPricing.map((cityPrice, index) => (
               <div key={index} className="p-6 bg-gray-50 rounded-xl border border-gray-200 mb-4">
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
@@ -1498,6 +1547,8 @@ const TrekForm = () => {
               <Plus className="w-5 h-5 mr-2" />
               Add Another City
             </button>
+              </>
+            )}
           </div>
 
           {/* Add-ons Section */}

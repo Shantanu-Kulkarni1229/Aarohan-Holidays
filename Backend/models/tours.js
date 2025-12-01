@@ -202,6 +202,7 @@ const tourSchema = new mongoose.Schema(
         description: { type: String, required: true },
         meals: { type: String, default: "" },
         accommodation: { type: String, default: "" },
+        cabType: { type: String, default: "" }, // NEW: Cab/Transport type for this day
         note: { type: String, default: "" }, // NEW: Optional note for each day
         activities: { type: [String], default: [] }, // NEW: List of activities/things to do
       },
@@ -236,6 +237,7 @@ const tourSchema = new mongoose.Schema(
     rating: { type: Number, default: 0, min: 0, max: 5 },
     totalBookings: { type: Number, default: 0 },
     maxGroupSize: { type: Number, default: 20 },
+    contactForPricing: { type: Boolean, default: false }, // NEW: If true, hide pricing and show "Contact for Pricing"
     isActive: { type: Boolean, default: true },
     isFeatured: { type: Boolean, default: false },
     isFixedDeparture: { type: Boolean, default: false }, // Fixed departure flag
