@@ -28,7 +28,6 @@ import ExtrasManagement from './admin/ExtrasManagement'
 import CustomBookingsManagement from './admin/CustomBookingsManagement'
 import CustomBookingForm from './admin/CustomBookingForm'
 import CustomBookingDetail from './admin/CustomBookingDetail'
-import ConditionalSmoothScroll from './components/ConditionalSmoothScroll'
 import NavigationLoader from './components/NavigationLoader'
 import { FaWhatsapp } from 'react-icons/fa'
 import CancellationPolicy from './pages/CancellationPolicy'
@@ -91,10 +90,9 @@ const App = () => {
   return (
     <Router>
       <NavigationLoader />
-      <ConditionalSmoothScroll>
-        <Routes>
-          {/* Public Routes */}
-          <Route path="/" element={<HomePage />} />
+      <Routes>
+        {/* Public Routes */}
+        <Route path="/" element={<HomePage />} />
           <Route path="/tours" element={<TourPage />} />
           <Route path="/treks" element={<TrekPage />} />
           <Route path="/tour/:id" element={<BookTourWrapper />} />
@@ -136,7 +134,6 @@ const App = () => {
             <Route path="extras" element={<ExtrasManagement />} />
           </Route>
         </Routes>
-      </ConditionalSmoothScroll>
 
       {/* Global Floating WhatsApp Button */}
       <WhatsAppButton />

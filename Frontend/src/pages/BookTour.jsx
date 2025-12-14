@@ -1368,10 +1368,30 @@ const BookTour = () => {
                 />
               </div>
 
-              {/* Itinerary Section - RIGHT AFTER DESCRIPTION */}
+              {/* Tour Highlights - Moved up */}
+              {tour.highlights && tour.highlights.length > 0 && (
+                <div className="bg-white rounded-xl shadow-lg p-5 transition-all duration-300 border" style={{ borderColor: colors.border }}>
+                  <h3 className="text-xl font-bold mb-5 flex items-center" style={{ color: colors.text }}>
+                    <Star className="w-5 h-5 mr-3" style={{ color: colors.secondary }} />
+                    Tour Highlights
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    {tour.highlights.map((highlight, index) => (
+                      <div key={index} className="flex items-start group hover:transform hover:scale-105 transition-all duration-300">
+                        <div className="w-6 h-6 rounded-full flex items-center justify-center mr-3 flex-shrink-0 mt-0.5" style={{ backgroundColor: colors.accentLight }}>
+                          <CheckCircle className="w-3 h-3" style={{ color: colors.secondary }} />
+                        </div>
+                        <span className="text-gray-700 pt-0.5">{highlight}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Itinerary Section */}
               {tour.itinerary && tour.itinerary.length > 0 && (
                 <div className="bg-white rounded-lg shadow-lg p-4 transition-all duration-300 border" style={{ borderColor: colors.border }}>
-                  <h3 className="text-lg font-bold mb-4" style={{ color: colors.text }}>Itinerary: Your Journey Day by Day</h3>
+                  <h3 className="text-lg font-bold mb-4" style={{ color: colors.text }}>TOUR ITINERARY</h3>
                   <div className="space-y-3">
                     {tour.itinerary.map((day, index) => (
                       <ItineraryDay key={index} day={day} index={index} />
@@ -1379,6 +1399,43 @@ const BookTour = () => {
                   </div>
                 </div>
               )}
+
+              {/* Inclusions & Exclusions - Moved up */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                {tour.inclusions && tour.inclusions.length > 0 && (
+                  <div className="rounded-xl shadow-md p-5 border transition-all duration-300" style={{ backgroundColor: colors.accentLight, borderColor: colors.secondary + '40' }}>
+                    <h3 className="text-lg font-bold mb-4 flex items-center" style={{ color: colors.text }}>
+                      <CheckCircle className="w-5 h-5 mr-2" style={{ color: colors.secondary }} />
+                      Cost Inclusion
+                    </h3>
+                    <ul className="space-y-2">
+                      {tour.inclusions.map((item, index) => (
+                        <li key={index} className="text-sm flex items-start" style={{ color: colors.text }}>
+                          <span className="mr-2 text-sm" style={{ color: colors.secondary }}>✓</span>
+                          {item}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                {tour.exclusions && tour.exclusions.length > 0 && (
+                  <div className="rounded-xl shadow-md p-5 border transition-all duration-300" style={{ backgroundColor: '#FEF2F2', borderColor: colors.error + '40' }}>
+                    <h3 className="text-lg font-bold mb-4 flex items-center" style={{ color: colors.text }}>
+                      <XCircle className="w-5 h-5 mr-2" style={{ color: colors.error }} />
+                      Cost Exclusion
+                    </h3>
+                    <ul className="space-y-2">
+                      {tour.exclusions.map((item, index) => (
+                        <li key={index} className="text-sm flex items-start" style={{ color: colors.text }}>
+                          <span className="mr-2 text-sm" style={{ color: colors.error }}>✗</span>
+                          {item}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
 
               {/* YouTube Video */}
               {youtubeVideoId && (
@@ -1448,26 +1505,6 @@ const BookTour = () => {
                 </div>
               )}
 
-              {/* Enhanced Highlights */}
-              {tour.highlights && tour.highlights.length > 0 && (
-                <div className="bg-white rounded-xl shadow-lg p-5 transition-all duration-300 border" style={{ borderColor: colors.border }}>
-                  <h3 className="text-xl font-bold mb-5 flex items-center" style={{ color: colors.text }}>
-                    <Star className="w-5 h-5 mr-3" style={{ color: colors.secondary }} />
-                    Tour Highlights
-                  </h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    {tour.highlights.map((highlight, index) => (
-                      <div key={index} className="flex items-start group hover:transform hover:scale-105 transition-all duration-300">
-                        <div className="w-6 h-6 rounded-full flex items-center justify-center mr-3 flex-shrink-0 mt-0.5" style={{ backgroundColor: colors.accentLight }}>
-                          <CheckCircle className="w-3 h-3" style={{ color: colors.secondary }} />
-                        </div>
-                        <span className="text-gray-700 pt-0.5">{highlight}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
               {/* Addon Facilities Section - Each facility in separate box */}
               {tour.addonFacilities && tour.addonFacilities.length > 0 && (
                 <>
@@ -1489,43 +1526,6 @@ const BookTour = () => {
                   ))}
                 </>
               )}
-
-              {/* Enhanced Inclusions & Exclusions */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                {tour.inclusions && tour.inclusions.length > 0 && (
-                  <div className="rounded-xl shadow-md p-5 border transition-all duration-300" style={{ backgroundColor: colors.accentLight, borderColor: colors.secondary + '40' }}>
-                    <h3 className="text-lg font-bold mb-4 flex items-center" style={{ color: colors.text }}>
-                      <CheckCircle className="w-5 h-5 mr-2" style={{ color: colors.secondary }} />
-                      Cost Inclusion
-                    </h3>
-                    <ul className="space-y-2">
-                      {tour.inclusions.map((item, index) => (
-                        <li key={index} className="text-sm flex items-start" style={{ color: colors.text }}>
-                          <span className="mr-2 text-sm" style={{ color: colors.secondary }}>✓</span>
-                          {item}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-
-                {tour.exclusions && tour.exclusions.length > 0 && (
-                  <div className="rounded-xl shadow-md p-5 border transition-all duration-300" style={{ backgroundColor: '#FEF2F2', borderColor: colors.error + '40' }}>
-                    <h3 className="text-lg font-bold mb-4 flex items-center" style={{ color: colors.text }}>
-                      <XCircle className="w-5 h-5 mr-2" style={{ color: colors.error }} />
-                      Cost Exclusion
-                    </h3>
-                    <ul className="space-y-2">
-                      {tour.exclusions.map((item, index) => (
-                        <li key={index} className="text-sm flex items-start" style={{ color: colors.text }}>
-                          <span className="mr-2 text-sm" style={{ color: colors.error }}>✗</span>
-                          {item}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-              </div>
 
               {/* FAQs Section */}
               {tour.faqs && tour.faqs.length > 0 && (

@@ -1337,15 +1337,71 @@ const BookTrek = () => {
                 />
               </div>
 
-              {/* Itinerary Section - RIGHT AFTER DESCRIPTION */}
+              {/* Trek Highlights - Moved up */}
+              {trek.highlights && trek.highlights.length > 0 && (
+                <div className="bg-white rounded-lg shadow-lg p-4 transition-all duration-300 border" style={{ borderColor: colors.border }}>
+                  <h3 className="text-lg font-bold mb-4 flex items-center" style={{ color: colors.text }}>
+                    <Mountain className="w-5 h-5 mr-2" style={{ color: colors.secondary }} />
+                    Trek Highlights
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    {trek.highlights.map((highlight, index) => (
+                      <div key={index} className="flex items-start group hover:transform hover:scale-105 transition-all duration-300">
+                        <div className="w-5 h-5 rounded-full flex items-center justify-center mr-2 flex-shrink-0 mt-0.5" style={{ backgroundColor: colors.accentLight }}>
+                          <CheckCircle className="w-3 h-3" style={{ color: colors.secondary }} />
+                        </div>
+                        <span className="text-sm pt-0.5" style={{ color: colors.text }}>{highlight}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Itinerary Section */}
               {trek.itinerary && trek.itinerary.length > 0 && (
                 <div className="bg-white rounded-lg shadow-lg p-4 transition-all duration-300 border" style={{ borderColor: colors.border }}>
-                  <h3 className="text-lg font-bold mb-4" style={{ color: colors.text }}>Itinerary: Your Journey Day by Day</h3>
+                  <h3 className="text-lg font-bold mb-4" style={{ color: colors.text }}>TREK ITINERARY</h3>
                   <div className="space-y-3">
                     {trek.itinerary.map((day, index) => (
                       <ItineraryDay key={index} day={day} index={index} />
                     ))}
                   </div>
+                </div>
+              )}
+
+              {/* Cost Inclusion */}
+              {trek.inclusions && trek.inclusions.length > 0 && (
+                <div className="bg-white rounded-lg shadow-lg p-4 border transition-all duration-300" style={{ borderColor: colors.border }}>
+                  <h3 className="text-lg font-bold mb-3 flex items-center" style={{ color: colors.text }}>
+                    <CheckCircle className="w-5 h-5 mr-2" style={{ color: colors.secondary }} />
+                    Cost Inclusion
+                  </h3>
+                  <ul className="space-y-2">
+                    {trek.inclusions.map((item, index) => (
+                      <li key={index} className="text-sm flex items-start" style={{ color: colors.text }}>
+                        <span className="mr-2 text-sm" style={{ color: colors.secondary }}>✓</span>
+                        {item}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {/* Cost Exclusion */}
+              {trek.exclusions && trek.exclusions.length > 0 && (
+                <div className="bg-white rounded-lg shadow-lg p-4 border transition-all duration-300" style={{ borderColor: colors.border }}>
+                  <h3 className="text-lg font-bold mb-3 flex items-center" style={{ color: colors.text }}>
+                    <XCircle className="w-5 h-5 mr-2" style={{ color: colors.error }} />
+                    Cost Exclusion
+                  </h3>
+                  <ul className="space-y-2">
+                    {trek.exclusions.map((item, index) => (
+                      <li key={index} className="text-sm flex items-start" style={{ color: colors.text }}>
+                        <span className="mr-2 text-sm" style={{ color: colors.error }}>✗</span>
+                        {item}
+                      </li>
+                    ))}
+                  </ul>
                 </div>
               )}
 
@@ -1417,26 +1473,6 @@ const BookTrek = () => {
                 </div>
               )}
 
-              {/* Trek Highlights */}
-              {trek.highlights && trek.highlights.length > 0 && (
-                <div className="bg-white rounded-lg shadow-lg p-4 transition-all duration-300 border" style={{ borderColor: colors.border }}>
-                  <h3 className="text-lg font-bold mb-4 flex items-center" style={{ color: colors.text }}>
-                    <Mountain className="w-5 h-5 mr-2" style={{ color: colors.secondary }} />
-                    Trek Highlights
-                  </h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    {trek.highlights.map((highlight, index) => (
-                      <div key={index} className="flex items-start group hover:transform hover:scale-105 transition-all duration-300">
-                        <div className="w-5 h-5 rounded-full flex items-center justify-center mr-2 flex-shrink-0 mt-0.5" style={{ backgroundColor: colors.accentLight }}>
-                          <CheckCircle className="w-3 h-3" style={{ color: colors.secondary }} />
-                        </div>
-                        <span className="text-sm pt-0.5" style={{ color: colors.text }}>{highlight}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
               {/* Addon Facilities Section - Each facility in separate box */}
               {trek.addonFacilities && trek.addonFacilities.length > 0 && (
                 <>
@@ -1457,42 +1493,6 @@ const BookTrek = () => {
                     </div>
                   ))}
                 </>
-              )}
-
-              {/* Cost Inclusion */}
-              {trek.inclusions && trek.inclusions.length > 0 && (
-                <div className="bg-white rounded-lg shadow-lg p-4 border transition-all duration-300" style={{ borderColor: colors.border }}>
-                  <h3 className="text-lg font-bold mb-3 flex items-center" style={{ color: colors.text }}>
-                    <CheckCircle className="w-5 h-5 mr-2" style={{ color: colors.secondary }} />
-                    Cost Inclusion
-                  </h3>
-                  <ul className="space-y-2">
-                    {trek.inclusions.map((item, index) => (
-                      <li key={index} className="text-sm flex items-start" style={{ color: colors.text }}>
-                        <span className="mr-2 text-sm" style={{ color: colors.secondary }}>✓</span>
-                        {item}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-
-              {/* Cost Exclusion */}
-              {trek.exclusions && trek.exclusions.length > 0 && (
-                <div className="bg-white rounded-lg shadow-lg p-4 border transition-all duration-300" style={{ borderColor: colors.border }}>
-                  <h3 className="text-lg font-bold mb-3 flex items-center" style={{ color: colors.text }}>
-                    <XCircle className="w-5 h-5 mr-2" style={{ color: colors.error }} />
-                    Cost Exclusion
-                  </h3>
-                  <ul className="space-y-2">
-                    {trek.exclusions.map((item, index) => (
-                      <li key={index} className="text-sm flex items-start" style={{ color: colors.text }}>
-                        <span className="mr-2 text-sm" style={{ color: colors.error }}>✗</span>
-                        {item}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
               )}
 
               {/* FAQs Section */}
