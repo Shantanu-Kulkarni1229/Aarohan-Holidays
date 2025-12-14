@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
-import { Plus, Edit2, Trash2, X, Calendar, Percent, CheckCircle, XCircle, Tag, TrendingUp, Clock, Users, BookOpen, MapPin, Eye, Heart, Star, Image, Video } from 'lucide-react';
+import { Plus, Edit2, Trash2, X, Calendar, Percent, CheckCircle, XCircle, Tag, TrendingUp, Clock, Users, BookOpen, MapPin, Eye, Heart, Star, Image, Video, Upload } from 'lucide-react';
 import { API_BASE_URL } from '../api/api';
 import { showSuccess, showError } from '../utils/toast';
 import RichTextEditor from '../components/RichTextEditor';
+import { uploadImage } from '../utils/cloudinaryUtils';
 
 const ExtrasManagement = () => {
   const [activeTab, setActiveTab] = useState('coupons');
@@ -16,6 +17,8 @@ const ExtrasManagement = () => {
   const [editingBlog, setEditingBlog] = useState(null);
   const [editingHistory, setEditingHistory] = useState(null);
   const [statistics, setStatistics] = useState({});
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const [uploadingHistoryImages, setUploadingHistoryImages] = useState({});
   
   const [formData, setFormData] = useState({
     code: '',
@@ -473,6 +476,75 @@ const ExtrasManagement = () => {
       showSuccess('Active status updated');
     } catch (error) {
       showError('Failed to toggle active status');
+    }
+  };
+
+  // ============ IMAGE UPLOAD HANDLERS ============
+  const handleBlogImageUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      showError('Please select a valid image file');
+      return;
+    }
+
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      showError('Image size should be less than 5MB');
+      return;
+    }
+
+    setUploadingImage(true);
+    try {
+      const imageUrl = await uploadImage(file);
+      console.log('Uploaded image URL:', imageUrl);
+      
+      if (imageUrl && typeof imageUrl === 'string') {
+        setBlogFormData(prev => ({ ...prev, featuredImage: imageUrl }));
+        showSuccess('Image uploaded successfully!');
+        // Clear the file input to allow re-uploading the same file
+        e.target.value = '';
+      } else {
+        throw new Error('Invalid image URL returned');
+      }
+    } catch (error) {
+      console.error('Error uploading image:', error);
+      showError('Failed to upload image. Please try again.');
+    } finally {
+      setUploadingImage(false);
+    }
+  };
+
+  const handleHistoryImageUpload = async (e, index) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      showError('Please select a valid image file');
+      return;
+    }
+
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      showError('Image size should be less than 5MB');
+      return;
+    }
+
+    setUploadingHistoryImages(prev => ({ ...prev, [index]: true }));
+    try {
+      const imageUrl = await uploadImage(file);
+      const newImages = [...historyFormData.images];
+      newImages[index] = imageUrl;
+      setHistoryFormData(prev => ({ ...prev, images: newImages }));
+      showSuccess(`Image ${index + 1} uploaded successfully!`);
+    } catch (error) {
+      console.error('Error uploading image:', error);
+      showError(`Failed to upload image ${index + 1}. Please try again.`);
+    } finally {
+      setUploadingHistoryImages(prev => ({ ...prev, [index]: false }));
     }
   };
 
@@ -1431,9 +1503,59 @@ const ExtrasManagement = () => {
 
                   {/* Featured Image */}
                   <div>
-                    <label className="block text-sm font-semibold mb-2" style={{ color: colors.text }}>Featured Image URL *</label>
-                    <input type="url" name="featuredImage" value={blogFormData.featuredImage} onChange={handleBlogInputChange} required
-                      className="w-full px-4 py-3 rounded-lg border focus:outline-none focus:ring-2" style={{ borderColor: colors.border }} />
+                    <label className="block text-sm font-semibold mb-2" style={{ color: colors.text }}>Featured Image *</label>
+                    
+                    {/* Image Preview */}
+                    {blogFormData.featuredImage && (
+                      <div className="mb-3 relative">
+                        <img 
+                          src={blogFormData.featuredImage} 
+                          alt="Preview" 
+                          className="w-full h-48 object-cover rounded-lg"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setBlogFormData(prev => ({ ...prev, featuredImage: '' }))}
+                          className="absolute top-2 right-2 p-1 bg-red-500 text-white rounded-full hover:bg-red-600"
+                        >
+                          <X size={16} />
+                        </button>
+                      </div>
+                    )}
+
+                    {/* Upload Button */}
+                    <div className="flex gap-2">
+                      <label className="flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-lg border-2 border-dashed cursor-pointer hover:border-blue-500 hover:bg-blue-50 transition-colors"
+                        style={{ borderColor: colors.border }}>
+                        <Upload size={20} style={{ color: colors.primary }} />
+                        <span style={{ color: colors.text }}>
+                          {uploadingImage ? 'Uploading...' : 'Upload Image'}
+                        </span>
+                        <input 
+                          type="file" 
+                          accept="image/*" 
+                          onChange={handleBlogImageUpload}
+                          disabled={uploadingImage}
+                          className="hidden"
+                        />
+                      </label>
+                      
+                      {/* OR URL Input */}
+                      <div className="flex-1">
+                        <input 
+                          type="url" 
+                          name="featuredImage" 
+                          value={blogFormData.featuredImage} 
+                          onChange={handleBlogInputChange}
+                          placeholder="Or paste image URL"
+                          className="w-full px-4 py-3 rounded-lg border focus:outline-none focus:ring-2" 
+                          style={{ borderColor: colors.border }} 
+                        />
+                      </div>
+                    </div>
+                    <p className="text-xs mt-2" style={{ color: colors.lightText }}>
+                      Upload an image or paste a URL. Max size: 5MB
+                    </p>
                   </div>
 
                   {/* Tags & Read Time */}
@@ -1522,29 +1644,70 @@ const ExtrasManagement = () => {
                   {/* Images */}
                   <div>
                     <label className="block text-sm font-semibold mb-2" style={{ color: colors.text }}>Images (up to 5)</label>
-                    <div className="space-y-3">
+                    <div className="space-y-4">
                       {historyFormData.images.map((image, index) => (
                         <div key={index}>
-                          <label className="block text-xs font-medium mb-1" style={{ color: colors.lightText }}>
-                            Image {index + 1} URL {index === 0 && '*'}
+                          <label className="block text-xs font-medium mb-2" style={{ color: colors.lightText }}>
+                            Image {index + 1} {index === 0 && '(Required)'}
                           </label>
-                          <input
-                            type="url"
-                            value={image}
-                            onChange={(e) => {
-                              const newImages = [...historyFormData.images];
-                              newImages[index] = e.target.value;
-                              setHistoryFormData(prev => ({ ...prev, images: newImages }));
-                            }}
-                            placeholder={`Enter image ${index + 1} URL`}
-                            required={index === 0}
-                            className="w-full px-4 py-2 rounded-lg border focus:outline-none focus:ring-2"
-                            style={{ borderColor: colors.border }}
-                          />
+                          
+                          {/* Image Preview */}
+                          {image && (
+                            <div className="mb-2 relative">
+                              <img 
+                                src={image} 
+                                alt={`Preview ${index + 1}`} 
+                                className="w-full h-32 object-cover rounded-lg"
+                              />
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const newImages = [...historyFormData.images];
+                                  newImages[index] = '';
+                                  setHistoryFormData(prev => ({ ...prev, images: newImages }));
+                                }}
+                                className="absolute top-2 right-2 p-1 bg-red-500 text-white rounded-full hover:bg-red-600"
+                              >
+                                <X size={14} />
+                              </button>
+                            </div>
+                          )}
+
+                          {/* Upload and URL Input */}
+                          <div className="flex gap-2">
+                            <label className="flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg border-2 border-dashed cursor-pointer hover:border-blue-500 hover:bg-blue-50 transition-colors"
+                              style={{ borderColor: colors.border }}>
+                              <Upload size={16} style={{ color: colors.primary }} />
+                              <span className="text-sm" style={{ color: colors.text }}>
+                                {uploadingHistoryImages[index] ? 'Uploading...' : 'Upload'}
+                              </span>
+                              <input 
+                                type="file" 
+                                accept="image/*" 
+                                onChange={(e) => handleHistoryImageUpload(e, index)}
+                                disabled={uploadingHistoryImages[index]}
+                                className="hidden"
+                              />
+                            </label>
+                            
+                            <input
+                              type="url"
+                              value={image}
+                              onChange={(e) => {
+                                const newImages = [...historyFormData.images];
+                                newImages[index] = e.target.value;
+                                setHistoryFormData(prev => ({ ...prev, images: newImages }));
+                              }}
+                              placeholder="Or paste URL"
+                              required={index === 0}
+                              className="flex-1 px-3 py-2 rounded-lg border focus:outline-none focus:ring-2 text-sm"
+                              style={{ borderColor: colors.border }}
+                            />
+                          </div>
                         </div>
                       ))}
                     </div>
-                    <p className="text-xs mt-2" style={{ color: colors.lightText }}>First image is required. Others are optional.</p>
+                    <p className="text-xs mt-2" style={{ color: colors.lightText }}>Upload images or paste URLs. First image is required. Max size: 5MB per image.</p>
                   </div>
 
                   {/* Video Link */}

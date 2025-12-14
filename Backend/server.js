@@ -14,6 +14,7 @@ import couponRoutes from "./routes/couponRoutes.js";
 import customBookingRoutes from "./routes/customBookingRoutes.js";
 import historyRoutes from "./routes/historyRoutes.js";
 import blogRoutes from "./routes/blogRoutes.js";
+import uploadRoutes from "./routes/uploadRoutes.js";
 
 dotenv.config();
 
@@ -109,6 +110,7 @@ app.use('/api/coupons', couponRoutes);
 app.use('/api/custom-bookings', customBookingRoutes);
 app.use('/api', historyRoutes);
 app.use('/api', blogRoutes);
+app.use('/api/upload', uploadRoutes);
 
 // Basic route
 app.get("/", (req, res) => {

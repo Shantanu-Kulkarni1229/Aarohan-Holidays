@@ -52,14 +52,10 @@ const History = () => {
   const fetchFeaturedHistories = async () => {
     try {
       setLoading(true);
-      console.log('Fetching histories from:', `${API_BASE_URL}/history/featured?limit=6`);
-      const response = await axios.get(`${API_BASE_URL}/history/featured?limit=6`);
-      console.log('History response:', response.data);
+      // Fetch all active histories
+      const response = await axios.get(`${API_BASE_URL}/history?limit=10&sortBy=createdAt&sortOrder=desc`);
       if (response.data.success) {
-        setHistories(response.data.data);
-        console.log('Histories set:', response.data.data);
-      } else {
-        console.log('Response not successful:', response.data);
+        setHistories(response.data.data || []);
       }
     } catch (error) {
       console.error('Error fetching histories:', error);
@@ -216,23 +212,33 @@ const History = () => {
           </p>
         </div>
 
-        {/* Infinite Horizontal Scroll */}
+        {/* History Display */}
         {histories.length > 0 ? (
           <>
-            <div 
-              ref={scrollContainerRef}
-              className="flex gap-8 mb-12 overflow-x-hidden"
-              onMouseEnter={() => setIsPaused(true)}
-              onMouseLeave={() => setIsPaused(false)}
-              style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
-            >
-              {/* Duplicate histories for seamless infinite scroll */}
-              {[...histories, ...histories].map((history, index) => (
-                <div key={`${history._id}-${index}`} className="flex-shrink-0 w-[400px]">
-                  <HistoryCard history={history} />
-                </div>
-              ))}
-            </div>
+            {/* Show infinite scroll only if 4+ histories, otherwise show grid */}
+            {histories.length >= 4 ? (
+              <div 
+                ref={scrollContainerRef}
+                className="flex gap-8 mb-12 overflow-x-hidden"
+                onMouseEnter={() => setIsPaused(true)}
+                onMouseLeave={() => setIsPaused(false)}
+                style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+              >
+                {/* Duplicate histories for seamless infinite scroll */}
+                {[...histories, ...histories].map((history, index) => (
+                  <div key={`${history._id}-${index}`} className="flex-shrink-0 w-[400px]">
+                    <HistoryCard history={history} />
+                  </div>
+                ))}
+              </div>
+            ) : (
+              /* Regular grid for 1-3 histories */
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-12">
+                {histories.map((history) => (
+                  <HistoryCard key={history._id} history={history} />
+                ))}
+              </div>
+            )}
 
             {/* View All Button */}
             <div className="text-center">

@@ -44,6 +44,7 @@ const TrekPage = () => {
   const [showFilters, setShowFilters] = useState(false);
   const [viewMode, setViewMode] = useState('grid'); // 'grid' or 'list'
   const [sortBy, setSortBy] = useState('featured'); // 'featured', 'price-low', 'price-high', 'duration', 'name'
+  const [quickFilter, setQuickFilter] = useState('all'); // 'all', 'himalayan', 'sahyadri'
 
   // Filter States
   const [filters, setFilters] = useState({
@@ -103,6 +104,17 @@ const TrekPage = () => {
 
   const applyFiltersAndSearch = useCallback(() => {
     let result = [...allTreks];
+
+    // Apply quick filter (Himalayan/Sahyadri)
+    if (quickFilter === 'himalayan') {
+      result = result.filter(trek => 
+        trek.category?.toLowerCase().includes('himalayan')
+      );
+    } else if (quickFilter === 'sahyadri') {
+      result = result.filter(trek => 
+        trek.category?.toLowerCase().includes('sahyadri')
+      );
+    }
 
     // Apply search
     if (searchQuery.trim()) {
@@ -183,7 +195,7 @@ const TrekPage = () => {
     });
 
     setFilteredTreks(result);
-  }, [allTreks, searchQuery, filters, sortBy]);
+  }, [allTreks, searchQuery, filters, sortBy, quickFilter]);
 
   // Apply filters and search whenever they change
   useEffect(() => {
@@ -379,7 +391,7 @@ const TrekPage = () => {
         {/* Toolbar */}
         <div className="flex flex-wrap items-center justify-between gap-4 mb-8">
           {/* Left Section - Filters Button & Results Count */}
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-4 flex-wrap">
             <button
               onClick={() => setShowFilters(!showFilters)}
               className="flex items-center gap-2 px-6 py-3 rounded-xl font-semibold text-white shadow-lg hover:shadow-xl transition-all hover:scale-105"
@@ -394,6 +406,46 @@ const TrekPage = () => {
                 </span>
               )}
             </button>
+
+            {/* Quick Filters */}
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setQuickFilter('all')}
+                className={`px-4 py-2 rounded-lg font-semibold transition-all ${
+                  quickFilter === 'all' ? 'text-white shadow-md' : 'text-gray-600 bg-white border-2'
+                }`}
+                style={quickFilter === 'all' ? 
+                  { backgroundColor: colors.secondary } : 
+                  { borderColor: colors.border }
+                }
+              >
+                All Treks
+              </button>
+              <button
+                onClick={() => setQuickFilter('himalayan')}
+                className={`px-4 py-2 rounded-lg font-semibold transition-all ${
+                  quickFilter === 'himalayan' ? 'text-white shadow-md' : 'text-gray-600 bg-white border-2'
+                }`}
+                style={quickFilter === 'himalayan' ? 
+                  { backgroundColor: colors.secondary } : 
+                  { borderColor: colors.border }
+                }
+              >
+                Himalayan Treks
+              </button>
+              <button
+                onClick={() => setQuickFilter('sahyadri')}
+                className={`px-4 py-2 rounded-lg font-semibold transition-all ${
+                  quickFilter === 'sahyadri' ? 'text-white shadow-md' : 'text-gray-600 bg-white border-2'
+                }`}
+                style={quickFilter === 'sahyadri' ? 
+                  { backgroundColor: colors.secondary } : 
+                  { borderColor: colors.border }
+                }
+              >
+                Sahyadri Treks
+              </button>
+            </div>
 
             <div className="text-lg font-semibold" style={{ color: colors.text }}>
               {filteredTreks.length} {filteredTreks.length === 1 ? 'Trek' : 'Treks'} Found

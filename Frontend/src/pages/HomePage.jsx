@@ -8,6 +8,7 @@ import Testomonial from '../components/Testomonial'
 import Footer from '../components/Footer'
 import Blogs from '../components/Blogs'
 import History from '../components/History'
+import WhyTravelWithUs from '../components/WhyTravelWithUs'
 
 const HomePage = () => {
   useEffect(() => {
@@ -37,9 +38,7 @@ const HomePage = () => {
             <UpcomingTreks />
           </div>
           
-          <div id="featured">
-            <Featured />
-          </div>
+        <WhyTravelWithUs />
           
           <div id="testimonials">
             <Testomonial />

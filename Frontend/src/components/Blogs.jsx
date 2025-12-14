@@ -52,9 +52,10 @@ const Blogs = () => {
   const fetchFeaturedBlogs = async () => {
     try {
       setLoading(true);
-      const response = await axios.get(`${API_BASE_URL}/blogs/featured?limit=6`);
+      // Fetch published blogs, with featured ones first
+      const response = await axios.get(`${API_BASE_URL}/blogs?limit=10&sortBy=publishedAt&sortOrder=desc`);
       if (response.data.success) {
-        setBlogs(response.data.data);
+        setBlogs(response.data.data || []);
       }
     } catch (error) {
       showApiError(error);
@@ -231,23 +232,33 @@ const Blogs = () => {
           </p>
         </div>
 
-        {/* Infinite Horizontal Scroll */}
+        {/* Blog Display */}
         {blogs.length > 0 ? (
           <>
-            <div 
-              ref={scrollContainerRef}
-              className="flex gap-8 mb-12 overflow-x-hidden"
-              onMouseEnter={() => setIsPaused(true)}
-              onMouseLeave={() => setIsPaused(false)}
-              style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
-            >
-              {/* Duplicate blogs for seamless infinite scroll */}
-              {[...blogs, ...blogs].map((blog, index) => (
-                <div key={`${blog._id}-${index}`} className="flex-shrink-0 w-[400px]">
-                  <BlogCard blog={blog} />
-                </div>
-              ))}
-            </div>
+            {/* Show infinite scroll only if 4+ blogs, otherwise show grid */}
+            {blogs.length >= 4 ? (
+              <div 
+                ref={scrollContainerRef}
+                className="flex gap-8 mb-12 overflow-x-hidden"
+                onMouseEnter={() => setIsPaused(true)}
+                onMouseLeave={() => setIsPaused(false)}
+                style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+              >
+                {/* Duplicate blogs for seamless infinite scroll */}
+                {[...blogs, ...blogs].map((blog, index) => (
+                  <div key={`${blog._id}-${index}`} className="flex-shrink-0 w-[400px]">
+                    <BlogCard blog={blog} />
+                  </div>
+                ))}
+              </div>
+            ) : (
+              /* Regular grid for 1-3 blogs */
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-12">
+                {blogs.map((blog) => (
+                  <BlogCard key={blog._id} blog={blog} />
+                ))}
+              </div>
+            )}
 
             {/* View All Button */}
             <div className="text-center">
