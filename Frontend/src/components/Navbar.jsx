@@ -239,6 +239,7 @@ export default function Navbar() {
       acc['👥 Group Tours'].push(tour);
     }
     
+    // Always add tours to their regional categories (Domestic/International/State/Country)
     if (tour.regionType === 'Domestic') {
       const state = tour.state || 'Other Domestic';
       if (!acc[state]) {
@@ -251,6 +252,13 @@ export default function Navbar() {
         acc[country] = [];
       }
       acc[country].push(tour);
+    } else {
+      // Handle tours without regionType
+      const category = 'Other Tours';
+      if (!acc[category]) {
+        acc[category] = [];
+      }
+      acc[category].push(tour);
     }
     return acc;
   }, {});
@@ -885,8 +893,8 @@ export default function Navbar() {
                                     if (catA.includes('Fixed Departure')) return -1;
                                     if (catB.includes('Fixed Departure')) return 1;
                                     // Group Tours second
-                                    if (catA.includes(' Upcoming Group Tours')) return -1;
-                                    if (catB.includes(' Upcoming Group Tours')) return 1;
+                                    if (catA.includes('Group Tours')) return -1;
+                                    if (catB.includes('Group Tours')) return 1;
                                     return catA.localeCompare(catB);
                                   })
                                   .map(([category, items]) => (

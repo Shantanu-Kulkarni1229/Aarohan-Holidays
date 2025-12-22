@@ -1860,7 +1860,8 @@ const BookTrek = () => {
                       >
                         <option value="" style={{ color: colors.lightText }}>Select pickup city</option>
                         {trek.cityPricing?.map((cityPrice, index) => {
-                          const displayPrice = cityPrice.adultPrice || cityPrice.price || 0;
+                          // Get the first pricing option or fallback to 0
+                          const displayPrice = cityPrice.pricingOptions?.[0]?.price || 0;
                           return (
                             <option key={index} value={cityPrice.city} style={{ color: colors.text }}>
                               {cityPrice.city} - ₹{displayPrice.toLocaleString('en-IN')}
