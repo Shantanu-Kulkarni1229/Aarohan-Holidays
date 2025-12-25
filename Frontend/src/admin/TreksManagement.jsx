@@ -25,7 +25,8 @@ import {
   Shield,
   Package,
   Activity,
-  Target
+  Target,
+  BookOpen
 } from 'lucide-react';
 
 const TreksManagement = () => {
@@ -475,16 +476,10 @@ const TreksManagement = () => {
                     Trek Details
                   </th>
                   <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider" style={{ color: colors.textDark }}>
-                    Difficulty & Location
-                  </th>
-                  <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider" style={{ color: colors.textDark }}>
-                    Pricing & Cities
+                    Info & Pricing
                   </th>
                   <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider" style={{ color: colors.textDark }}>
                     Status
-                  </th>
-                  <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider" style={{ color: colors.textDark }}>
-                    Performance
                   </th>
                   <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider" style={{ color: colors.textDark }}>
                     Actions
@@ -494,7 +489,7 @@ const TreksManagement = () => {
               <tbody className="bg-white divide-y" style={{ divideColor: colors.border }}>
                 {filteredTreks.length === 0 ? (
                   <tr>
-                    <td colSpan="6" className="px-6 py-12 text-center">
+                    <td colSpan="4" className="px-6 py-12 text-center">
                       <div className="flex flex-col items-center justify-center">
                         <Mountain size={64} style={{ color: colors.textDark, opacity: 0.3 }} className="mb-4" />
                         <h4 className="text-lg font-semibold mb-2" style={{ color: colors.textDark }}>No treks found</h4>
@@ -553,56 +548,53 @@ const TreksManagement = () => {
                                 <MapPin size={14} />
                                 {trek.location}
                               </span>
+                              <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium border ${getDifficultyColor(trek.difficulty)}`}>
+                                {trek.difficulty}
+                              </span>
                             </div>
                             <div className="text-xs mt-1" style={{ color: colors.textDark, opacity: 0.7 }}>
-                              {trek.category || 'Custom Trek'}
+                              {trek.category || 'Custom Trek'} • Altitude: {trek.altitude || 0}m • Max: {trek.maxGroupSize} people
                             </div>
                           </div>
                         </div>
                       </td>
                       <td className="px-6 py-4">
                         <div className="space-y-2">
-                          <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium border ${getDifficultyColor(trek.difficulty)}`}>
-                            {trek.difficulty}
-                          </span>
-                          <div className="text-sm space-y-1" style={{ color: colors.textDark }}>
-                            <div className="flex items-center gap-1">
-                              <TrendingUp size={14} />
-                              Altitude: {trek.altitude || 0}m
-                            </div>
-                            <div className="flex items-center gap-1">
-                              <Users size={14} />
-                              Max: {trek.maxGroupSize} people
-                            </div>
-                            <div className="text-xs" style={{ color: colors.textDark, opacity: 0.7 }}>
-                              Fitness: {trek.fitnessLevel}
-                            </div>
+                          {/* Performance Stats */}
+                          <div className="flex items-center space-x-3 mb-2 text-xs" style={{ color: colors.textDark }}>
+                            <span className="flex items-center gap-1">
+                              <Users size={12} style={{ color: colors.secondary }} />
+                              {trek.totalBookings || 0} bookings
+                            </span>
+                            <span className="flex items-center gap-1">
+                              <Star size={12} style={{ color: '#F59E0B' }} />
+                              {trek.rating || 0}/5
+                            </span>
+                            <span className="flex items-center gap-1">
+                              <Eye size={12} style={{ color: colors.primary }} />
+                              {trek.totalViews || 0} views
+                            </span>
                           </div>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="space-y-2">
-                          <div className="text-xs font-medium" style={{ color: colors.textDark }}>Departure Cities:</div>
+                          
+                          {/* Pricing */}
                           {trek.cityPricing && trek.cityPricing.length > 0 ? (
                             <>
                               {trek.cityPricing.slice(0, 2).map((cityPrice, index) => {
-                                // Calculate minimum price from all pricing options
                                 const prices = cityPrice.pricingOptions?.map(opt => opt.price).filter(p => p > 0) || [];
                                 const minPrice = prices.length > 0 ? Math.min(...prices) : null;
                                 
                                 return (
                                   <div 
                                     key={index} 
-                                    className="rounded-lg px-3 py-2 border space-y-1"
+                                    className="rounded-lg px-3 py-1.5 space-y-1"
                                     style={{ 
-                                      backgroundColor: colors.secondary + '08',
-                                      borderColor: colors.secondary + '30'
+                                      backgroundColor: colors.lightBg
                                     }}
                                   >
                                     <div className="flex items-center justify-between">
                                       <span className="text-sm font-medium" style={{ color: colors.darkBg }}>{cityPrice.city}</span>
                                       {minPrice ? (
-                                        <span className="font-semibold" style={{ color: colors.primary }}>
+                                        <span className="font-semibold text-sm" style={{ color: colors.primary }}>
                                           ₹{minPrice.toLocaleString()}
                                           <span className="text-[10px] font-normal ml-1" style={{ color: colors.textDark }}>onwards</span>
                                         </span>
@@ -612,28 +604,11 @@ const TreksManagement = () => {
                                         </span>
                                       )}
                                     </div>
-                                    {cityPrice.pricingOptions && cityPrice.pricingOptions.length > 0 && (
-                                      <div className="text-[10px] space-y-1" style={{ color: colors.textDark }}>
-                                        {cityPrice.pricingOptions.slice(0, 3).map((option, optIndex) => (
-                                          option.categoryName && option.price > 0 && (
-                                            <div key={optIndex} className="flex justify-between">
-                                              <span className="font-medium">{option.categoryName}:</span>
-                                              <span>₹{option.price.toLocaleString()}</span>
-                                            </div>
-                                          )
-                                        ))}
-                                        {cityPrice.pricingOptions.length > 3 && (
-                                          <span className="italic" style={{ color: colors.secondary }}>
-                                            +{cityPrice.pricingOptions.length - 3} more options
-                                          </span>
-                                        )}
-                                      </div>
-                                    )}
                                   </div>
                                 );
                               })}
                               {trek.cityPricing.length > 2 && (
-                                <div className="text-xs cursor-pointer hover:underline pt-1" style={{ color: colors.secondary }}>
+                                <div className="text-xs cursor-pointer hover:underline" style={{ color: colors.secondary }}>
                                   +{trek.cityPricing.length - 2} more cities
                                 </div>
                               )}
@@ -650,7 +625,7 @@ const TreksManagement = () => {
                           <select
                             value={trek.isActive ? 'published' : 'draft'}
                             onChange={(e) => handleStatusChange(trek._id, e.target.value)}
-                            className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium border transition-all ${
+                            className={`w-full inline-flex items-center px-3 py-1 rounded-full text-xs font-medium border transition-all ${
                               trek.isActive 
                                 ? 'bg-green-50 text-green-700 border-green-200' 
                                 : 'bg-amber-50 text-amber-700 border-amber-200'
@@ -661,7 +636,7 @@ const TreksManagement = () => {
                           </select>
                           <button
                             onClick={() => handleFeatureToggle(trek._id, trek.isFeatured)}
-                            className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium border transition-all ${
+                            className={`w-full inline-flex items-center justify-center px-3 py-1 rounded-full text-xs font-medium border transition-all ${
                               trek.isFeatured 
                                 ? 'bg-yellow-50 text-yellow-700 border-yellow-200 hover:bg-yellow-100' 
                                 : 'bg-gray-50 text-gray-600 border-gray-200 hover:bg-gray-100'
@@ -673,43 +648,21 @@ const TreksManagement = () => {
                         </div>
                       </td>
                       <td className="px-6 py-4">
-                        <div className="space-y-2">
-                          <div className="flex items-center space-x-2">
-                            <Star size={14} style={{ color: '#F59E0B' }} />
-                            <span className="text-sm font-medium" style={{ color: colors.darkBg }}>{trek.rating || 0}/5</span>
-                          </div>
-                          <div className="flex items-center space-x-2">
-                            <Users size={14} style={{ color: colors.secondary }} />
-                            <span className="text-sm" style={{ color: colors.textDark }}>{trek.totalBookings || 0} bookings</span>
-                          </div>
-                          <div className="flex items-center space-x-2">
-                            <Eye size={14} style={{ color: colors.primary }} />
-                            <span className="text-sm" style={{ color: colors.textDark }}>{trek.totalViews || 0} views</span>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4">
                         <div className="flex items-center space-x-2">
                           <Link
                             to={`/admin/bookings?type=trek&itemId=${trek._id}`}
-                            className="p-2 rounded-xl transition-colors group relative"
+                            className="inline-flex items-center p-2 rounded-lg transition-all transform hover:scale-110"
                             style={{ 
                               backgroundColor: colors.secondary + '15',
                               color: colors.secondary
                             }}
                             title="View Bookings"
                           >
-                            <Calendar size={18} />
-                            <div 
-                              className="absolute -top-2 -right-2 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center"
-                              style={{ backgroundColor: colors.secondary }}
-                            >
-                              {trek.totalBookings || 0}
-                            </div>
+                            <BookOpen size={18} />
                           </Link>
                           <Link
                             to={`/admin/treks/edit/${trek._id}`}
-                            className="p-2 rounded-xl transition-colors"
+                            className="inline-flex items-center p-2 rounded-lg transition-all transform hover:scale-110"
                             style={{ 
                               backgroundColor: colors.primary + '15',
                               color: colors.primary
@@ -720,7 +673,7 @@ const TreksManagement = () => {
                           </Link>
                           <button
                             onClick={() => handleDelete(trek._id)}
-                            className="p-2 rounded-xl transition-colors"
+                            className="inline-flex items-center p-2 rounded-lg transition-all transform hover:scale-110"
                             style={{ 
                               backgroundColor: '#FEE2E2',
                               color: '#DC2626'

@@ -61,7 +61,7 @@ export default function Navbar() {
   const fetchTours = async () => {
     try {
       setLoadingTours(true);
-      const response = await toursAPI.getAll({ limit: 12 });
+      const response = await toursAPI.getAll({ limit: 500 }); // Fetch all tours for search
       if (response.data.success) {
         // Filter only available tours (not sold out or unavailable)
         const availableTours = response.data.data.filter(
@@ -80,7 +80,7 @@ export default function Navbar() {
   const fetchTreks = async () => {
     try {
       setLoadingTreks(true);
-      const response = await treksAPI.getAll({ limit: 12 });
+      const response = await treksAPI.getAll({ limit: 500 }); // Fetch all treks for search
       if (response.data.success) {
         // Filter only available treks (not sold out or unavailable)
         const availableTreks = response.data.data.filter(
@@ -317,7 +317,7 @@ export default function Navbar() {
   const handleSearch = (value) => {
     setSearchQuery(value);
     
-    if (value.trim().length < 2) {
+    if (value.trim().length < 1) {
       setSearchResults([]);
       setShowSearchResults(false);
       return;
@@ -351,7 +351,7 @@ export default function Navbar() {
 
     const combined = [...tourResults, ...trekResults];
     setSearchResults(combined);
-    setShowSearchResults(combined.length > 0 || value.trim().length >= 2);
+    setShowSearchResults(combined.length > 0 || value.trim().length >= 1);
   };
 
   // Handle search result click
@@ -694,7 +694,7 @@ export default function Navbar() {
                   placeholder={placeholder}
                   onFocus={() => {
                     handleSearchFocus();
-                    if (searchQuery.trim().length >= 2) {
+                    if (searchQuery.trim().length >= 1) {
                       setShowSearchResults(true);
                     }
                   }}
@@ -1100,7 +1100,7 @@ export default function Navbar() {
                   onKeyPress={handleSearchKeyPress}
                   placeholder="Search tours & treks..."
                   onFocus={() => {
-                    if (searchQuery.trim().length >= 2) {
+                    if (searchQuery.trim().length >= 1) {
                       setShowSearchResults(true);
                     }
                   }}

@@ -1268,91 +1268,101 @@ const BookTour = () => {
                   <div className="p-5 border-b bg-gradient-to-br from-blue-50 to-orange-50" style={{ borderColor: colors.border }}>
                     <h3 className="text-lg font-bold mb-2 flex items-center" style={{ color: colors.text }}>
                       <span className="mr-2">💰</span>
-                      Category-Based Pricing
+                      Category-Based Pricing - All Cities
                     </h3>
                     
-                    {/* Show message if no city selected */}
-                    {!selectedCity ? (
-                      <div className="text-center py-6">
-                        <MapPin className="w-12 h-12 mx-auto mb-3 opacity-50" style={{ color: colors.primary }} />
-                        <p className="text-sm font-medium" style={{ color: colors.lightText }}>
-                          Select a pickup city in the booking form to view pricing
+                    {/* Show prices for ALL cities */}
+                    {tour.cityPricing && tour.cityPricing.length > 0 ? (
+                      <div className="space-y-5">
+                        {tour.cityPricing.map((cityPrice, cityIndex) => {
+                          const isSelectedCity = selectedCity === cityPrice.city;
+                          const pricingOptions = cityPrice.pricingOptions || [];
+                          
+                          if (pricingOptions.length === 0) return null;
+                          
+                          return (
+                            <div 
+                              key={cityIndex}
+                              className={`border-2 rounded-lg p-4 transition-all duration-300 ${
+                                isSelectedCity ? 'bg-white shadow-md' : 'bg-gray-50'
+                              }`}
+                              style={{ 
+                                borderColor: isSelectedCity ? colors.primary : colors.border
+                              }}
+                            >
+                              {/* City Header */}
+                              <div className="flex items-center gap-2 mb-3 pb-2 border-b" style={{ borderColor: colors.border }}>
+                                <MapPin className="w-4 h-4" style={{ color: isSelectedCity ? colors.primary : colors.lightText }} />
+                                <span className="font-bold text-sm" style={{ color: isSelectedCity ? colors.primary : colors.text }}>
+                                  {cityPrice.city}
+                                </span>
+                                {isSelectedCity && (
+                                  <span className="ml-auto text-xs font-semibold px-2 py-1 rounded-full" style={{ backgroundColor: colors.primary + '20', color: colors.primary }}>
+                                    Selected
+                                  </span>
+                                )}
+                              </div>
+                              
+                              {/* Pricing Options Grid */}
+                              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+                                {pricingOptions.map((option, index) => {
+                                  const isSelectedOption = isSelectedCity && formData.selectedPricingOption === option.categoryName;
+                                  const colorIndex = index % 5;
+                                  const optionColors = [
+                                    colors.success,
+                                    colors.primary, 
+                                    colors.secondary,
+                                    '#9333EA',
+                                    '#DC2626'
+                                  ];
+                                  const optionColor = optionColors[colorIndex];
+                                  
+                                  return (
+                                    <div 
+                                      key={index}
+                                      className={`bg-white rounded-lg p-2.5 border-2 transition-all duration-300 hover:shadow-sm ${
+                                        isSelectedOption ? 'ring-2' : ''
+                                      }`}
+                                      style={{ 
+                                        borderColor: isSelectedOption ? optionColor : colors.border,
+                                        ringColor: optionColor,
+                                        opacity: isSelectedCity ? 1 : 0.7
+                                      }}
+                                    >
+                                      <div className="flex items-center gap-1.5 mb-1.5">
+                                        <span className="text-base">🎫</span>
+                                        <span className="font-semibold text-xs" style={{ color: colors.text }}>
+                                          {option.categoryName}
+                                        </span>
+                                      </div>
+                                      <p className="text-lg font-bold" style={{ color: optionColor }}>
+                                        ₹{option.price.toLocaleString('en-IN')}
+                                      </p>
+                                      <p className="text-xs text-gray-500">Per person</p>
+                                      {isSelectedOption && (
+                                        <div className="mt-1.5 text-xs font-semibold flex items-center gap-1" style={{ color: optionColor }}>
+                                          <CheckCircle className="w-3 h-3" />
+                                          Selected
+                                        </div>
+                                      )}
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          );
+                        })}
+                        
+                        <p className="text-xs text-gray-600 mt-3 italic">
+                          💡 Select your pickup city and preferred category in the booking form. Prices are per person and vary by city.
                         </p>
                       </div>
                     ) : (
-                      <>
-                        <div className="flex items-center gap-2 mb-4 text-sm">
-                          <MapPin className="w-4 h-4" style={{ color: colors.primary }} />
-                          <span className="font-semibold" style={{ color: colors.primary }}>
-                            Prices from: {selectedCity}
-                          </span>
-                        </div>
-                        
-                        {/* Show all 5 category prices from selected city */}
-                        {(() => {
-                          const cityPrice = tour.cityPricing?.find(cp => cp.city === selectedCity);
-                          if (!cityPrice) {
-                            return (
-                              <div className="text-center py-4 text-sm" style={{ color: colors.error }}>
-                                Pricing not available for selected city
-                              </div>
-                            );
-                          }
-                          
-                          const pricingOptions = cityPrice.pricingOptions || [];
-                          
-                          return (
-                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                              {pricingOptions.map((option, index) => {
-                                const isSelected = formData.selectedPricingOption === option.categoryName;
-                                const colorIndex = index % 5;
-                                const optionColors = [
-                                  colors.success,
-                                  colors.primary, 
-                                  colors.secondary,
-                                  '#9333EA',
-                                  '#DC2626'
-                                ];
-                                const optionColor = optionColors[colorIndex];
-                                
-                                return (
-                                  <div 
-                                    key={index}
-                                    className={`bg-white rounded-lg p-3 border-2 transition-all duration-300 hover:shadow-md ${
-                                      isSelected ? 'ring-2' : ''
-                                    }`}
-                                    style={{ 
-                                      borderColor: isSelected ? optionColor : colors.border,
-                                      ringColor: optionColor
-                                    }}
-                                  >
-                                    <div className="flex items-center gap-2 mb-2">
-                                      <span className="text-lg">🎫</span>
-                                      <span className="font-semibold text-xs" style={{ color: colors.text }}>
-                                        {option.categoryName}
-                                      </span>
-                                    </div>
-                                    <p className="text-xl font-bold" style={{ color: optionColor }}>
-                                      ₹{option.price.toLocaleString('en-IN')}
-                                    </p>
-                                    <p className="text-xs text-gray-500 mt-1">Per person</p>
-                                    {isSelected && (
-                                      <div className="mt-2 text-xs font-semibold flex items-center gap-1" style={{ color: optionColor }}>
-                                        <CheckCircle className="w-3 h-3" />
-                                        Selected
-                                      </div>
-                                    )}
-                                  </div>
-                                );
-                              })}
-                            </div>
-                          );
-                        })()}
-                        
-                        <p className="text-xs text-gray-600 mt-3 italic">
-                          💡 Select your preferred category in the booking form. Prices are per person and vary by city.
+                      <div className="text-center py-6">
+                        <p className="text-sm" style={{ color: colors.lightText }}>
+                          No pricing information available
                         </p>
-                      </>
+                      </div>
                     )}
                   </div>
                 )}
