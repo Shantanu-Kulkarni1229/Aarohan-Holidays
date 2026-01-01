@@ -6,8 +6,6 @@ import UpcomingTreks from '../components/upcomingTreks'
 import Featured from '../components/Featured'
 import Testomonial from '../components/Testomonial'
 import Footer from '../components/Footer'
-import Blogs from '../components/Blogs'
-import History from '../components/History'
 import WhyTravelWithUs from '../components/WhyTravelWithUs'
 
 const HomePage = () => {
@@ -42,12 +40,6 @@ const HomePage = () => {
           
           <div id="testimonials">
             <Testomonial />
-          </div>
-          <div id="blogs">
-            <Blogs />
-          </div>
-          <div id="history">
-            <History />
           </div>
           
           {/* Footer - Always visible */}

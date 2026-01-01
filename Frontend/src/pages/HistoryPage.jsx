@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import axios from 'axios';
 import { showApiError } from '../utils/toast';
+import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import { API_BASE_URL } from '../api/api';
 
@@ -147,15 +148,8 @@ const HistoryPage = () => {
   // History List View
   const HistoryListView = () => (
     <>
-    <div className="min-h-screen bg-white">
-      {/* Home Button */}
-      <button
-        onClick={() => navigate('/')}
-        className="fixed top-4 left-4 z-50 flex items-center gap-2 px-4 py-2 bg-[#E66926] text-white rounded-lg shadow-lg hover:bg-[#d45a1f] transition-colors"
-      >
-        <Home size={20} />
-        Home
-      </button>
+    <Navbar />
+    <div className="min-h-screen bg-white pt-20">
       {/* Hero Section */}
       <div className="bg-[#E66926] text-white py-20">
         <div className="container mx-auto px-4">
@@ -340,15 +334,8 @@ const HistoryPage = () => {
 
     return (
       <>
-      <div className="min-h-screen bg-white">
-        {/* Home Button */}
-        <button
-          onClick={() => navigate('/')}
-          className="fixed top-4 left-4 z-50 flex items-center gap-2 px-4 py-2 bg-[#E66926] text-white rounded-lg shadow-lg hover:bg-[#d45a1f] transition-colors"
-        >
-          <Home size={20} />
-          Home
-        </button>
+      <Navbar />
+      <div className="min-h-screen bg-white pt-20">
         {/* Hero Section */}
         <div className="relative h-96 overflow-hidden">
           {selectedHistory.images && selectedHistory.images.length > 0 ? (

@@ -131,6 +131,11 @@ const BookTour = () => {
         const response = await toursAPI.getById(id);
         if (response.data.success) {
           setTour(response.data.data);
+          console.log('🔍 Tour Data:', response.data.data);
+          console.log('🔍 City Pricing:', response.data.data.cityPricing);
+          if (response.data.data.cityPricing?.length > 0) {
+            console.log('🔍 First City Departure Dates:', response.data.data.cityPricing[0].departureDates);
+          }
           if (response.data.data.cityPricing?.length > 0) {
             const firstCity = response.data.data.cityPricing[0];
             setSelectedCity(firstCity.city);
@@ -371,14 +376,13 @@ const BookTour = () => {
   const handleCityChange = (e) => {
     const city = e.target.value;
     setSelectedCity(city);
-    const cityPrice = tour.cityPricing.find(cp => cp.city === city);
-    // NEW: Use category-based pricing
-    const basePrice = cityPrice ? (cityPrice[formData.selectedCategory] || cityPrice.economy || 0) : 0;
     setFormData(prev => ({
       ...prev,
       pickupCity: city,
       pickupPoint: '', // Reset pickup point when city changes
-      pricePerPerson: basePrice
+      bookingDate: '', // Reset date when city changes
+      selectedPricingOption: '', // Reset pricing option
+      pricePerPerson: 0
     }));
   };
 
@@ -388,6 +392,21 @@ const BookTour = () => {
     const cityPrice = tour.cityPricing.find(cp => cp.city === selectedCity);
     const selectedOption = cityPrice?.pricingOptions?.find(opt => opt.categoryName === categoryName);
     const price = selectedOption?.price || 0;
+    const minMembers = selectedOption?.minMembers || 1;
+    
+    // Validate minimum members
+    if (formData.numberOfMembers < minMembers) {
+      setFormErrors(prev => ({
+        ...prev,
+        selectedPricingOption: `This pricing option requires minimum ${minMembers} members`
+      }));
+    } else {
+      setFormErrors(prev => ({
+        ...prev,
+        selectedPricingOption: ''
+      }));
+    }
+    
     setFormData(prev => ({
       ...prev,
       selectedPricingOption: categoryName,
@@ -563,6 +582,13 @@ const BookTour = () => {
     const selectedDate = new Date(formData.bookingDate);
     if (selectedDate <= new Date()) {
       errors.bookingDate = 'Booking date must be in the future';
+    }
+    
+    // Validate minimum members for selected pricing option
+    const cityPrice = tour.cityPricing.find(cp => cp.city === selectedCity);
+    const selectedOption = cityPrice?.pricingOptions?.find(opt => opt.categoryName === formData.selectedPricingOption);
+    if (selectedOption && formData.numberOfMembers < selectedOption.minMembers) {
+      errors.selectedPricingOption = `This pricing option requires minimum ${selectedOption.minMembers} members. You have selected ${formData.numberOfMembers} members.`;
     }
 
     if (Object.keys(errors).length > 0) {
@@ -829,6 +855,7 @@ const BookTour = () => {
         <div className="p-6 border-t border-gray-200 bg-gradient-to-br from-gray-50 to-white overflow-y-auto max-h-[1800px]">
           <div 
             className="text-gray-700 leading-relaxed text-base mb-6 font-medium rich-text-content"
+            style={{ textAlign: 'justify' }}
             dangerouslySetInnerHTML={{ __html: day.description }}
           />
           
@@ -1303,8 +1330,8 @@ const BookTour = () => {
                                 )}
                               </div>
                               
-                              {/* Pricing Options Grid */}
-                              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+                              {/* Pricing Options - Horizontal Scrollable */}
+                              <div className="flex gap-3 overflow-x-auto pb-2" style={{ scrollbarWidth: 'thin' }}>
                                 {pricingOptions.map((option, index) => {
                                   const isSelectedOption = isSelectedCity && formData.selectedPricingOption === option.categoryName;
                                   const colorIndex = index % 5;
@@ -1316,11 +1343,12 @@ const BookTour = () => {
                                     '#DC2626'
                                   ];
                                   const optionColor = optionColors[colorIndex];
+                                  const minMembers = option.minMembers || 1;
                                   
                                   return (
                                     <div 
                                       key={index}
-                                      className={`bg-white rounded-lg p-2.5 border-2 transition-all duration-300 hover:shadow-sm ${
+                                      className={`bg-white rounded-lg p-3 border-2 transition-all duration-300 hover:shadow-sm flex-shrink-0 min-w-[180px] ${
                                         isSelectedOption ? 'ring-2' : ''
                                       }`}
                                       style={{ 
@@ -1329,18 +1357,24 @@ const BookTour = () => {
                                         opacity: isSelectedCity ? 1 : 0.7
                                       }}
                                     >
-                                      <div className="flex items-center gap-1.5 mb-1.5">
+                                      <div className="flex items-center gap-1.5 mb-2">
                                         <span className="text-base">🎫</span>
-                                        <span className="font-semibold text-xs" style={{ color: colors.text }}>
+                                        <span className="font-semibold text-sm" style={{ color: colors.text }}>
                                           {option.categoryName}
                                         </span>
                                       </div>
-                                      <p className="text-lg font-bold" style={{ color: optionColor }}>
+                                      <p className="text-xl font-bold mb-1" style={{ color: optionColor }}>
                                         ₹{option.price.toLocaleString('en-IN')}
                                       </p>
-                                      <p className="text-xs text-gray-500">Per person</p>
+                                      <p className="text-xs text-gray-500 mb-2">Per person</p>
+                                      <div className="flex items-center gap-1 mb-2 px-2 py-1 rounded" style={{ backgroundColor: optionColor + '10' }}>
+                                        <Users className="w-3 h-3" style={{ color: optionColor }} />
+                                        <span className="text-xs font-semibold" style={{ color: optionColor }}>
+                                          Min: {minMembers} {minMembers === 1 ? 'member' : 'members'}
+                                        </span>
+                                      </div>
                                       {isSelectedOption && (
-                                        <div className="mt-1.5 text-xs font-semibold flex items-center gap-1" style={{ color: optionColor }}>
+                                        <div className="mt-1 text-xs font-semibold flex items-center gap-1" style={{ color: optionColor }}>
                                           <CheckCircle className="w-3 h-3" />
                                           Selected
                                         </div>
@@ -1373,7 +1407,7 @@ const BookTour = () => {
                 <h3 className="text-xl font-bold mb-4" style={{ color: colors.text }}>About This Tour</h3>
                 <div 
                   className="leading-relaxed rich-text-content"
-                  style={{ color: colors.text }}
+                  style={{ color: colors.text, textAlign: 'justify' }}
                   dangerouslySetInnerHTML={{ __html: tour.description }}
                 />
               </div>
@@ -1413,15 +1447,15 @@ const BookTour = () => {
               {/* Inclusions & Exclusions - Moved up */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                 {tour.inclusions && tour.inclusions.length > 0 && (
-                  <div className="rounded-xl shadow-md p-5 border transition-all duration-300" style={{ backgroundColor: colors.accentLight, borderColor: colors.secondary + '40' }}>
+                  <div className="rounded-xl shadow-md p-5 border transition-all duration-300" style={{ backgroundColor: '#ECFDF5', borderColor: '#10B981' }}>
                     <h3 className="text-lg font-bold mb-4 flex items-center" style={{ color: colors.text }}>
-                      <CheckCircle className="w-5 h-5 mr-2" style={{ color: colors.secondary }} />
+                      <CheckCircle className="w-5 h-5 mr-2" style={{ color: '#10B981' }} />
                       Cost Inclusion
                     </h3>
                     <ul className="space-y-2">
                       {tour.inclusions.map((item, index) => (
                         <li key={index} className="text-sm flex items-start" style={{ color: colors.text }}>
-                          <span className="mr-2 text-sm" style={{ color: colors.secondary }}>✓</span>
+                          <span className="mr-2 text-sm" style={{ color: '#10B981' }}>✓</span>
                           {item}
                         </li>
                       ))}
@@ -1430,7 +1464,7 @@ const BookTour = () => {
                 )}
 
                 {tour.exclusions && tour.exclusions.length > 0 && (
-                  <div className="rounded-xl shadow-md p-5 border transition-all duration-300" style={{ backgroundColor: '#FEF2F2', borderColor: colors.error + '40' }}>
+                  <div className="rounded-xl shadow-md p-5 border transition-all duration-300" style={{ backgroundColor: '#FEE2E2', borderColor: colors.error }}>
                     <h3 className="text-lg font-bold mb-4 flex items-center" style={{ color: colors.text }}>
                       <XCircle className="w-5 h-5 mr-2" style={{ color: colors.error }} />
                       Cost Exclusion
@@ -1900,9 +1934,9 @@ const BookTour = () => {
                           backgroundColor: '#FFFFFF'
                         }}
                       >
-                        <option value="" style={{ color: colors.lightText }}>Select pickup city</option>
+                        <option value="" style={{ backgroundColor: '#FFFFFF', color: colors.lightText }}>Select pickup city</option>
                         {tour.cityPricing?.map((cityPrice, index) => (
-                          <option key={index} value={cityPrice.city} style={{ color: colors.text }}>
+                          <option key={index} value={cityPrice.city} style={{ backgroundColor: '#FFFFFF', color: colors.text }}>
                             {cityPrice.city}
                           </option>
                         ))}
@@ -1934,9 +1968,9 @@ const BookTour = () => {
                             backgroundColor: '#FFFFFF'
                           }}
                         >
-                          <option value="" style={{ color: colors.lightText }}>Choose pickup location</option>
+                          <option value="" style={{ backgroundColor: '#FFFFFF', color: colors.lightText }}>Choose pickup location</option>
                           {tour.cityPricing.find(cp => cp.city === selectedCity)?.pickupPoints?.map((point, index) => (
-                            <option key={index} value={point} style={{ color: colors.text }}>
+                            <option key={index} value={point} style={{ backgroundColor: '#FFFFFF', color: colors.text }}>
                               {point}
                             </option>
                           ))}
@@ -1963,15 +1997,30 @@ const BookTour = () => {
                           backgroundColor: '#FFFFFF'
                         }}
                       >
+                        <option value="" style={{ backgroundColor: '#FFFFFF', color: colors.lightText }}>Select pricing category</option>
                         {selectedCity && tour.cityPricing?.find(cp => cp.city === selectedCity)?.pricingOptions && (
                           <>
                             {tour.cityPricing
                               .find(cp => cp.city === selectedCity)
-                              .pricingOptions.map((option, index) => (
-                                <option key={index} value={option.categoryName} style={{ color: colors.text }}>
-                                  🎫 {option.categoryName} - ₹{option.price.toLocaleString('en-IN')}/person
-                                </option>
-                              ))}
+                              .pricingOptions.map((option, index) => {
+                                const minMembers = option.minMembers || 1;
+                                const isDisabled = formData.numberOfMembers < minMembers;
+                                return (
+                                  <option 
+                                    key={index} 
+                                    value={option.categoryName} 
+                                    disabled={isDisabled}
+                                    style={{ 
+                                      backgroundColor: isDisabled ? '#F3F4F6' : '#FFFFFF', 
+                                      color: isDisabled ? '#9CA3AF' : colors.text 
+                                    }}
+                                  >
+                                    🎫 {option.categoryName} - ₹{option.price.toLocaleString('en-IN')}/person
+                                    {minMembers > 1 ? ` (Min: ${minMembers} members)` : ''}
+                                    {isDisabled ? ' - Not enough members' : ''}
+                                  </option>
+                                );
+                              })}
                           </>
                         )}
                       </select>
@@ -1987,66 +2036,123 @@ const BookTour = () => {
                       <label className="block text-sm font-semibold mb-2" style={{ color: colors.text }}>
                         Travel Date *
                       </label>
-                      {tour.availableDates && tour.availableDates.length > 0 ? (
-                        <select
-                          name="bookingDate"
-                          value={formData.bookingDate}
-                          onChange={handleInputChange}
-                          className={`w-full px-3 py-2 border-2 rounded-lg focus:ring-2 transition-all duration-300 ${
-                            formErrors.bookingDate ? 'bg-red-50' : 'hover:border-gray-400'
-                          }`}
-                          style={{ 
-                            borderColor: formErrors.bookingDate ? colors.error : colors.border,
-                            focusBorderColor: colors.primary,
-                            focusRingColor: colors.primary,
-                            color: colors.text,
-                            backgroundColor: '#FFFFFF'
-                          }}
-                        >
-                          <option value="" style={{ color: colors.lightText }}>Select available date</option>
-                          {tour.availableDates
-                            .filter(date => {
-                              // Filter out past dates - only show today and future dates
-                              const dateObj = new Date(date);
-                              const today = new Date();
-                              today.setHours(0, 0, 0, 0); // Reset time to start of day
-                              return dateObj >= today;
-                            })
-                            .map((date, index) => {
-                              const dateObj = new Date(date);
-                              const dateString = dateObj.toISOString().split('T')[0];
-                              const formattedDate = dateObj.toLocaleDateString('en-IN', {
-                                weekday: 'short',
-                                year: 'numeric',
-                                month: 'short',
-                                day: 'numeric'
-                              });
-                              const remainingSeats = availabilityData[dateString]?.availableSeats || tour.maxGroupSize;
-                              return (
-                                <option key={index} value={dateString} style={{ color: colors.text }}>
-                                  {formattedDate} - {remainingSeats} {remainingSeats === 1 ? 'seat' : 'seats'} left
-                                </option>
-                              );
-                            })}
-                        </select>
-                      ) : (
-                        <input
-                          type="date"
-                          name="bookingDate"
-                          value={formData.bookingDate}
-                          onChange={handleInputChange}
-                          min={new Date().toISOString().split('T')[0]}
-                          className={`w-full px-3 py-2 border-2 rounded-lg focus:ring-2 transition-all duration-300 ${
-                            formErrors.bookingDate ? 'bg-red-50' : 'hover:border-gray-400'
-                          }`}
-                          style={{ 
-                            borderColor: formErrors.bookingDate ? colors.error : colors.border,
-                            focusBorderColor: colors.primary,
-                            focusRingColor: colors.primary,
-                            color: colors.text
-                          }}
-                        />
-                      )}
+                      {(() => {
+                        const cityPricingData = tour.cityPricing?.find(cp => cp.city === selectedCity);
+                        const hasDepartureDates = cityPricingData?.departureDates?.length > 0;
+                        const hasOldDates = tour.availableDates?.length > 0;
+                        
+                        // Debug logging
+                        console.log('🔍 Selected City:', selectedCity);
+                        console.log('🔍 City Pricing Data:', cityPricingData);
+                        console.log('🔍 Has Departure Dates:', hasDepartureDates);
+                        console.log('🔍 Has Old Dates:', hasOldDates);
+                        
+                        if (selectedCity && hasDepartureDates) {
+                          // New format: city-specific departure dates
+                          return (
+                            <select
+                              name="bookingDate"
+                              value={formData.bookingDate}
+                              onChange={handleInputChange}
+                              className={`w-full px-3 py-2 border-2 rounded-lg focus:ring-2 transition-all duration-300 ${
+                                formErrors.bookingDate ? 'bg-red-50' : 'hover:border-gray-400'
+                              }`}
+                              style={{ 
+                                borderColor: formErrors.bookingDate ? colors.error : colors.border,
+                                focusBorderColor: colors.primary,
+                                focusRingColor: colors.primary,
+                                color: colors.text,
+                                backgroundColor: '#FFFFFF'
+                              }}
+                            >
+                              <option value="" style={{ color: colors.lightText }}>Select departure date</option>
+                              {cityPricingData.departureDates
+                                .filter(departure => {
+                                  const startDate = new Date(departure.startDate);
+                                  const today = new Date();
+                                  today.setHours(0, 0, 0, 0);
+                                  return startDate >= today && departure.isAvailable !== false;
+                                })
+                                .map((departure, index) => {
+                                  const startDate = new Date(departure.startDate);
+                                  const endDate = new Date(departure.endDate);
+                                  const startFormatted = startDate.toLocaleDateString('en-IN', {
+                                    weekday: 'short',
+                                    year: 'numeric',
+                                    month: 'short',
+                                    day: 'numeric'
+                                  });
+                                  const endFormatted = endDate.toLocaleDateString('en-IN', {
+                                    weekday: 'short',
+                                    year: 'numeric',
+                                    month: 'short',
+                                    day: 'numeric'
+                                  });
+                                  return (
+                                    <option key={index} value={startDate.toISOString().split('T')[0]} style={{ color: colors.text }}>
+                                      {startFormatted} to {endFormatted}
+                                    </option>
+                                  );
+                                })}
+                            </select>
+                          );
+                        } else if (hasOldDates) {
+                          // Fallback: Old format with global availableDates
+                          return (
+                            <select
+                              name="bookingDate"
+                              value={formData.bookingDate}
+                              onChange={handleInputChange}
+                              className={`w-full px-3 py-2 border-2 rounded-lg focus:ring-2 transition-all duration-300 ${
+                                formErrors.bookingDate ? 'bg-red-50' : 'hover:border-gray-400'
+                              }`}
+                              style={{ 
+                                borderColor: formErrors.bookingDate ? colors.error : colors.border,
+                                focusBorderColor: colors.primary,
+                                focusRingColor: colors.primary,
+                                color: colors.text,
+                                backgroundColor: '#FFFFFF'
+                              }}
+                            >
+                              <option value="" style={{ color: colors.lightText }}>Select available date</option>
+                              {tour.availableDates
+                                .filter(date => {
+                                  const dateObj = new Date(date);
+                                  const today = new Date();
+                                  today.setHours(0, 0, 0, 0);
+                                  return dateObj >= today;
+                                })
+                                .map((date, index) => {
+                                  const dateObj = new Date(date);
+                                  const dateString = dateObj.toISOString().split('T')[0];
+                                  const formattedDate = dateObj.toLocaleDateString('en-IN', {
+                                    weekday: 'short',
+                                    year: 'numeric',
+                                    month: 'short',
+                                    day: 'numeric'
+                                  });
+                                  return (
+                                    <option key={index} value={dateString} style={{ color: colors.text }}>
+                                      {formattedDate}
+                                    </option>
+                                  );
+                                })}
+                            </select>
+                          );
+                        } else if (selectedCity) {
+                          return (
+                            <div className="px-3 py-2 border-2 rounded-lg text-sm" style={{ borderColor: colors.border, color: colors.lightText }}>
+                              No departure dates available for selected city. Please add dates in admin panel.
+                            </div>
+                          );
+                        } else {
+                          return (
+                            <div className="px-3 py-2 border-2 rounded-lg text-sm" style={{ borderColor: colors.border, color: colors.lightText }}>
+                              Please select a city first
+                            </div>
+                          );
+                        }
+                      })()}
                       {formErrors.bookingDate && (
                         <p className="error-message text-sm mt-2 flex items-center gap-2" style={{ color: colors.error }}>
                           <AlertCircle className="w-3 h-3" />

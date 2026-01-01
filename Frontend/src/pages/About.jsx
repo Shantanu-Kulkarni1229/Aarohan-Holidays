@@ -132,7 +132,7 @@ const About = () => {
     },
     {
       icon: FiAward,
-      number: 15,
+      number: 10,
       suffix: "+",
       label: "Years Experience"
     }
@@ -248,7 +248,7 @@ const About = () => {
               <div className="absolute inset-0 flex items-center justify-center">
                 <div className="text-center text-white p-8">
                   <FiGlobe size={120} className="mx-auto mb-6 opacity-80" />
-                  <h3 className="text-3xl font-bold mb-4">15+ Years</h3>
+                  <h3 className="text-3xl font-bold mb-4">10+ Years</h3>
                   <p className="text-xl">Of Excellence in Travel</p>
                 </div>
               </div>

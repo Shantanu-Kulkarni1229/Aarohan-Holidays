@@ -163,6 +163,7 @@ export default function Navbar() {
     }, 80);
 
     return () => clearInterval(interval);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Dropdown animation
@@ -281,10 +282,17 @@ export default function Navbar() {
     return acc;
   }, {});
 
+  const extrasOptions = [
+    { name: 'Blogs', path: '/blogs' },
+    { name: 'History', path: '/history' },
+    { name: 'About', path: '/about' }
+  ];
+
   const dropdownData = {
     Tours: groupedTours,
     Treks: groupedTreks,
     "Other Services": otherServicesList,
+    "Extras": extrasOptions,
   };
 
   // Helper to get loading state
@@ -299,8 +307,8 @@ export default function Navbar() {
     Tours: FaRoute,
     Treks: FaMountain,
     "Other Services": FaConciergeBell,
-    Gallery: FiCamera,
-    About: FiInfo,
+    // Gallery: FiCamera,
+    Extras: FiInfo,
   };
 
   const handleCall = () => {
@@ -448,8 +456,8 @@ export default function Navbar() {
     if (link === 'Home') return currentPath === '/';
     if (link === 'Tours') return currentPath === '/tours' || currentPath.startsWith('/tour/') || currentPath.startsWith('/book-tour/');
     if (link === 'Treks') return currentPath === '/treks' || currentPath.startsWith('/trek/') || currentPath.startsWith('/book-trek/');
-    if (link === 'Gallery') return currentPath === '/gallery';
-    if (link === 'About') return currentPath === '/about';
+    // if (link === 'Gallery') return currentPath === '/gallery';
+    if (link === 'Extras') return currentPath === '/blogs' || currentPath === '/history' || currentPath === '/about';
     
     return false;
   };
@@ -459,10 +467,10 @@ export default function Navbar() {
     setMenuOpen(false);
 
     // Special handling for Gallery - navigate to /gallery page
-    if (link === 'Gallery') {
-      navigate('/gallery');
-      return;
-    }
+    // if (link === 'Gallery') {
+    //   navigate('/gallery');
+    //   return;
+    // }
 
     // Special handling for Tours - navigate to /tours page
     if (link === 'Tours') {
@@ -476,9 +484,8 @@ export default function Navbar() {
       return;
     }
 
-    // Special handling for About - navigate to /about page
-    if (link === 'About') {
-      navigate('/about');
+    // Extras has dropdown, don't navigate directly
+    if (link === 'Extras') {
       return;
     }
 
@@ -531,6 +538,11 @@ export default function Navbar() {
       // For other services, item is a string
       sessionStorage.setItem('selectedServiceType', item);
       navigate('/other-services');
+    } else if (type === 'Extras') {
+      // For extras, item is an object with path property
+      if (item && item.path) {
+        navigate(item.path);
+      }
     }
   };
 
@@ -813,7 +825,7 @@ export default function Navbar() {
           <div className="flex items-center space-x-4 min-w-0 flex-shrink-0">
             {/* Desktop Navigation */}
             <div className="hidden lg:flex items-center space-x-1">
-              {["Home", "Tours", "Treks", "Other Services",  "About"].map((link, idx) => {
+              {["Home", "Tours", "Treks", "Other Services", /* "Gallery", */ "Extras"].map((link, idx) => {
                 const IconComponent = navIcons[link];
                 return (
                   <div
@@ -928,27 +940,33 @@ export default function Navbar() {
                                 ))
                               ) : null
                             ) : (
-                              /* Handle non-grouped data (Other Services) */
-                              dropdownData[link].map((item) => (
-                                <div
-                                  key={item}
-                                  className="dropdown-item p-2 cursor-pointer rounded-lg hover:translate-x-1 transition-all duration-300 group"
-                                  onClick={() => handleItemClick(item, link)}
-                                  style={{ 
-                                    backgroundColor: 'transparent',
-                                    border: '1px solid transparent'
-                                  }}
-                                >
-                                  <p className="text-sm font-medium transition-colors group-hover:font-semibold flex items-center"
-                                     style={{ color: colors.text }}>
-                                    <span 
-                                      className="w-1.5 h-1.5 rounded-full mr-3 transition-all duration-300 group-hover:scale-125"
-                                      style={{ backgroundColor: colors.secondary }}
-                                    ></span>
-                                    {item}
-                                  </p>
-                                </div>
-                              ))
+                              /* Handle non-grouped data (Other Services and Extras) */
+                              dropdownData[link].map((item) => {
+                                // For Extras, item is an object with name and path
+                                const displayName = typeof item === 'string' ? item : item.name;
+                                const itemData = item;
+                                
+                                return (
+                                  <div
+                                    key={displayName}
+                                    className="dropdown-item p-2 cursor-pointer rounded-lg hover:translate-x-1 transition-all duration-300 group"
+                                    onClick={() => handleItemClick(itemData, link)}
+                                    style={{ 
+                                      backgroundColor: 'transparent',
+                                      border: '1px solid transparent'
+                                    }}
+                                  >
+                                    <p className="text-sm font-medium transition-colors group-hover:font-semibold flex items-center"
+                                       style={{ color: colors.text }}>
+                                      <span 
+                                        className="w-1.5 h-1.5 rounded-full mr-3 transition-all duration-300 group-hover:scale-125"
+                                        style={{ backgroundColor: colors.secondary }}
+                                      ></span>
+                                      {displayName}
+                                    </p>
+                                  </div>
+                                );
+                              })
                             )}
                           </div>
                         )}
@@ -1069,18 +1087,10 @@ export default function Navbar() {
           </div>
         </div>
 
-        {/* Mobile Dropdown */}
-        {menuOpen && (
-          <div 
-            ref={mobileMenuRef} 
-            className="lg:hidden shadow-xl p-6 space-y-4 overflow-hidden border-t"
-            style={{ 
-              background: colors.background,
-              borderColor: colors.border
-            }}
-          >
-            {/* Mobile Search Bar */}
-            <div className="mb-4 relative">
+        {/* Mobile Search Bar - Always Visible */}
+        <div className="lg:hidden border-t" style={{ borderColor: colors.border, background: colors.background }}>
+          <div className="px-4 py-3">
+            <div className="relative">
               <div
                 className="flex items-center rounded-xl px-4 py-3 shadow-sm"
                 style={{ 
@@ -1100,16 +1110,14 @@ export default function Navbar() {
                   onKeyPress={handleSearchKeyPress}
                   placeholder="Search tours & treks..."
                   onFocus={() => {
-                    if (searchQuery.trim().length >= 1) {
-                      setShowSearchResults(true);
-                    }
+                    gsap.to(searchRef.current, { scale: 1.02, duration: 0.2 });
                   }}
                   className="bg-transparent outline-none flex-grow placeholder-gray-500 text-sm font-medium w-full"
                   style={{ color: colors.text }}
                 />
               </div>
 
-              {/* Mobile Search Results */}
+              {/* Search Results Dropdown */}
               {showSearchResults && (
                 <div 
                   className="absolute top-full left-0 right-0 mt-2 shadow-xl rounded-xl py-2 border z-50 max-h-80 overflow-y-auto"
@@ -1122,7 +1130,7 @@ export default function Navbar() {
                     <>
                       {searchResults.map((result) => (
                         <div
-                          key={`mobile-${result.type}-${result._id}`}
+                          key={`mobile-search-${result.type}-${result._id}`}
                           onMouseDown={(e) => {
                             e.preventDefault();
                             handleSearchResultClick(result);
@@ -1178,8 +1186,20 @@ export default function Navbar() {
                 </div>
               )}
             </div>
+          </div>
+        </div>
 
-            {["Home", "Tours", "Treks", "Other Services", "Gallery", "About"].map((link) => {
+        {/* Mobile Dropdown */}
+        {menuOpen && (
+          <div 
+            ref={mobileMenuRef} 
+            className="lg:hidden shadow-xl p-6 space-y-4 overflow-hidden border-t"
+            style={{ 
+              background: colors.background,
+              borderColor: colors.border
+            }}
+          >
+            {["Home", "Tours", "Treks", "Other Services", /* "Gallery", */ "Extras"].map((link) => {
               const IconComponent = navIcons[link];
               const isActive = isLinkActive(link);
               return (
@@ -1265,18 +1285,33 @@ export default function Navbar() {
                               </p>
                             )
                           ) : (
-                            /* Handle non-grouped data (Other Services) */
+                            /* Handle Other Services and Extras */
                             <>
-                              {dropdownData[link].map((item) => (
-                                <p
-                                  key={item}
-                                  className="text-sm cursor-pointer py-2 font-medium transition-all duration-200 px-4 rounded-lg hover:bg-gray-50 hover:translate-x-1"
-                                  style={{ color: colors.text }}
-                                  onClick={() => handleItemClick(item, link)}
-                                >
-                                  • {item}
-                                </p>
-                              ))}
+                              {link === 'Extras' ? (
+                                /* Handle Extras - array of objects with name and path */
+                                dropdownData[link].map((item) => (
+                                  <p
+                                    key={item.path}
+                                    className="text-sm cursor-pointer py-2 font-medium transition-all duration-200 px-4 rounded-lg hover:bg-gray-50 hover:translate-x-1"
+                                    style={{ color: colors.text }}
+                                    onClick={() => handleItemClick(item, link)}
+                                  >
+                                    • {item.name}
+                                  </p>
+                                ))
+                              ) : (
+                                /* Handle Other Services - array of strings */
+                                dropdownData[link].map((item) => (
+                                  <p
+                                    key={item}
+                                    className="text-sm cursor-pointer py-2 font-medium transition-all duration-200 px-4 rounded-lg hover:bg-gray-50 hover:translate-x-1"
+                                    style={{ color: colors.text }}
+                                    onClick={() => handleItemClick(item, link)}
+                                  >
+                                    • {item}
+                                  </p>
+                                ))
+                              )}
                             </>
                           )}
                         </>

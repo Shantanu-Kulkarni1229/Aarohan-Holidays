@@ -86,19 +86,29 @@ const UpcomingTours = () => {
 
     checkScrollPosition(scrollContainer);
 
-    // Only handle wheel events on desktop, not mobile
+    let isScrolling = false;
+    let scrollAnimationFrame = null;
+
+    // Handle wheel events on desktop
     const handleWheel = (e) => {
       // Skip if horizontal scroll is already happening
       if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) return;
       
       // Only convert vertical to horizontal on non-touch devices
       const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
-      if (isTouchDevice) return; // Let native scroll work on touch devices
+      if (isTouchDevice) return;
       
       e.preventDefault();
-      scrollContainer.scrollBy({
-        left: e.deltaY * 2,
-        behavior: 'smooth'
+      
+      // Cancel any ongoing scroll animation
+      if (scrollAnimationFrame) {
+        cancelAnimationFrame(scrollAnimationFrame);
+      }
+      
+      // Use requestAnimationFrame for smooth scrolling
+      scrollAnimationFrame = requestAnimationFrame(() => {
+        scrollContainer.scrollLeft += e.deltaY;
+        checkScrollPosition(scrollContainer);
       });
     };
 
@@ -106,7 +116,7 @@ const UpcomingTours = () => {
       checkScrollPosition(scrollContainer);
     };
 
-    // Use passive: true for touch events to improve scroll performance
+    // Attach wheel event to the container and propagate to children
     scrollContainer.addEventListener('wheel', handleWheel, { passive: false });
     scrollContainer.addEventListener('scroll', handleScrollUpdate, { passive: true });
 
@@ -116,6 +126,9 @@ const UpcomingTours = () => {
     resizeObserver.observe(scrollContainer);
 
     return () => {
+      if (scrollAnimationFrame) {
+        cancelAnimationFrame(scrollAnimationFrame);
+      }
       scrollContainer.removeEventListener('wheel', handleWheel);
       scrollContainer.removeEventListener('scroll', handleScrollUpdate);
       resizeObserver.disconnect();
@@ -332,10 +345,10 @@ const UpcomingTours = () => {
 
   const formatPrice = (tour) => {
     // Check if admin has enabled "Contact for Pricing"
-    if (tour.contactForPricing) return 'Contact for Pricing';
+    if (tour.contactForPricing) return 'Contact Us for Pricing';
     
     const cityPricing = tour.cityPricing;
-    if (!cityPricing || cityPricing.length === 0) return 'Contact for Pricing';
+    if (!cityPricing || cityPricing.length === 0) return 'Contact Us for Pricing';
     
     // Extract all prices from flexible pricingOptions array
     const allPrices = [];
@@ -349,7 +362,7 @@ const UpcomingTours = () => {
       }
     });
     
-    if (allPrices.length === 0) return 'Contact for Pricing';
+    if (allPrices.length === 0) return 'Contact Us for Pricing';
     
     const minPrice = Math.min(...allPrices);
     return `₹${minPrice.toLocaleString()}`;
@@ -939,10 +952,16 @@ const UpcomingTours = () => {
       </div>
 
       {/* Custom Styles */}
-      <style jsx>{`
+      <style>{`
         .custom-scrollbar {
           scrollbar-width: thin;
           scrollbar-color: ${colors.secondary} ${colors.border};
+          touch-action: pan-x;
+        }
+        
+        .custom-scrollbar > * {
+          pointer-events: auto;
+          touch-action: pan-x;
         }
         
         .custom-scrollbar::-webkit-scrollbar {

@@ -217,7 +217,7 @@ const TourPage = () => {
   };
 
   const formatPrice = (cityPricing) => {
-    if (!cityPricing || cityPricing.length === 0) return 'Contact for Pricing';
+    if (!cityPricing || cityPricing.length === 0) return 'Contact Us for Pricing';
     
     // Tours use pricingOptions array with flexible categoryName and price
     const allPrices = [];
@@ -229,7 +229,7 @@ const TourPage = () => {
       }
     });
     
-    if (allPrices.length === 0) return 'Contact for Pricing';
+    if (allPrices.length === 0) return 'Contact Us for Pricing';
     
     const minPrice = Math.min(...allPrices);
     return `₹${minPrice.toLocaleString()}`;

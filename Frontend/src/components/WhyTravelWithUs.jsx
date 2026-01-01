@@ -27,7 +27,7 @@ const WhyTravelWithUs = () => {
   const stats = [
     { icon: FiMapPin, value: 250, label: "Destinations", suffix: "+" },
     { icon: FiUsers, value: 15000, label: "Happy Travelers", suffix: "+" },
-    { icon: FiTrendingUp, value: 5, label: "Years Experience", suffix: "+" },
+    { icon: FiTrendingUp, value: 10, label: "Years Experience", suffix: "+" },
     { icon: FiAward, value: 99, label: "Satisfaction Rate", suffix: "%" }
   ];
 
@@ -82,6 +82,7 @@ const WhyTravelWithUs = () => {
     }
 
     return () => observer.disconnect();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Fetch active coupons
@@ -89,10 +90,20 @@ const WhyTravelWithUs = () => {
     const fetchCoupons = async () => {
       try {
         const response = await fetch(`${API_BASE_URL}/api/coupons/active`);
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        const contentType = response.headers.get("content-type");
+        if (!contentType || !contentType.includes("application/json")) {
+          console.warn('Coupons API returned non-JSON response, skipping coupons');
+          setCoupons([]);
+          return;
+        }
         const data = await response.json();
         setCoupons(data.filter(c => c.isActive).slice(0, 6)); // Show max 6 coupons
       } catch (error) {
         console.error('Error fetching coupons:', error);
+        setCoupons([]); // Set empty array on error
       }
     };
     fetchCoupons();

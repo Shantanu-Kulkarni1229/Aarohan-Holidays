@@ -7,6 +7,7 @@ import TourPage from './pages/TourPage'
 import TrekPage from './pages/TrekPage'
 import BookTour from './pages/BookTour'
 import BookTrek from './pages/BookTrek'
+import BlogsPage from './pages/BlogsPage'
 import BlogPage from './pages/BlogPage'
 import HistoryPage from './pages/HistoryPage'
 import Gallery from './pages/Gallery'
@@ -99,7 +100,7 @@ const App = () => {
           <Route path="/book-tour/:id" element={<BookTourWrapper />} />
           <Route path="/trek/:id" element={<BookTrekWrapper />} />
           <Route path="/book-trek/:id" element={<BookTrekWrapper />} />
-          <Route path="/blogs" element={<BlogPage />} />
+          <Route path="/blogs" element={<BlogsPage />} />
           <Route path="/blogs/:identifier" element={<BlogPage />} />
           <Route path="/history" element={<HistoryPage />} />
           <Route path="/history/:identifier" element={<HistoryPage />} />

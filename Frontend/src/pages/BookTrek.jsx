@@ -411,17 +411,13 @@ const BookTrek = () => {
   const handleCityChange = (e) => {
     const city = e.target.value;
     setSelectedCity(city);
-    const cityPrice = trek.cityPricing.find(cp => cp.city === city);
-    // Set first pricing option as default for new city
-    const firstPricingOption = cityPrice?.pricingOptions?.[0];
-    const basePrice = firstPricingOption?.price || 0;
-    const categoryName = firstPricingOption?.categoryName || '';
     setFormData(prev => ({
       ...prev,
       pickupCity: city,
       pickupPoint: '', // Reset pickup point when city changes
-      selectedPricingOption: categoryName,
-      pricePerPerson: basePrice
+      bookingDate: '', // Reset date when city changes
+      selectedPricingOption: '', // Reset pricing option
+      pricePerPerson: 0
     }));
   };
 
@@ -430,6 +426,21 @@ const BookTrek = () => {
     const cityPrice = trek.cityPricing.find(cp => cp.city === selectedCity);
     const selectedOption = cityPrice?.pricingOptions?.find(opt => opt.categoryName === categoryName);
     const price = selectedOption?.price || 0;
+    const minMembers = selectedOption?.minMembers || 1;
+    
+    // Validate minimum members
+    if (formData.numberOfMembers < minMembers) {
+      setFormErrors(prev => ({
+        ...prev,
+        selectedPricingOption: `This pricing option requires minimum ${minMembers} members`
+      }));
+    } else {
+      setFormErrors(prev => ({
+        ...prev,
+        selectedPricingOption: ''
+      }));
+    }
+    
     setFormData(prev => ({
       ...prev,
       selectedPricingOption: categoryName,
@@ -597,6 +608,13 @@ const BookTrek = () => {
     const selectedDate = new Date(formData.bookingDate);
     if (selectedDate <= new Date()) {
       errors.bookingDate = 'Booking date must be in the future';
+    }
+    
+    // Validate minimum members for selected pricing option
+    const cityPrice = trek.cityPricing.find(cp => cp.city === selectedCity);
+    const selectedOption = cityPrice?.pricingOptions?.find(opt => opt.categoryName === formData.selectedPricingOption);
+    if (selectedOption && formData.numberOfMembers < selectedOption.minMembers) {
+      errors.selectedPricingOption = `This pricing option requires minimum ${selectedOption.minMembers} members. You have selected ${formData.numberOfMembers} members.`;
     }
 
     if (Object.keys(errors).length > 0) {
@@ -822,7 +840,7 @@ const BookTrek = () => {
           <div className="p-4 border-t overflow-y-auto max-h-[1800px]" style={{ borderColor: colors.border, backgroundColor: colors.background }}>
             <div 
               className="leading-relaxed mb-3 text-sm rich-text-content" 
-              style={{ color: colors.text }}
+              style={{ color: colors.text, textAlign: 'justify' }}
               dangerouslySetInnerHTML={{ __html: day.description }}
             />
             
@@ -1273,8 +1291,8 @@ const BookTrek = () => {
                                 )}
                               </div>
                               
-                              {/* Pricing Options Grid */}
-                              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+                              {/* Pricing Options - Horizontal Scrollable */}
+                              <div className="flex gap-3 overflow-x-auto pb-2" style={{ scrollbarWidth: 'thin' }}>
                                 {pricingOptions.map((option, index) => {
                                   const isSelectedOption = isSelectedCity && formData.selectedPricingOption === option.categoryName;
                                   const colorIndex = index % 5;
@@ -1286,11 +1304,12 @@ const BookTrek = () => {
                                     '#DC2626'
                                   ];
                                   const optionColor = optionColors[colorIndex];
+                                  const minMembers = option.minMembers || 1;
                                   
                                   return (
                                     <div 
                                       key={index}
-                                      className={`bg-white rounded-lg p-2.5 border-2 transition-all duration-300 hover:shadow-sm ${
+                                      className={`bg-white rounded-lg p-3 border-2 transition-all duration-300 hover:shadow-sm flex-shrink-0 min-w-[180px] ${
                                         isSelectedOption ? 'ring-2' : ''
                                       }`}
                                       style={{ 
@@ -1299,18 +1318,24 @@ const BookTrek = () => {
                                         opacity: isSelectedCity ? 1 : 0.7
                                       }}
                                     >
-                                      <div className="flex items-center gap-1.5 mb-1.5">
+                                      <div className="flex items-center gap-1.5 mb-2">
                                         <span className="text-base">🎫</span>
-                                        <span className="font-semibold text-xs" style={{ color: colors.text }}>
+                                        <span className="font-semibold text-sm" style={{ color: colors.text }}>
                                           {option.categoryName}
                                         </span>
                                       </div>
-                                      <p className="text-lg font-bold" style={{ color: optionColor }}>
+                                      <p className="text-xl font-bold mb-1" style={{ color: optionColor }}>
                                         ₹{option.price.toLocaleString('en-IN')}
                                       </p>
-                                      <p className="text-xs text-gray-500">Per person</p>
+                                      <p className="text-xs text-gray-500 mb-2">Per person</p>
+                                      <div className="flex items-center gap-1 mb-2 px-2 py-1 rounded" style={{ backgroundColor: optionColor + '10' }}>
+                                        <Users className="w-3 h-3" style={{ color: optionColor }} />
+                                        <span className="text-xs font-semibold" style={{ color: optionColor }}>
+                                          Min: {minMembers} {minMembers === 1 ? 'member' : 'members'}
+                                        </span>
+                                      </div>
                                       {isSelectedOption && (
-                                        <div className="mt-1.5 text-xs font-semibold flex items-center gap-1" style={{ color: optionColor }}>
+                                        <div className="mt-1 text-xs font-semibold flex items-center gap-1" style={{ color: optionColor }}>
                                           <CheckCircle className="w-3 h-3" />
                                           Selected
                                         </div>
@@ -1346,7 +1371,7 @@ const BookTrek = () => {
                   </h3>
                   <div 
                     className="leading-relaxed rich-text-content" 
-                    style={{ color: colors.text }}
+                    style={{ color: colors.text, textAlign: 'justify' }}
                     dangerouslySetInnerHTML={{ __html: trek.introSection.content }}
                   />
                 </div>
@@ -1357,7 +1382,7 @@ const BookTrek = () => {
                 <h3 className="text-xl font-bold mb-4" style={{ color: colors.text }}>About This Trek</h3>
                 <div 
                   className="leading-relaxed rich-text-content" 
-                  style={{ color: colors.text }}
+                  style={{ color: colors.text, textAlign: 'justify' }}
                   dangerouslySetInnerHTML={{ __html: trek.description }}
                 />
               </div>
@@ -1396,15 +1421,15 @@ const BookTrek = () => {
 
               {/* Cost Inclusion */}
               {trek.inclusions && trek.inclusions.length > 0 && (
-                <div className="bg-white rounded-lg shadow-lg p-4 border transition-all duration-300" style={{ borderColor: colors.border }}>
+                <div className="bg-white rounded-lg shadow-lg p-4 border transition-all duration-300" style={{ backgroundColor: '#ECFDF5', borderColor: '#10B981' }}>
                   <h3 className="text-lg font-bold mb-3 flex items-center" style={{ color: colors.text }}>
-                    <CheckCircle className="w-5 h-5 mr-2" style={{ color: colors.secondary }} />
+                    <CheckCircle className="w-5 h-5 mr-2" style={{ color: '#10B981' }} />
                     Cost Inclusion
                   </h3>
                   <ul className="space-y-2">
                     {trek.inclusions.map((item, index) => (
                       <li key={index} className="text-sm flex items-start" style={{ color: colors.text }}>
-                        <span className="mr-2 text-sm" style={{ color: colors.secondary }}>✓</span>
+                        <span className="mr-2 text-sm" style={{ color: '#10B981' }}>✓</span>
                         {item}
                       </li>
                     ))}
@@ -1414,7 +1439,7 @@ const BookTrek = () => {
 
               {/* Cost Exclusion */}
               {trek.exclusions && trek.exclusions.length > 0 && (
-                <div className="bg-white rounded-lg shadow-lg p-4 border transition-all duration-300" style={{ borderColor: colors.border }}>
+                <div className="bg-white rounded-lg shadow-lg p-4 border transition-all duration-300" style={{ backgroundColor: '#FEE2E2', borderColor: colors.error }}>
                   <h3 className="text-lg font-bold mb-3 flex items-center" style={{ color: colors.text }}>
                     <XCircle className="w-5 h-5 mr-2" style={{ color: colors.error }} />
                     Cost Exclusion
@@ -1883,12 +1908,12 @@ const BookTrek = () => {
                           backgroundColor: '#FFFFFF'
                         }}
                       >
-                        <option value="" style={{ color: colors.lightText }}>Select pickup city</option>
+                        <option value="" style={{ backgroundColor: '#FFFFFF', color: colors.lightText }}>Select pickup city</option>
                         {trek.cityPricing?.map((cityPrice, index) => {
                           // Get the first pricing option or fallback to 0
                           const displayPrice = cityPrice.pricingOptions?.[0]?.price || 0;
                           return (
-                            <option key={index} value={cityPrice.city} style={{ color: colors.text }}>
+                            <option key={index} value={cityPrice.city} style={{ backgroundColor: '#FFFFFF', color: colors.text }}>
                               {cityPrice.city} - ₹{displayPrice.toLocaleString('en-IN')}
                             </option>
                           );
@@ -1935,67 +1960,122 @@ const BookTrek = () => {
                       <label className="block text-xs font-semibold mb-1" style={{ color: colors.text }}>
                         Trek Date *
                       </label>
-                      {trek.availableDates && trek.availableDates.length > 0 ? (
-                        <select
-                          name="bookingDate"
-                          value={formData.bookingDate}
-                          onChange={handleInputChange}
-                          className={`w-full px-3 py-2 border rounded-lg focus:ring-1 transition-all duration-300 text-sm ${
-                            formErrors.bookingDate ? 'bg-red-50' : 'hover:border-gray-400'
-                          }`}
-                          style={{ 
-                            borderColor: formErrors.bookingDate ? colors.error : colors.border,
-                            focusBorderColor: colors.primary,
-                            focusRingColor: colors.primary,
-                            color: colors.text,
-                            backgroundColor: '#FFFFFF'
-                          }}
-                        >
-                          <option value="" style={{ color: colors.lightText }}>Select available date</option>
-                          {trek.availableDates
-                            .filter(date => {
-                              // Filter out past dates - only show today and future dates
-                              const dateObj = new Date(date);
-                              const today = new Date();
-                              today.setHours(0, 0, 0, 0); // Reset time to start of day
-                              return dateObj >= today;
-                            })
-                            .map((date, index) => {
-                              const dateObj = new Date(date);
-                              const formattedDate = dateObj.toLocaleDateString('en-IN', {
-                                weekday: 'short',
-                                year: 'numeric',
-                                month: 'short',
-                                day: 'numeric'
-                              });
-                              const dateString = dateObj.toISOString().split('T')[0];
-                              const availability = availabilityData[dateString];
-                              const remainingSeats = availability ? availability.availableSeats : '...';
-                              return (
-                                <option key={index} value={dateString} style={{ color: colors.text }}>
-                                  {formattedDate} - {remainingSeats} seats left
-                                </option>
-                              );
-                            })}
-                        </select>
-                      ) : (
-                        <input
-                          type="date"
-                          name="bookingDate"
-                          value={formData.bookingDate}
-                          onChange={handleInputChange}
-                          min={new Date().toISOString().split('T')[0]}
-                          className={`w-full px-3 py-2 border rounded-lg focus:ring-1 transition-all duration-300 text-sm ${
-                            formErrors.bookingDate ? 'bg-red-50' : 'hover:border-gray-400'
-                          }`}
-                          style={{ 
-                            borderColor: formErrors.bookingDate ? colors.error : colors.border,
-                            focusBorderColor: colors.primary,
-                            focusRingColor: colors.primary,
-                            color: colors.text
-                          }}
-                        />
-                      )}
+                      {(() => {
+                        const cityPricingData = trek.cityPricing?.find(cp => cp.city === selectedCity);
+                        const hasDepartureDates = cityPricingData?.departureDates?.length > 0;
+                        const hasOldDates = trek.availableDates?.length > 0;
+                        
+                        // Debug logging
+                        console.log('🔍 Trek - Selected City:', selectedCity);
+                        console.log('🔍 Trek - City Pricing Data:', cityPricingData);
+                        console.log('🔍 Trek - Has Departure Dates:', hasDepartureDates);
+                        console.log('🔍 Trek - Has Old Dates:', hasOldDates);
+                        
+                        if (selectedCity && hasDepartureDates) {
+                          // New format: city-specific departure dates
+                          return (
+                            <select
+                              name="bookingDate"
+                              value={formData.bookingDate}
+                              onChange={handleInputChange}
+                              className={`w-full px-3 py-2 border rounded-lg focus:ring-1 transition-all duration-300 text-sm ${
+                                formErrors.bookingDate ? 'bg-red-50' : 'hover:border-gray-400'
+                              }`}
+                              style={{ 
+                                borderColor: formErrors.bookingDate ? colors.error : colors.border,
+                                focusBorderColor: colors.primary,
+                                focusRingColor: colors.primary,
+                                color: colors.text,
+                                backgroundColor: '#FFFFFF'
+                              }}
+                            >
+                              <option value="" style={{ color: colors.lightText }}>Select departure date</option>
+                              {cityPricingData.departureDates
+                                .filter(departure => {
+                                  const startDate = new Date(departure.startDate);
+                                  const today = new Date();
+                                  today.setHours(0, 0, 0, 0);
+                                  return startDate >= today && departure.isAvailable !== false;
+                                })
+                                .map((departure, index) => {
+                                  const startDate = new Date(departure.startDate);
+                                  const endDate = new Date(departure.endDate);
+                                  const startFormatted = startDate.toLocaleDateString('en-IN', {
+                                    weekday: 'short',
+                                    year: 'numeric',
+                                    month: 'short',
+                                    day: 'numeric'
+                                  });
+                                  const endFormatted = endDate.toLocaleDateString('en-IN', {
+                                    weekday: 'short',
+                                    year: 'numeric',
+                                    month: 'short',
+                                    day: 'numeric'
+                                  });
+                                  return (
+                                    <option key={index} value={startDate.toISOString().split('T')[0]} style={{ color: colors.text }}>
+                                      {startFormatted} to {endFormatted}
+                                    </option>
+                                  );
+                                })}
+                            </select>
+                          );
+                        } else if (hasOldDates) {
+                          // Fallback: Old format with global availableDates
+                          return (
+                            <select
+                              name="bookingDate"
+                              value={formData.bookingDate}
+                              onChange={handleInputChange}
+                              className={`w-full px-3 py-2 border rounded-lg focus:ring-1 transition-all duration-300 text-sm ${
+                                formErrors.bookingDate ? 'bg-red-50' : 'hover:border-gray-400'
+                              }`}
+                              style={{ 
+                                borderColor: formErrors.bookingDate ? colors.error : colors.border,
+                                focusBorderColor: colors.primary,
+                                focusRingColor: colors.primary,
+                                color: colors.text,
+                                backgroundColor: '#FFFFFF'
+                              }}
+                            >
+                              <option value="" style={{ color: colors.lightText }}>Select available date</option>
+                              {trek.availableDates
+                                .filter(date => {
+                                  const dateObj = new Date(date);
+                                  const today = new Date();
+                                  today.setHours(0, 0, 0, 0);
+                                  return dateObj >= today;
+                                })
+                                .map((date, index) => {
+                                  const dateObj = new Date(date);
+                                  const formattedDate = dateObj.toLocaleDateString('en-IN', {
+                                    weekday: 'short',
+                                    year: 'numeric',
+                                    month: 'short',
+                                    day: 'numeric'
+                                  });
+                                  return (
+                                    <option key={index} value={dateObj.toISOString().split('T')[0]} style={{ color: colors.text }}>
+                                      {formattedDate}
+                                    </option>
+                                  );
+                                })}
+                            </select>
+                          );
+                        } else if (selectedCity) {
+                          return (
+                            <div className="px-3 py-2 border rounded-lg text-xs" style={{ borderColor: colors.border, color: colors.lightText }}>
+                              No departure dates available for selected city. Please add dates in admin panel.
+                            </div>
+                          );
+                        } else {
+                          return (
+                            <div className="px-3 py-2 border rounded-lg text-xs" style={{ borderColor: colors.border, color: colors.lightText }}>
+                              Please select a city first
+                            </div>
+                          );
+                        }
+                      })()}
                       {formErrors.bookingDate && (
                         <p className="error-message text-xs mt-1 flex items-center gap-1" style={{ color: colors.error }}>
                           <AlertCircle className="w-3 h-3" />
@@ -2024,15 +2104,30 @@ const BookTrek = () => {
                         backgroundColor: '#FFFFFF'
                       }}
                     >
+                      <option value="" style={{ backgroundColor: '#FFFFFF', color: colors.lightText }}>Select pricing category</option>
                       {selectedCity && trek.cityPricing?.find(cp => cp.city === selectedCity)?.pricingOptions && (
                         <>
                           {trek.cityPricing
                             .find(cp => cp.city === selectedCity)
-                            .pricingOptions.map((option, index) => (
-                              <option key={index} value={option.categoryName} style={{ color: colors.text }}>
-                                🎫 {option.categoryName} - ₹{option.price.toLocaleString('en-IN')}/person
-                              </option>
-                            ))}
+                            .pricingOptions.map((option, index) => {
+                              const minMembers = option.minMembers || 1;
+                              const isDisabled = formData.numberOfMembers < minMembers;
+                              return (
+                                <option 
+                                  key={index} 
+                                  value={option.categoryName}
+                                  disabled={isDisabled}
+                                  style={{ 
+                                    backgroundColor: isDisabled ? '#F3F4F6' : '#FFFFFF', 
+                                    color: isDisabled ? '#9CA3AF' : colors.text 
+                                  }}
+                                >
+                                  🎫 {option.categoryName} - ₹{option.price.toLocaleString('en-IN')}/person
+                                  {minMembers > 1 ? ` (Min: ${minMembers} members)` : ''}
+                                  {isDisabled ? ' - Not enough members' : ''}
+                                </option>
+                              );
+                            })}
                         </>
                       )}
                     </select>

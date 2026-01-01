@@ -4,9 +4,15 @@ import mongoose from "mongoose";
 const priceSchema = new mongoose.Schema({
   city: { type: String, required: true },
   pickupPoints: { type: [String], default: [] }, // Pickup locations for this city
+  departureDates: [{
+    startDate: { type: Date, required: true },
+    endDate: { type: Date, required: true },
+    isAvailable: { type: Boolean, default: true }
+  }],
   pricingOptions: [{
     categoryName: { type: String, required: true }, // e.g., "Adult", "Women", "Children", or custom names
-    price: { type: Number, required: true, min: 0 }
+    price: { type: Number, required: true, min: 0 },
+    minMembers: { type: Number, required: true, min: 1, default: 1 } // Minimum members required for this pricing
   }]
 });
 

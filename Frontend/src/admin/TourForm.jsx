@@ -50,9 +50,13 @@ const TourForm = () => {
     highlights: [''],
     inclusions: [''],
     exclusions: [''],
-    cityPricing: [{ city: '', pricingOptions: [{ categoryName: '', price: '' }] }],  // FLEXIBLE PRICING
+    cityPricing: [{ 
+      city: '', 
+      pickupPoints: [],
+      departureDates: [{ startDate: '', endDate: '', isAvailable: true }],
+      pricingOptions: [{ categoryName: '', price: '', minMembers: 1 }] 
+    }],  // FLEXIBLE PRICING
     itinerary: [{ day: 1, title: '', description: '', meals: '', accommodation: '', cabType: '', note: '', activities: [] }],
-    availableDates: [],
     faqs: [{ question: '', answer: '' }],
     addOns: [{ name: '', price: '', description: '' }],  // ADD-ON OPTIONS
     addonFacilities: [{ header: '', subPoints: [''] }],  // ADDITIONAL FACILITIES
@@ -100,7 +104,6 @@ const TourForm = () => {
   const sections = [
     { id: 'basic', name: 'Basic Info', icon: '📋' },
     { id: 'images', name: 'Media', icon: '🖼️' },
-    { id: 'dates', name: 'Dates', icon: '📅' },
     { id: 'pricing', name: 'Pricing', icon: '💰' },
     { id: 'addons', name: 'Add-ons', icon: '➕' },
     { id: 'facilities', name: 'Facilities', icon: '🏨' },
@@ -134,11 +137,24 @@ const TourForm = () => {
         
         setFormData({
           ...tour,
-          availableDates: tour.availableDates?.map(date => new Date(date).toISOString().split('T')[0]) || [],
           highlights: tour.highlights?.length > 0 ? tour.highlights : [''],
           inclusions: tour.inclusions?.length > 0 ? tour.inclusions : [''],
           exclusions: tour.exclusions?.length > 0 ? tour.exclusions : [''],
-          cityPricing: tour.cityPricing?.length > 0 ? tour.cityPricing : [{ city: '', pricingOptions: [{ categoryName: '', price: '' }] }],
+          cityPricing: tour.cityPricing?.length > 0 ? tour.cityPricing.map(city => ({
+            ...city,
+            pickupPoints: city.pickupPoints || [],
+            departureDates: city.departureDates?.length > 0 ? city.departureDates.map(dep => ({
+              startDate: dep.startDate ? new Date(dep.startDate).toISOString().split('T')[0] : '',
+              endDate: dep.endDate ? new Date(dep.endDate).toISOString().split('T')[0] : '',
+              isAvailable: dep.isAvailable !== false
+            })) : [{ startDate: '', endDate: '', isAvailable: true }],
+            pricingOptions: city.pricingOptions?.length > 0 ? city.pricingOptions : [{ categoryName: '', price: '', minMembers: 1 }]
+          })) : [{ 
+            city: '', 
+            pickupPoints: [],
+            departureDates: [{ startDate: '', endDate: '', isAvailable: true }],
+            pricingOptions: [{ categoryName: '', price: '', minMembers: 1 }] 
+          }],
           itinerary: tour.itinerary?.length > 0 ? tour.itinerary.map(item => ({
             ...item,
             description: item.description || '',
@@ -339,25 +355,6 @@ const TourForm = () => {
     }
   };
 
-  // Handle available dates
-  const handleAddDate = (e) => {
-    const date = e.target.value;
-    if (date && !formData.availableDates.includes(date)) {
-      setFormData(prev => ({
-        ...prev,
-        availableDates: [...prev.availableDates, date]
-      }));
-    }
-    e.target.value = ''; // Clear the input
-  };
-
-  const removeDate = (date) => {
-    setFormData(prev => ({
-      ...prev,
-      availableDates: prev.availableDates.filter(d => d !== date)
-    }));
-  };
-
   // Remove hotel image
   const removeHotelImage = (index) => {
     const previewToRemove = hotelImagePreviews[index];
@@ -467,7 +464,8 @@ const TourForm = () => {
           .map(cp => ({
             city: cp.city.trim(),
             pricingOptions: cp.pricingOptions.filter(opt => opt.categoryName.trim() && opt.price),
-            pickupPoints: (cp.pickupPoints || []).filter(point => point && point.trim()) // Include pickup points
+            pickupPoints: (cp.pickupPoints || []).filter(point => point && point.trim()), // Include pickup points
+            departureDates: (cp.departureDates || []).filter(date => date.startDate && date.endDate) // Include departure dates
           }))
           .filter(cp => cp.pricingOptions.length > 0), // Remove cities with no valid pricing options
         // Filter out empty add-ons
@@ -1278,74 +1276,6 @@ const TourForm = () => {
             </div>
           </div>
 
-          {/* Available Dates */}
-          <div id="dates" className="bg-white rounded-xl shadow-lg border p-8" style={{ borderColor: colors.border }}>
-            <div className="flex items-center mb-6">
-              <div 
-                className="w-12 h-12 rounded-xl flex items-center justify-center mr-4"
-                style={{ backgroundColor: colors.secondary + '15' }}
-              >
-                <Calendar size={24} style={{ color: colors.secondary }} />
-              </div>
-              <div>
-                <h2 className="text-2xl font-bold mb-2" style={{ color: colors.darkBg }}>Available Dates</h2>
-                <p style={{ color: colors.textDark }}>Set when this tour is available for booking</p>
-              </div>
-            </div>
-            
-            <div className="mb-6">
-              <label className="block text-sm font-semibold mb-3" style={{ color: colors.darkBg }}>Add Available Date</label>
-              <div className="flex space-x-4">
-                <input
-                  type="date"
-                  id="tour-date-picker"
-                  onChange={handleAddDate}
-                  className="flex-1 px-4 py-3 border-2 rounded-xl transition-all"
-                  style={{ 
-                    borderColor: colors.border,
-                    focusBorderColor: colors.primary
-                  }}
-                />
-                <button
-                  type="button"
-                  onClick={() => document.getElementById('tour-date-picker').showPicker()}
-                  className="px-6 py-3 rounded-xl transition-colors text-white"
-                  style={{ backgroundColor: colors.secondary }}
-                >
-                  Add Date
-                </button>
-              </div>
-            </div>
-
-            {formData.availableDates.length > 0 && (
-              <div>
-                <h4 className="text-sm font-semibold mb-3" style={{ color: colors.darkBg }}>Selected Dates ({formData.availableDates.length})</h4>
-                <div className="flex flex-wrap gap-3">
-                  {formData.availableDates.map((date, index) => (
-                    <span
-                      key={index}
-                      className="inline-flex items-center px-4 py-2 rounded-lg text-sm cursor-pointer hover:bg-green-200 transition-all transform hover:scale-105"
-                      style={{ 
-                        backgroundColor: colors.secondary + '15',
-                        color: colors.secondary
-                      }}
-                      onClick={() => removeDate(date)}
-                    >
-                      <Clock size={16} className="mr-2" />
-                      {new Date(date).toLocaleDateString('en-US', { 
-                        weekday: 'short', 
-                        year: 'numeric', 
-                        month: 'short', 
-                        day: 'numeric' 
-                      })}
-                      <X size={16} className="ml-2" />
-                    </span>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-
           {/* Flexible Pricing */}
           <div id="pricing" className="bg-white rounded-xl shadow-lg border p-8" style={{ borderColor: colors.border }}>
             <div className="flex items-center justify-between mb-6">
@@ -1483,13 +1413,105 @@ const TourForm = () => {
                 <div className="mb-4">
                   <div className="flex items-center justify-between mb-3">
                     <label className="block text-sm font-semibold" style={{ color: colors.darkBg }}>
+                      Departure Dates
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const updated = [...formData.cityPricing];
+                        if (!updated[index].departureDates) updated[index].departureDates = [];
+                        updated[index].departureDates.push({ startDate: '', endDate: '', isAvailable: true });
+                        setFormData({ ...formData, cityPricing: updated });
+                      }}
+                      className="inline-flex items-center px-3 py-1 rounded-lg text-sm text-white transition-all"
+                      style={{ backgroundColor: colors.secondary }}
+                    >
+                      <Plus size={14} className="mr-1" />
+                      Add Departure Date
+                    </button>
+                  </div>
+                  
+                  {(cityPrice.departureDates || []).map((departure, depIndex) => (
+                    <div key={depIndex} className="mb-3">
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-3 p-3 rounded-lg" style={{ backgroundColor: '#F9FAFB' }}>
+                        <div>
+                          <label className="block text-xs font-medium mb-1 text-gray-600">
+                            Start Date
+                          </label>
+                          <input
+                            type="date"
+                            value={departure.startDate ? new Date(departure.startDate).toISOString().split('T')[0] : ''}
+                            onChange={(e) => {
+                              const updated = [...formData.cityPricing];
+                              updated[index].departureDates[depIndex].startDate = e.target.value;
+                              setFormData({ ...formData, cityPricing: updated });
+                            }}
+                            className="w-full px-3 py-2 border-2 rounded-lg text-sm"
+                            style={{ borderColor: colors.border }}
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-medium mb-1 text-gray-600">
+                            End Date
+                          </label>
+                          <input
+                            type="date"
+                            value={departure.endDate ? new Date(departure.endDate).toISOString().split('T')[0] : ''}
+                            onChange={(e) => {
+                              const updated = [...formData.cityPricing];
+                              updated[index].departureDates[depIndex].endDate = e.target.value;
+                              setFormData({ ...formData, cityPricing: updated });
+                            }}
+                            className="w-full px-3 py-2 border-2 rounded-lg text-sm"
+                            style={{ borderColor: colors.border }}
+                          />
+                        </div>
+                        <div className="flex gap-2 items-end">
+                          <div className="flex-1">
+                            <label className="flex items-center text-xs font-medium mb-1 text-gray-600">
+                              <input
+                                type="checkbox"
+                                checked={departure.isAvailable !== false}
+                                onChange={(e) => {
+                                  const updated = [...formData.cityPricing];
+                                  updated[index].departureDates[depIndex].isAvailable = e.target.checked;
+                                  setFormData({ ...formData, cityPricing: updated });
+                                }}
+                                className="mr-2"
+                              />
+                              Available
+                            </label>
+                          </div>
+                          {(cityPrice.departureDates || []).length > 1 && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const updated = [...formData.cityPricing];
+                                updated[index].departureDates.splice(depIndex, 1);
+                                setFormData({ ...formData, cityPricing: updated });
+                              }}
+                              className="px-3 py-2 rounded-lg text-white transition-all"
+                              style={{ backgroundColor: '#EF4444' }}
+                            >
+                              <Trash2 size={16} />
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="mb-4">
+                  <div className="flex items-center justify-between mb-3">
+                    <label className="block text-sm font-semibold" style={{ color: colors.darkBg }}>
                       Pricing Options (Add custom categories)
                     </label>
                     <button
                       type="button"
                       onClick={() => {
                         const updated = [...formData.cityPricing];
-                        updated[index].pricingOptions = [...(updated[index].pricingOptions || []), { categoryName: '', price: '' }];
+                        updated[index].pricingOptions = [...(updated[index].pricingOptions || []), { categoryName: '', price: '', minMembers: 1 }];
                         setFormData({ ...formData, cityPricing: updated });
                       }}
                       className="inline-flex items-center px-3 py-1 rounded-lg text-sm text-white transition-all"
@@ -1502,7 +1524,7 @@ const TourForm = () => {
                   
                   {(cityPrice.pricingOptions || []).map((priceOpt, priceIndex) => (
                     <div key={priceIndex} className="mb-3">
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 p-3 rounded-lg" style={{ backgroundColor: '#F9FAFB' }}>
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-3 p-3 rounded-lg" style={{ backgroundColor: '#F9FAFB' }}>
                         <div>
                           <label className="block text-xs font-medium mb-1 text-gray-600">
                             Category Name (e.g., Economy, Deluxe, VIP)
@@ -1520,23 +1542,41 @@ const TourForm = () => {
                             placeholder="e.g., Economy, Premium"
                           />
                         </div>
+                        <div>
+                          <label className="block text-xs font-medium mb-1 text-gray-600">
+                            Price (₹)
+                          </label>
+                          <input
+                            type="number"
+                            value={priceOpt.price}
+                            onChange={(e) => {
+                              const updated = [...formData.cityPricing];
+                              updated[index].pricingOptions[priceIndex].price = Number(e.target.value);
+                              setFormData({ ...formData, cityPricing: updated });
+                            }}
+                            className="w-full px-3 py-2 border-2 rounded-lg text-sm"
+                            style={{ borderColor: colors.border }}
+                            placeholder="5000"
+                            min="0"
+                          />
+                        </div>
                         <div className="flex gap-2">
                           <div className="flex-1">
                             <label className="block text-xs font-medium mb-1 text-gray-600">
-                              Price (₹)
+                              Min Members
                             </label>
                             <input
                               type="number"
-                              value={priceOpt.price}
+                              value={priceOpt.minMembers || 1}
                               onChange={(e) => {
                                 const updated = [...formData.cityPricing];
-                                updated[index].pricingOptions[priceIndex].price = Number(e.target.value);
+                                updated[index].pricingOptions[priceIndex].minMembers = Number(e.target.value);
                                 setFormData({ ...formData, cityPricing: updated });
                               }}
                               className="w-full px-3 py-2 border-2 rounded-lg text-sm"
                               style={{ borderColor: colors.border }}
-                              placeholder="5000"
-                              min="0"
+                              placeholder="1"
+                              min="1"
                             />
                           </div>
                           {(cityPrice.pricingOptions || []).length > 1 && (
@@ -1586,7 +1626,12 @@ const TourForm = () => {
 
             <button
               type="button"
-              onClick={() => addArrayItem('cityPricing', { city: '', pricingOptions: [{ categoryName: '', price: '' }] })}
+              onClick={() => addArrayItem('cityPricing', { 
+                city: '', 
+                pickupPoints: [],
+                departureDates: [{ startDate: '', endDate: '', isAvailable: true }],
+                pricingOptions: [{ categoryName: '', price: '', minMembers: 1 }] 
+              })}
               className="inline-flex items-center px-6 py-3 rounded-xl transition-colors transform hover:scale-105 text-white"
               style={{ backgroundColor: colors.primary }}
             >

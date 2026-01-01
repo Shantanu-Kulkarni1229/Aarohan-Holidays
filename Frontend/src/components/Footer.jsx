@@ -495,6 +495,58 @@ export default function Footer() {
         </div>
       </div>
 
+      {/* Certifications Section */}
+      <div 
+        className="relative border-t py-8"
+        style={{ borderColor: colors.primary + '40' }}
+      >
+        <div className="max-w-8xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-8">
+            <h4 
+              className="text-xl font-bold mb-6 flex items-center justify-center space-x-3"
+              style={{ color: colors.textLight }}
+            >
+              <FiAward size={24} style={{ color: colors.primary }} />
+              <span>Accredited & Recognized By</span>
+            </h4>
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-8">
+              <div 
+                className="bg-white p-2 rounded-xl shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:scale-105 border-2"
+                style={{ borderColor: colors.border }}
+              >
+                <img 
+                  src="https://yt3.googleusercontent.com/Up6P_vTGuPUFhnmyeXGJeH6enkSD_qNbZgovRHK141a3FOeUmuw9y4cSLN90hQ5U5SLBP6z9v9Y=s900-c-k-c0x00ffffff-no-rj"
+                  alt="Maharashtra Tourism Development Corporation"
+                  className="h-20 w-auto object-contain"
+                />
+                <p 
+                  className="text-xs mt-2 font-medium"
+                  style={{ color: colors.textDark }}
+                >
+                  
+                </p>
+              </div>
+              <div 
+                className="bg-white p-2 rounded-xl shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:scale-105 border-2"
+                style={{ borderColor: colors.border }}
+              >
+                <img 
+                  src="https://mystikalindia.com/wp-content/uploads/2019/08/Incredible-India-Logo.png"
+                  alt="Tourism Certification"
+                  className="h-20 w-auto object-contain"
+                />
+                <p 
+                  className="text-xs mt-2 font-medium"
+                  style={{ color: colors.textDark }}
+                >
+                 
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* Bottom Section */}
       <div 
         className="relative border-t py-8"

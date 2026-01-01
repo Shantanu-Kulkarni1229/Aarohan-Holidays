@@ -3,6 +3,7 @@ import { otherServicesAPI } from '../api/userAPI';
 import { showSuccess, showApiError } from '../utils/toast';
 
 const OtherServices = () => {
+  const [selectedCategory, setSelectedCategory] = useState(null);
   const [selectedService, setSelectedService] = useState(null);
   const [formData, setFormData] = useState({
     name: '',
@@ -306,15 +307,132 @@ const OtherServices = () => {
   return (
     <div className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-7xl mx-auto">
+        
+        {/* Category Selection - Show when no category is selected */}
+        {!selectedCategory && (
+          <div className="min-h-[60vh] flex flex-col items-center justify-center">
+            <div className="text-center mb-12">
+              <div className="inline-block px-6 py-3 bg-[#1E9ABF]/10 rounded-full mb-4">
+                <span className="text-2xl">🚀</span>
+              </div>
+              <h1 className="text-4xl md:text-5xl font-bold mb-4" style={{ color: '#1E9ABF' }}>
+                Choose Your Service Category
+              </h1>
+              <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+                Select from our range of premium travel and transport services
+              </p>
+              <div className="mt-6 h-1 w-32 mx-auto rounded-full" style={{ backgroundColor: '#E66926' }}></div>
+            </div>
+
+            {/* Category Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8 w-full max-w-5xl">
+              {/* Cab Services */}
+              <div
+                onClick={() => setSelectedCategory('Cab Services')}
+                className="bg-white rounded-2xl p-8 shadow-xl border-2 border-gray-200 hover:border-[#1E9ABF] cursor-pointer transform transition-all duration-300 hover:scale-105 group"
+              >
+                <div className="text-center">
+                  <div className="text-6xl mb-4 transform transition-transform duration-300 group-hover:scale-110">
+                    🚗
+                  </div>
+                  <h3 className="text-2xl font-bold mb-3" style={{ color: '#1E9ABF' }}>
+                    Cab Services
+                  </h3>
+                  <p className="text-gray-600 mb-4">
+                    Premium taxi services for local and outstation travel with professional drivers
+                  </p>
+                  <div className="inline-flex items-center font-semibold" style={{ color: '#E66926' }}>
+                    Explore Cabs
+                    <svg className="w-5 h-5 ml-2 transform transition-transform group-hover:translate-x-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 8l4 4m0 0l-4 4m4-4H3" />
+                    </svg>
+                  </div>
+                </div>
+              </div>
+
+              {/* Bus Services */}
+              <div
+                onClick={() => setSelectedCategory('Bus Services')}
+                className="bg-white rounded-2xl p-8 shadow-xl border-2 border-gray-200 hover:border-[#1E9ABF] cursor-pointer transform transition-all duration-300 hover:scale-105 group"
+              >
+                <div className="text-center">
+                  <div className="text-6xl mb-4 transform transition-transform duration-300 group-hover:scale-110">
+                    🚌
+                  </div>
+                  <h3 className="text-2xl font-bold mb-3" style={{ color: '#1E9ABF' }}>
+                    Bus Services
+                  </h3>
+                  <p className="text-gray-600 mb-4">
+                    Comfortable bus rentals and bookings for group travel and large families
+                  </p>
+                  <div className="inline-flex items-center font-semibold" style={{ color: '#E66926' }}>
+                    Explore Buses
+                    <svg className="w-5 h-5 ml-2 transform transition-transform group-hover:translate-x-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 8l4 4m0 0l-4 4m4-4H3" />
+                    </svg>
+                  </div>
+                </div>
+              </div>
+
+              {/* Other Services */}
+              <div
+                onClick={() => setSelectedCategory('Other Services')}
+                className="bg-white rounded-2xl p-8 shadow-xl border-2 border-gray-200 hover:border-[#1E9ABF] cursor-pointer transform transition-all duration-300 hover:scale-105 group"
+              >
+                <div className="text-center">
+                  <div className="text-6xl mb-4 transform transition-transform duration-300 group-hover:scale-110">
+                    ✈️
+                  </div>
+                  <h3 className="text-2xl font-bold mb-3" style={{ color: '#1E9ABF' }}>
+                    Other Services
+                  </h3>
+                  <p className="text-gray-600 mb-4">
+                    Complete travel solutions including hotels, visas, flights, and more
+                  </p>
+                  <div className="inline-flex items-center font-semibold" style={{ color: '#E66926' }}>
+                    Explore Services
+                    <svg className="w-5 h-5 ml-2 transform transition-transform group-hover:translate-x-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 8l4 4m0 0l-4 4m4-4H3" />
+                    </svg>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Show selected category content */}
+        {selectedCategory && (
+          <>
+            {/* Back to Categories Button */}
+            {!selectedService && (
+              <button
+                onClick={() => setSelectedCategory(null)}
+                className="mb-6 flex items-center font-medium transition-colors hover:underline"
+                style={{ color: '#1E9ABF' }}
+              >
+                <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                </svg>
+                Back to Categories
+              </button>
+            )}
+          </>
+        )}
+
         {/* Header */}
+        {selectedCategory && (
         <div className="text-center mb-12">
           <h1 className="text-4xl md:text-5xl font-bold mb-4" style={{ color: '#1E9ABF' }}>
-            Additional Services
+            {selectedCategory}
           </h1>
           <p className="text-lg md:text-xl text-gray-600 max-w-2xl mx-auto">
-            Discover our comprehensive range of travel and support services designed for your convenience
+            {selectedCategory === 'Cab Services' && 'Premium taxi and cab services for all your travel needs'}
+            {selectedCategory === 'Bus Services' && 'Comfortable bus rentals and bookings for group travel'}
+            {selectedCategory === 'Other Services' && 'Comprehensive range of travel and support services'}
           </p>
         </div>
+        )}
 
         {/* Success Message */}
         {success && (
@@ -372,8 +490,8 @@ const OtherServices = () => {
           </div>
         )}
 
-        {/* Tempo Traveller Rental Section */}
-        {!selectedService && (
+        {/* Tempo Traveller Rental Section - Cab Services */}
+        {selectedCategory === 'Cab Services' && !selectedService && (
           <div className="mb-16">
             {/* Hero Section */}
             <div className="relative overflow-hidden rounded-2xl mb-12 shadow-2xl">
@@ -809,8 +927,200 @@ const OtherServices = () => {
           </div>
         )}
 
-        {/* Additional Services Section Header */}
-        {!selectedService && (
+        {/* Bus Services Section */}
+        {selectedCategory === 'Bus Services' && !selectedService && (
+          <div className="mb-16">
+            {/* Hero Section */}
+            <div className="relative overflow-hidden rounded-2xl mb-12 shadow-2xl">
+              <div className="absolute inset-0 bg-gradient-to-br from-[#E66926] via-[#E66926] to-[#c55620]"></div>
+              <div className="relative px-8 py-16 md:px-16 md:py-20">
+                <div className="max-w-4xl">
+                  <div className="inline-block px-4 py-2 bg-white/20 backdrop-blur-sm rounded-full text-white font-semibold mb-6">
+                    🚌 Group Travel Solutions
+                  </div>
+                  <h2 className="text-4xl md:text-5xl lg:text-6xl font-bold text-white mb-6 leading-tight">
+                    Bus Services & Rentals
+                  </h2>
+                  <p className="text-xl md:text-2xl text-white/95 font-medium mb-4">
+                    Comfortable and Reliable Bus Services for Group Travel
+                  </p>
+                  <p className="text-lg text-white/90 leading-relaxed">
+                    Perfect for large groups, corporate outings, and family trips
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Introduction Section */}
+            <div className="bg-white rounded-2xl shadow-xl p-8 md:p-12 mb-12">
+              <div className="prose prose-lg max-w-none">
+                <p className="text-gray-700 text-lg leading-relaxed mb-6" style={{ textAlign: 'justify' }}>
+                  Whether you're planning a corporate event, a family reunion, or a group tour, our bus rental services offer the perfect solution for comfortable and convenient group travel. With a range of buses from 20-seaters to luxury coaches, we cater to all your transportation needs.
+                </p>
+                <div className="grid md:grid-cols-3 gap-6 mt-8">
+                  <div className="bg-orange-50 rounded-xl p-6 border-2 border-orange-200">
+                    <div className="text-3xl mb-3">🎯</div>
+                    <h4 className="font-bold text-lg mb-2" style={{ color: '#E66926' }}>Group-Friendly</h4>
+                    <p className="text-gray-600 text-sm">Perfect for teams, families, and large groups traveling together</p>
+                  </div>
+                  <div className="bg-orange-50 rounded-xl p-6 border-2 border-orange-200">
+                    <div className="text-3xl mb-3">💺</div>
+                    <h4 className="font-bold text-lg mb-2" style={{ color: '#E66926' }}>Comfortable</h4>
+                    <p className="text-gray-600 text-sm">Spacious seating, AC, and modern amenities for long journeys</p>
+                  </div>
+                  <div className="bg-orange-50 rounded-xl p-6 border-2 border-orange-200">
+                    <div className="text-3xl mb-3">🛡️</div>
+                    <h4 className="font-bold text-lg mb-2" style={{ color: '#E66926' }}>Safe Travel</h4>
+                    <p className="text-gray-600 text-sm">Experienced drivers and well-maintained vehicles for your safety</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Bus Fleet Options */}
+            <div className="mb-12">
+              <div className="text-center mb-10">
+                <h3 className="text-3xl md:text-4xl font-bold mb-4" style={{ color: '#E66926' }}>
+                  Our Bus Fleet
+                </h3>
+                <p className="text-xl text-gray-600">
+                  Choose from our range of buses suited for every group size
+                </p>
+              </div>
+
+              {/* Bus Types Grid */}
+              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+                {[
+                  { 
+                    type: 'Mini Bus (20-Seater)', 
+                    icon: '🚐',
+                    ideal: 'Perfect for small to medium groups',
+                    features: ['AC', 'Comfortable Seats', 'Music System', 'Luggage Space']
+                  },
+                  { 
+                    type: 'Standard Bus (32-Seater)', 
+                    icon: '🚌',
+                    ideal: 'Ideal for medium-sized groups',
+                    features: ['AC', 'Reclining Seats', 'Entertainment', 'Ample Luggage']
+                  },
+                  { 
+                    type: 'Large Bus (45-Seater)', 
+                    icon: '🚍',
+                    ideal: 'Great for large groups',
+                    features: ['Premium AC', 'Comfortable Seating', 'TV/Audio', 'Washroom']
+                  },
+                  { 
+                    type: 'Luxury Coach (50-Seater)', 
+                    icon: '🚌',
+                    ideal: 'Perfect for corporate events',
+                    features: ['Luxury AC', 'Reclining Seats', 'Entertainment System', 'Washroom & WiFi']
+                  },
+                  { 
+                    type: 'Sleeper Bus (40-Seater)', 
+                    icon: '🛏️',
+                    ideal: 'Ideal for overnight journeys',
+                    features: ['Sleeper Berths', 'AC', 'Individual TV', 'Charging Points']
+                  },
+                  { 
+                    type: 'Volvo Bus (40-Seater)', 
+                    icon: '✨',
+                    ideal: 'Premium long-distance travel',
+                    features: ['Premium Comfort', 'Advanced AC', 'Luxury Seats', 'Entertainment']
+                  }
+                ].map((bus, index) => (
+                  <div key={index} className="bg-white rounded-2xl p-8 shadow-lg border-2 border-gray-200 hover:border-[#E66926] transition-all duration-300 transform hover:scale-105">
+                    <div className="text-center mb-4">
+                      <div className="text-5xl mb-3">{bus.icon}</div>
+                      <h4 className="text-xl font-bold mb-2" style={{ color: '#E66926' }}>{bus.type}</h4>
+                      <p className="text-sm text-gray-500 italic">{bus.ideal}</p>
+                    </div>
+                    <div className="border-t border-gray-200 pt-4 mt-4">
+                      <p className="text-xs font-semibold text-gray-700 mb-2">Key Features:</p>
+                      <ul className="space-y-1">
+                        {bus.features.map((feature, idx) => (
+                          <li key={idx} className="text-xs text-gray-600 flex items-center">
+                            <span className="text-green-500 mr-2">✓</span>
+                            {feature}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Bus Service Types */}
+            <div className="grid md:grid-cols-3 gap-6 mb-12">
+              <div className="bg-gradient-to-br from-blue-50 to-white rounded-2xl p-8 border-2 border-blue-200 shadow-xl">
+                <div className="flex items-center mb-4">
+                  <span className="text-4xl mr-3">🏢</span>
+                  <h4 className="text-xl font-bold text-blue-800">Corporate Events</h4>
+                </div>
+                <p className="text-gray-700 leading-relaxed">
+                  Professional bus services for company outings, conferences, and team-building events.
+                </p>
+              </div>
+
+              <div className="bg-gradient-to-br from-purple-50 to-white rounded-2xl p-8 border-2 border-purple-200 shadow-xl">
+                <div className="flex items-center mb-4">
+                  <span className="text-4xl mr-3">🎓</span>
+                  <h4 className="text-xl font-bold text-purple-800">Educational Tours</h4>
+                </div>
+                <p className="text-gray-700 leading-relaxed">
+                  Safe and comfortable transportation for school trips, college tours, and educational excursions.
+                </p>
+              </div>
+
+              <div className="bg-gradient-to-br from-green-50 to-white rounded-2xl p-8 border-2 border-green-200 shadow-xl">
+                <div className="flex items-center mb-4">
+                  <span className="text-4xl mr-3">🗺️</span>
+                  <h4 className="text-xl font-bold text-green-800">Group Tours</h4>
+                </div>
+                <p className="text-gray-700 leading-relaxed">
+                  Perfect for family reunions, pilgrimages, and group travel to tourist destinations.
+                </p>
+              </div>
+            </div>
+
+            {/* Why Choose Our Bus Services */}
+            <div className="bg-gradient-to-br from-gray-50 to-white rounded-2xl shadow-xl p-8 md:p-12">
+              <div className="text-center mb-10">
+                <div className="inline-block px-6 py-3 bg-[#E66926]/10 rounded-full mb-4">
+                  <span className="text-2xl">🌟</span>
+                </div>
+                <h3 className="text-3xl md:text-4xl font-bold mb-4" style={{ color: '#E66926' }}>
+                  Why Choose Our Bus Services
+                </h3>
+                <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+                  Reliable, comfortable, and affordable bus rentals for all occasions
+                </p>
+              </div>
+
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                {[
+                  { icon: '✅', title: 'Experienced Drivers', desc: 'Skilled & licensed' },
+                  { icon: '💰', title: 'Best Rates', desc: 'Competitive pricing' },
+                  { icon: '🕐', title: 'Flexible Timing', desc: 'As per your schedule' },
+                  { icon: '📱', title: 'Easy Booking', desc: 'Simple process' },
+                  { icon: '🧼', title: 'Clean Buses', desc: 'Regular maintenance' },
+                  { icon: '⏱️', title: 'On-Time', desc: 'Punctual service' },
+                  { icon: '🛡️', title: 'Fully Insured', desc: 'Complete protection' },
+                  { icon: '💳', title: 'Flexible Payment', desc: 'Multiple options' }
+                ].map((feature, index) => (
+                  <div key={index} className="bg-white rounded-xl p-6 text-center shadow-lg border border-gray-200 hover:border-[#E66926] transition-all duration-300 transform hover:scale-105">
+                    <div className="text-4xl mb-3">{feature.icon}</div>
+                    <h4 className="font-bold text-gray-900 mb-1">{feature.title}</h4>
+                    <p className="text-sm text-gray-600">{feature.desc}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Additional Services Section Header - Other Services */}
+        {selectedCategory === 'Other Services' && !selectedService && (
           <div className="text-center mb-12">
             <div className="inline-block px-6 py-3 bg-[#1E9ABF]/10 rounded-full mb-4">
               <span className="text-2xl">🎯</span>
@@ -825,10 +1135,10 @@ const OtherServices = () => {
           </div>
         )}
 
-        {/* Service Cards Grid - Show when no service selected */}
-        {!selectedService && (
+        {/* Service Cards Grid - Show only for Other Services */}
+        {selectedCategory === 'Other Services' && !selectedService && (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mb-12">
-            {services.map((service, index) => (
+            {services.map((service) => (
               <div
                 key={service.id}
                 onClick={() => handleServiceClick(service.name)}

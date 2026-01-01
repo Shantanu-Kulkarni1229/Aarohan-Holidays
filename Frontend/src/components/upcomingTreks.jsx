@@ -78,19 +78,28 @@ const UpcomingTreks = () => {
 
     checkScrollPosition(scrollContainer);
 
-    // Only handle wheel events on desktop, not mobile
+    let scrollAnimationFrame = null;
+
+    // Handle wheel events on desktop
     const handleWheel = (e) => {
       // Skip if horizontal scroll is already happening
       if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) return;
       
       // Only convert vertical to horizontal on non-touch devices
       const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
-      if (isTouchDevice) return; // Let native scroll work on touch devices
+      if (isTouchDevice) return;
       
       e.preventDefault();
-      scrollContainer.scrollBy({
-        left: e.deltaY * 2,
-        behavior: 'smooth'
+      
+      // Cancel any ongoing scroll animation
+      if (scrollAnimationFrame) {
+        cancelAnimationFrame(scrollAnimationFrame);
+      }
+      
+      // Use requestAnimationFrame for smooth scrolling
+      scrollAnimationFrame = requestAnimationFrame(() => {
+        scrollContainer.scrollLeft += e.deltaY;
+        checkScrollPosition(scrollContainer);
       });
     };
 
@@ -98,7 +107,7 @@ const UpcomingTreks = () => {
       checkScrollPosition(scrollContainer);
     };
 
-    // Use passive: true for scroll events to improve performance
+    // Attach wheel event to the container and propagate to children
     scrollContainer.addEventListener('wheel', handleWheel, { passive: false });
     scrollContainer.addEventListener('scroll', handleScrollUpdate, { passive: true });
 
@@ -108,6 +117,9 @@ const UpcomingTreks = () => {
     resizeObserver.observe(scrollContainer);
 
     return () => {
+      if (scrollAnimationFrame) {
+        cancelAnimationFrame(scrollAnimationFrame);
+      }
       scrollContainer.removeEventListener('wheel', handleWheel);
       scrollContainer.removeEventListener('scroll', handleScrollUpdate);
       resizeObserver.disconnect();
@@ -819,6 +831,12 @@ const UpcomingTreks = () => {
         .custom-scrollbar {
           scrollbar-width: thin;
           scrollbar-color: ${colors.secondary} ${colors.border};
+          touch-action: pan-x;
+        }
+        
+        .custom-scrollbar > * {
+          pointer-events: auto;
+          touch-action: pan-x;
         }
         
         .custom-scrollbar::-webkit-scrollbar {
