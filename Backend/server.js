@@ -30,10 +30,10 @@ console.log(`🚀 Starting server in ${process.env.NODE_ENV} mode`);
 
 // Middlewares
 const allowedOrigins = [
-  "https://4zb5qb7j-5173.inc1.devtunnels.ms", 
+  "https://4zb5qb7j-5173.inc1.devtunnels.ms",
   "http://localhost:5173",
-"https://aarohanholidays.com",
-"https://www.aarohanholidays.com",
+  "https://aarohanholidays.com",
+  "https://www.aarohanholidays.com",
   "https://lightyellow-ram-720840.hostingersite.com"
   // If using Netlify
   // Add any other frontend domains you're using
@@ -44,7 +44,7 @@ app.use(
     origin: function (origin, callback) {
       // Allow requests with no origin (like mobile apps or curl)
       if (!origin) return callback(null, true);
-      
+
       // Check if origin is in allowed list or matches a pattern
       const isAllowed = allowedOrigins.some(allowedOrigin => {
         if (origin === allowedOrigin) return true;
@@ -54,7 +54,7 @@ app.use(
         if (origin.includes('netlify.app')) return true;
         return false;
       });
-      
+
       if (isAllowed) {
         return callback(null, true);
       } else {
@@ -90,7 +90,7 @@ app.use(async (req, res, next) => {
     next();
   } catch (error) {
     console.error("❌ DB connection failed on request:", error.message);
-    return res.status(503).json({ 
+    return res.status(503).json({
       success: false,
       error: "Database connection unavailable",
       message: "Please try again in a moment"

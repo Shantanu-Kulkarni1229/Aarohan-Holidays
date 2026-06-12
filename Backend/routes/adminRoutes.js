@@ -1,5 +1,6 @@
 import express from "express";
 import upload from "../middlewares/upload.js";
+import { handleMulterError } from "../middlewares/uploadMiddleware.js";
 import {
   createTour,
   getAllTours,
@@ -34,6 +35,7 @@ router.post(
     { name: "showcaseImages", maxCount: 5 },
     { name: "hotelImages", maxCount: 5 },
   ]),
+  handleMulterError,
   createTour
 );
 router.get("/tours", getAllTours);
@@ -45,6 +47,7 @@ router.put(
     { name: "showcaseImages", maxCount: 5 },
     { name: "hotelImages", maxCount: 5 },
   ]),
+  handleMulterError,
   updateTour
 );
 router.delete("/tours/:id", deleteTour);
@@ -57,6 +60,7 @@ router.post(
     { name: "showcaseImages", maxCount: 5 },
     { name: "hotelImages", maxCount: 5 },
   ]),
+  handleMulterError,
   createTrek
 );
 router.get("/treks", getAllTreks);
@@ -68,6 +72,7 @@ router.put(
     { name: "showcaseImages", maxCount: 5 },
     { name: "hotelImages", maxCount: 5 },
   ]),
+  handleMulterError,
   updateTrek
 );
 router.delete("/treks/:id", deleteTrek);

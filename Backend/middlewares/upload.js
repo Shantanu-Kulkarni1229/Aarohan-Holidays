@@ -8,10 +8,31 @@ const storage = multer.diskStorage({
 });
 
 const fileFilter = (req, file, cb) => {
-  const allowed = /jpeg|jpg|png|webp/;
-  const ext = path.extname(file.originalname).toLowerCase();
-  if (allowed.test(ext)) cb(null, true);
-  else cb(new Error("Only image files (jpeg, jpg, png, webp) are allowed."));
+  const allowedExtensions = [
+    ".jpg",
+    ".jpeg",
+    ".png",
+    ".webp",
+    ".gif",
+    ".svg",
+    ".avif",
+    ".heic",
+    ".heif",
+    ".jfif",
+    ".bmp",
+    ".tif",
+    ".tiff"
+  ];
+
+  const ext = path.extname(file.originalname || "").toLowerCase();
+  const isImageMime = typeof file.mimetype === "string" && file.mimetype.startsWith("image/");
+  const isAllowedExtension = allowedExtensions.includes(ext);
+
+  if (isImageMime || isAllowedExtension) {
+    cb(null, true);
+  } else {
+    cb(new Error("Only image files are allowed."));
+  }
 };
 
 const upload = multer({ storage, fileFilter });

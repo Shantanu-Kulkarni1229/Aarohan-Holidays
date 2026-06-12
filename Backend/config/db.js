@@ -1,5 +1,8 @@
 import mongoose from "mongoose";
 
+let connectPromise = null;
+let connectionListenersRegistered = false;
+
 // Serverless-optimized MongoDB connection
 const connectDB = async () => {
   try {
@@ -7,6 +10,10 @@ const connectDB = async () => {
     if (mongoose.connection.readyState === 1) {
       console.log("✅ Using existing MongoDB connection");
       return mongoose.connection;
+    }
+
+    if (connectPromise) {
+      return await connectPromise;
     }
 
     // Serverless-optimized connection options
@@ -22,33 +29,40 @@ const connectDB = async () => {
       bufferCommands: false, // Disable buffering for immediate errors
     };
 
-    const conn = await mongoose.connect(process.env.MONGO_URI, options);
+    connectPromise = mongoose.connect(process.env.MONGO_URI, options);
+    const conn = await connectPromise;
+    connectPromise = null;
     
     console.log(`✅ MongoDB Connected: ${conn.connection.host}`);
     console.log(`📊 Connection State: ${mongoose.connection.readyState}`);
-    
-    // Handle connection events
-    mongoose.connection.on("connected", () => {
-      console.log("✅ Mongoose connected to MongoDB");
-    });
 
-    mongoose.connection.on("error", (err) => {
-      console.error(`❌ Mongoose connection error: ${err}`);
-    });
+    if (!connectionListenersRegistered) {
+      connectionListenersRegistered = true;
 
-    mongoose.connection.on("disconnected", () => {
-      console.log("⚠️ Mongoose disconnected from MongoDB");
-    });
+      // Handle connection events once per process to avoid listener leaks.
+      mongoose.connection.on("connected", () => {
+        console.log("✅ Mongoose connected to MongoDB");
+      });
 
-    // Graceful shutdown
-    process.on("SIGINT", async () => {
-      await mongoose.connection.close();
-      console.log("🛑 Mongoose connection closed due to app termination");
-      process.exit(0);
-    });
+      mongoose.connection.on("error", (err) => {
+        console.error(`❌ Mongoose connection error: ${err}`);
+      });
+
+      mongoose.connection.on("disconnected", () => {
+        console.log("⚠️ Mongoose disconnected from MongoDB");
+      });
+
+      // Graceful shutdown
+      process.on("SIGINT", async () => {
+        await mongoose.connection.close();
+        console.log("🛑 Mongoose connection closed due to app termination");
+        process.exit(0);
+      });
+    }
 
     return conn;
   } catch (error) {
+    connectPromise = null;
     console.error(`❌ Error connecting to MongoDB: ${error.message}`);
     // In serverless, we don't want to exit the process
     // Just log the error and let it retry

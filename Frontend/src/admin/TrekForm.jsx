@@ -42,6 +42,7 @@ const TrekForm = () => {
     
     // Arrays
     highlights: [''],
+    availableDates: [],
     faqs: [{ question: '', answer: '' }],
     cityPricing: [{ 
       city: '', 
@@ -136,6 +137,9 @@ const TrekForm = () => {
           // Ensure introSection is properly loaded
           introSection: trek.introSection || { header: '', content: '' },
           highlights: trek.highlights?.length > 0 ? trek.highlights : [''],
+          availableDates: trek.availableDates?.length > 0
+            ? trek.availableDates.map(date => new Date(date).toISOString().split('T')[0])
+            : [],
           faqs: trek.faqs?.length > 0 ? trek.faqs : [{ question: '', answer: '' }],
           cityPricing: trek.cityPricing?.length > 0 ? trek.cityPricing.map(city => ({
             ...city,
