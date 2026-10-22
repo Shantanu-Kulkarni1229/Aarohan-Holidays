@@ -1,59 +1,34 @@
-############################################
-# React / Vite SPA Routing
-############################################
+# Hostinger (Apache/LiteSpeed): single-page-app routing, HTTPS and caching.
+# Upload this file together with the rest of the dist/ folder.
+
 <IfModule mod_rewrite.c>
   RewriteEngine On
   RewriteBase /
 
-  # Do not rewrite existing files or directories
+  # Send all traffic to HTTPS (turn the free SSL on in hPanel first)
+  RewriteCond %{HTTPS} off
+  RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+
+  # Let real files (assets, robots.txt, sitemap.xml, images) through; everything else is the React app
+  RewriteRule ^index\.html$ - [L]
   RewriteCond %{REQUEST_FILENAME} !-f
   RewriteCond %{REQUEST_FILENAME} !-d
-  RewriteCond %{REQUEST_FILENAME} !-l
-
-  # Route all other requests to index.html
-  RewriteRule ^ index.html [L]
+  RewriteRule . /index.html [L]
 </IfModule>
 
-
-############################################
-# Disable Directory Browsing
-############################################
-Options -Indexes
-
-
-############################################
-# GZIP Compression
-############################################
 <IfModule mod_deflate.c>
-  AddOutputFilterByType DEFLATE text/html text/plain text/xml text/css text/javascript application/javascript application/json
+  AddOutputFilterByType DEFLATE text/html text/css application/javascript application/json image/svg+xml
 </IfModule>
 
-
-############################################
-# ⚠️ Disable Aggressive Caching (Important)
-# Prevents old images, logo, JS bundle being reused
-############################################
 <IfModule mod_expires.c>
   ExpiresActive On
-  ExpiresDefault "access plus 0 seconds"
+  # Hashed build files never change, so browsers can keep them for a year
+  ExpiresByType application/javascript "access plus 1 year"
+  ExpiresByType text/css "access plus 1 year"
+  ExpiresByType image/png "access plus 1 month"
+  ExpiresByType image/jpeg "access plus 1 month"
+  ExpiresByType image/webp "access plus 1 month"
+  ExpiresByType image/svg+xml "access plus 1 month"
+  # The page shell must always be fresh so new deployments show up
   ExpiresByType text/html "access plus 0 seconds"
-  ExpiresByType application/javascript "access plus 0 seconds"
-  ExpiresByType text/css "access plus 0 seconds"
-  ExpiresByType image/* "access plus 0 seconds"
-</IfModule>
-
-<IfModule mod_headers.c>
-  Header set Cache-Control "no-cache, no-store, must-revalidate"
-  Header set Pragma "no-cache"
-  Header set Expires 0
-</IfModule>
-
-
-############################################
-# Security Headers
-############################################
-<IfModule mod_headers.c>
-  Header set X-Content-Type-Options "nosniff"
-  Header set X-Frame-Options "SAMEORIGIN"
-  Header set X-XSS-Protection "1; mode=block"
 </IfModule>
