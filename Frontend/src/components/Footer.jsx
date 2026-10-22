@@ -463,32 +463,10 @@ export default function Footer() {
                 style={{ borderColor: colors.border }}
               >
                 <img loading="lazy" decoding="async" 
-                  src="https://yt3.googleusercontent.com/Up6P_vTGuPUFhnmyeXGJeH6enkSD_qNbZgovRHK141a3FOeUmuw9y4cSLN90hQ5U5SLBP6z9v9Y=s900-c-k-c0x00ffffff-no-rj"
-                  alt="Maharashtra Tourism Development Corporation"
-                  className="h-20 w-auto object-contain"
+                  src="/Certificates/maharashtra-tourism.png"
+                  alt="Maharashtra Tourism"
+                  className="h-24 w-auto object-contain"
                 />
-                <p 
-                  className="text-xs mt-2 font-medium"
-                  style={{ color: colors.textDark }}
-                >
-                  
-                </p>
-              </div>
-              <div 
-                className="bg-white p-2 rounded-xl shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:scale-105 border-2"
-                style={{ borderColor: colors.border }}
-              >
-                <img 
-                  src="https://mystikalindia.com/wp-content/uploads/2019/08/Incredible-India-Logo.png"
-                  alt="Tourism Certification"
-                  className="h-20 w-auto object-contain"
-                />
-                <p 
-                  className="text-xs mt-2 font-medium"
-                  style={{ color: colors.textDark }}
-                >
-                 
-                </p>
               </div>
             </div>
           </div>
