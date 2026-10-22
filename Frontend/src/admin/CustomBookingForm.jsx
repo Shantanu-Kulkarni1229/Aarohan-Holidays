@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { API_BASE_URL } from '../api/api';
-import { showSuccess, showError } from '../utils/toast';
+import { showError } from '../utils/toast';
 import { 
   User, Mail, Phone, MapPin, Calendar, Users, DollarSign, 
   Package, Mountain, CheckCircle2, Send, AlertCircle,
@@ -294,7 +294,7 @@ const CustomBookingForm = () => {
   };
 
   return (
-    <div className="min-h-screen py-8 px-4" style={{ backgroundColor: colors.lightBg }}>
+    <div className="py-8 px-4" style={{ backgroundColor: colors.lightBg }}>
       <div className="max-w-4xl mx-auto">
         
         {/* Header */}

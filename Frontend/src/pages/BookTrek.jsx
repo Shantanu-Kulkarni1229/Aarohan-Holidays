@@ -1,99 +1,297 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { treksAPI } from '../api/userAPI';
 import axios from 'axios';
 import { showError, showApiError, showSuccess } from '../utils/toast';
 import { gsap } from 'gsap';
 import 'quill/dist/quill.snow.css';
-import { MapPin, Clock, ChevronDown, ChevronUp, CheckCircle, XCircle, AlertCircle, Loader, Play, X, Mountain, TrendingUp, Users, Shield, Heart, Phone } from 'lucide-react';
+import {
+  MapPin, Clock, ChevronDown, ChevronLeft, ChevronRight, CheckCircle, XCircle, AlertCircle,
+  Loader, Play, X, Mountain, TrendingUp, Users, Shield, Heart, Phone, Building,
+  Minus, Plus, CalendarDays, Ticket, MessageCircle
+} from 'lucide-react';
 import Navbar from '../components/Navbar';
 import { API_BASE_URL } from '../api/api';
 import '../components/RichTextContent.css';
+import { CONTACT, SITE } from '../utils/contact';
+import Seo from '../components/Seo';
+import { heroImage } from '../utils/image';
+
+
+const colors = {
+  primary: '#1E9ABF',
+  primaryDark: '#1A87A9',
+  secondary: '#E66926',
+  background: '#F8FAFC',
+  cardBg: '#FFFFFF',
+  text: '#1F2937',
+  lightText: '#6B7280',
+  border: '#E5E7EB',
+  success: '#059669',
+  warning: '#D97706',
+  error: '#DC2626',
+  accentLight: '#FEF6EE',
+  accentBlue: '#EFF6FF',
+};
+
+const optionColors = [colors.success, colors.primary, colors.secondary, '#9333EA', '#DC2626'];
+
+const formatINR = (n) => `₹${(Number(n) || 0).toLocaleString('en-IN')}`;
+
+const toDateKey = (d) => new Date(d).toISOString().split('T')[0];
+
+const formatDate = (d) =>
+  new Date(d).toLocaleDateString('en-IN', { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' });
+
+// Strip tags to check whether rich text actually has content
+const hasText = (html) => !!html && html.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').trim() !== '';
+
+const getYouTubeVideoId = (url) => {
+  if (!url) return null;
+  const match = url.match(/(?:youtube\.com\/(?:[^/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?/\s]{11})/);
+  return match ? match[1] : null;
+};
+
+const loadRazorpayScript = () =>
+  new Promise((resolve) => {
+    if (window.Razorpay) return resolve(true);
+    const script = document.createElement('script');
+    script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+    script.onload = () => resolve(true);
+    script.onerror = () => resolve(false);
+    document.body.appendChild(script);
+  });
+
+const initialForm = {
+  name: '',
+  email: '',
+  mobile: '',
+  numberOfMembers: 1,
+  adults: 1,
+  women: 0,
+  children: 0,
+  infants: 0,
+  pickupCity: '',
+  pickupPoint: '',
+  bookingDate: '',
+  selectedPricingOption: '',
+  pricePerPerson: 0,
+  specialRequests: '',
+  couponCode: '',
+  selectedAddOns: [],
+};
+
+// ---------- Small presentational pieces (defined outside so they never remount) ----------
+
+const Card = ({ id, title, icon: Icon, iconColor, children, className = '' }) => (
+  <section
+    id={id}
+    className={`bg-white rounded-xl shadow-md border p-4 sm:p-6 scroll-mt-[calc(var(--header-h)+4rem)] ${className}`}
+    style={{ borderColor: colors.border }}
+  >
+    {title && (
+      <h3 className="text-lg sm:text-xl font-bold mb-4 flex items-center" style={{ color: colors.text }}>
+        {Icon && <Icon className="w-5 h-5 mr-2" style={{ color: iconColor || colors.secondary }} />}
+        {title}
+      </h3>
+    )}
+    {children}
+  </section>
+);
+
+const Field = ({ label, error, hint, children }) => (
+  <div>
+    <label className="block text-xs font-semibold mb-1" style={{ color: colors.text }}>
+      {label} {hint && <span className="font-normal" style={{ color: colors.lightText }}>{hint}</span>}
+    </label>
+    {children}
+    {error && (
+      <p className="error-message text-xs mt-1 flex items-center gap-1" role="alert" style={{ color: colors.error }}>
+        <AlertCircle className="w-3 h-3 flex-shrink-0" />
+        {error}
+      </p>
+    )}
+  </div>
+);
+
+const inputClass = (hasError) =>
+  `w-full px-3 py-2 border rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#1E9ABF]/40 focus:border-[#1E9ABF] transition ${
+    hasError ? 'border-red-500 bg-red-50' : 'border-gray-200 hover:border-gray-400'
+  }`;
+
+const Stepper = ({ label, hint, value, onChange, min = 0 }) => (
+  <div className="flex items-center justify-between py-2">
+    <div>
+      <p className="text-sm font-semibold" style={{ color: colors.text }}>{label}</p>
+      {hint && <p className="text-xs" style={{ color: colors.lightText }}>{hint}</p>}
+    </div>
+    <div className="flex items-center gap-3">
+      <button
+        type="button"
+        onClick={() => onChange(Math.max(min, value - 1))}
+        disabled={value <= min}
+        aria-label={`Decrease ${label}`}
+        className="w-8 h-8 rounded-full border flex items-center justify-center disabled:opacity-40 disabled:cursor-not-allowed hover:bg-gray-50"
+        style={{ borderColor: colors.border }}
+      >
+        <Minus className="w-4 h-4" />
+      </button>
+      <span className="w-6 text-center font-bold text-sm" aria-live="polite">{value}</span>
+      <button
+        type="button"
+        onClick={() => onChange(value + 1)}
+        aria-label={`Increase ${label}`}
+        className="w-8 h-8 rounded-full border flex items-center justify-center hover:bg-gray-50"
+        style={{ borderColor: colors.border }}
+      >
+        <Plus className="w-4 h-4" />
+      </button>
+    </div>
+  </div>
+);
+
+const MetaTile = ({ icon: Icon, label, value }) => (
+  <div className="flex items-center gap-3 p-3 rounded-lg" style={{ backgroundColor: colors.accentBlue }}>
+    <div className="w-9 h-9 rounded-full bg-white flex items-center justify-center flex-shrink-0">
+      <Icon className="w-4 h-4" style={{ color: colors.primary }} />
+    </div>
+    <div className="min-w-0">
+      <p className="text-[11px] uppercase tracking-wide" style={{ color: colors.lightText }}>{label}</p>
+      <p className="text-sm font-semibold truncate" style={{ color: colors.text }} title={value}>{value}</p>
+    </div>
+  </div>
+);
+
+const InfoChip = ({ icon, label, value, bg, accent }) => (
+  <div className="flex items-center gap-3 p-3 rounded-lg border" style={{ backgroundColor: bg, borderColor: accent + '40' }}>
+    <span className="text-lg" aria-hidden="true">{icon}</span>
+    <div>
+      <p className="font-semibold text-xs" style={{ color: colors.text }}>{label}</p>
+      <p className="text-xs" style={{ color: accent }}>{value}</p>
+    </div>
+  </div>
+);
+
+const ItineraryDay = ({ day, expanded, onToggle }) => {
+  const activities = Array.isArray(day.activities) ? day.activities.filter((a) => a && a.trim()) : [];
+  return (
+    <div
+      className="bg-white rounded-lg border overflow-hidden"
+      style={{ borderColor: colors.border, borderLeft: `4px solid ${colors.primary}` }}
+    >
+      <button
+        type="button"
+        onClick={onToggle}
+        aria-expanded={expanded}
+        className="w-full p-3 sm:p-4 text-left flex items-center justify-between gap-3 hover:bg-gray-50 transition-colors"
+      >
+        <div className="flex items-center gap-3 min-w-0">
+          <div
+            className="flex-shrink-0 px-2.5 h-9 rounded-full flex items-center justify-center text-white font-bold text-xs whitespace-nowrap"
+            style={{ backgroundColor: colors.primary }}
+          >
+            DAY {day.day}
+          </div>
+          <h4 className="font-bold text-sm sm:text-base" style={{ color: colors.text }}>{day.title}</h4>
+        </div>
+        <ChevronDown
+          className={`h-5 w-5 flex-shrink-0 transition-transform duration-300 ${expanded ? 'rotate-180' : ''}`}
+          style={{ color: colors.primary }}
+        />
+      </button>
+
+      {/* grid-rows trick animates to natural height, so long days are never clipped */}
+      <div className={`grid transition-all duration-300 ${expanded ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'}`}>
+        <div className="overflow-hidden">
+          <div className="p-4 border-t space-y-3" style={{ borderColor: colors.border, backgroundColor: colors.background }}>
+            {hasText(day.description) && (
+              <div
+                className="leading-relaxed text-sm rich-text-content"
+                style={{ color: colors.text }}
+                dangerouslySetInnerHTML={{ __html: day.description }}
+              />
+            )}
+
+            {(day.meals || day.accommodation || day.cabType) && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {day.meals && <InfoChip icon="🍽️" label="Meals Included" value={day.meals} bg={colors.accentLight} accent={colors.secondary} />}
+                {day.accommodation && <InfoChip icon="⛺" label="Accommodation" value={day.accommodation} bg={colors.accentBlue} accent={colors.primary} />}
+                {day.cabType && <InfoChip icon="🚗" label="Cab Type" value={day.cabType} bg="#E0F2FE" accent="#0EA5E9" />}
+              </div>
+            )}
+
+            {hasText(day.note) && (
+              <div className="p-3 rounded-lg border-l-4" style={{ backgroundColor: '#FEF9C3', borderLeftColor: colors.warning }}>
+                <p className="font-bold text-xs mb-1" style={{ color: colors.text }}>📝 Important Note</p>
+                <div
+                  className="text-xs leading-relaxed rich-text-content"
+                  style={{ color: colors.text }}
+                  dangerouslySetInnerHTML={{ __html: day.note }}
+                />
+              </div>
+            )}
+
+            {activities.length > 0 && (
+              <div className="p-3 rounded-lg border" style={{ backgroundColor: colors.accentLight, borderColor: colors.secondary + '40' }}>
+                <p className="font-bold text-xs mb-2" style={{ color: colors.text }}>🎯 Trek Activities</p>
+                <ul className="space-y-1.5">
+                  {activities.map((activity, i) => (
+                    <li key={i} className="flex items-start gap-2">
+                      <span className="w-1.5 h-1.5 rounded-full flex-shrink-0 mt-1.5" style={{ backgroundColor: colors.secondary }} />
+                      <span className="text-xs leading-relaxed" style={{ color: colors.text }}>{activity}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
 
 const BookTrek = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  
+
   const [trek, setTrek] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [bookingSuccess, setBookingSuccess] = useState(false);
   const [bookingReference, setBookingReference] = useState('');
-  const [selectedImage, setSelectedImage] = useState(null);
-  const [currentImageIndex, setCurrentImageIndex] = useState(0);
-  
-  // Form state
-  const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    mobile: '',
-    numberOfMembers: 1,
-    adults: 1,
-    women: 0,
-    children: 0,
-    infants: 0,
-    pickupCity: '',
-    pickupPoint: '',
-    bookingDate: '',
-    selectedPricingOption: '', // Selected pricing option (categoryName from pricingOptions)
-    pricePerPerson: 0,
-    specialRequests: '',
-    couponCode: '',
-    selectedAddOns: [] // Array of selected add-on IDs
-  });
-  
+
+  // Lightbox: images + index kept together so hotel and showcase images both navigate correctly
+  const [lightbox, setLightbox] = useState({ images: [], index: -1 });
+
+  const [formData, setFormData] = useState(initialForm);
   const [expandedItinerary, setExpandedItinerary] = useState({});
   const [selectedCity, setSelectedCity] = useState('');
   const [formErrors, setFormErrors] = useState({});
   const [submitting, setSubmitting] = useState(false);
   const [showSuccessAnimation, setShowSuccessAnimation] = useState(false);
-  
-  // Coupon state
+
   const [couponApplied, setCouponApplied] = useState(false);
   const [couponData, setCouponData] = useState(null);
   const [couponError, setCouponError] = useState('');
   const [applyingCoupon, setApplyingCoupon] = useState(false);
-  
-  // Availability state
+
   const [availabilityData, setAvailabilityData] = useState({});
-  const [loadingAvailability, setLoadingAvailability] = useState(false);
 
-  // Refs for animations and scroll
   const sectionRef = useRef(null);
-  const headerRef = useRef(null);
-  const itineraryRef = useRef([]);
   const successRef = useRef(null);
-  const galleryRef = useRef(null);
-  const leftContentRef = useRef(null);
-  const formContainerRef = useRef(null);
+  const formRef = useRef(null);
 
-  // Color palette
-  const colors = {
-    primary: "#1E9ABF",      // Main blue
-    secondary: "#E66926",    // Orange accent
-    background: "#F8FAFC",   // Light background
-    cardBg: "#FFFFFF",       // White cards
-    text: "#1F2937",         // Dark text
-    lightText: "#6B7280",    // Light text
-    border: "#E5E7EB",       // Borders
-    success: "#059669",      // Success green
-    warning: "#D97706",      // Warning amber
-    error: "#DC2626",        // Error red
-    accentLight: "#FEF6EE",  // Light orange background
-    accentBlue: "#EFF6FF",   // Light blue background
-  };
+  // ---------- Data loading ----------
 
-  // Scroll to top when component mounts or ID changes
   useEffect(() => {
-    window.scrollTo({
-      top: 0,
-      left: 0,
-      behavior: 'instant'
-    });
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
   }, [id]);
 
-  // Fetch trek details (unchanged)
   useEffect(() => {
+    if (!id) return undefined;
+    let cancelled = false;
+
     const fetchTrek = async () => {
       try {
         setLoading(true);
@@ -101,563 +299,360 @@ const BookTrek = () => {
         setTrek(null);
         setBookingSuccess(false);
         setBookingReference('');
+        setShowSuccessAnimation(false);
         setSelectedCity('');
         setFormErrors({});
         setExpandedItinerary({});
-        setSelectedImage(null);
-        
-        // Reset coupon state
+        setLightbox({ images: [], index: -1 });
         setCouponApplied(false);
         setCouponData(null);
         setCouponError('');
-        
-        setFormData({
-          name: '',
-          email: '',
-          mobile: '',
-          numberOfMembers: 1,
-          adults: 1,
-          women: 0,
-          children: 0,
-          infants: 0,
-          pickupCity: '',
-          pickupPoint: '',
-          bookingDate: '',
-          selectedPricingOption: '',
-          pricePerPerson: 0,
-          specialRequests: '',
-          couponCode: '',
-          selectedAddOns: []
-        });
-        
+        setAvailabilityData({});
+        setFormData(initialForm);
+
         const response = await treksAPI.getById(id);
+        if (cancelled) return;
+
         if (response.data.success) {
           const trekData = response.data.data;
-          
-          // Parse introSection if it's a JSON string
+
           if (trekData.introSection && typeof trekData.introSection === 'string') {
             try {
               trekData.introSection = JSON.parse(trekData.introSection);
-            } catch (error) {
-              console.error('Failed to parse introSection:', error);
+            } catch {
               trekData.introSection = { header: '', content: '' };
             }
           }
-          
+
           setTrek(trekData);
-          if (trekData.cityPricing?.length > 0) {
-            const firstCity = response.data.data.cityPricing[0];
+          // Open the first day so users immediately see that days are expandable
+          if (trekData.itinerary?.length > 0) setExpandedItinerary({ 0: true });
+
+          const firstCity = trekData.cityPricing?.[0];
+          if (firstCity) {
+            const firstOption = firstCity.pricingOptions?.[0];
             setSelectedCity(firstCity.city);
-            // Set first pricing option as default
-            const firstPricingOption = firstCity.pricingOptions?.[0];
-            const basePrice = firstPricingOption?.price || 0;
-            const categoryName = firstPricingOption?.categoryName || '';
-            setFormData(prev => ({
+            setFormData((prev) => ({
               ...prev,
               pickupCity: firstCity.city,
-              selectedPricingOption: categoryName,
-              pricePerPerson: basePrice,
-              selectedAddOns: []
+              selectedPricingOption: firstOption?.categoryName || '',
+              pricePerPerson: firstOption?.price || 0,
             }));
           }
+        } else {
+          setError('Failed to load trek details. Please try again.');
         }
       } catch (err) {
-        const errorMsg = 'Failed to load trek details. Please try again.';
-        setError(errorMsg);
+        if (cancelled) return;
+        setError('Failed to load trek details. Please try again.');
         showApiError(err);
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
     };
 
-    if (id) {
-      fetchTrek();
-    }
+    fetchTrek();
+    return () => {
+      cancelled = true;
+    };
   }, [id]);
 
-  // Fetch availability when trek is loaded
+  // Availability only exists for legacy global dates; failure is non-fatal so stay silent
   useEffect(() => {
-    if (trek && trek._id) {
-      fetchAvailability();
-    }
-  }, [trek]);
+    if (!trek?._id) return;
+    let cancelled = false;
+    treksAPI
+      .getAvailability(trek._id)
+      .then((response) => {
+        if (cancelled || !response.data.success || !Array.isArray(response.data.data)) return;
+        const map = {};
+        response.data.data.forEach((item) => {
+          map[item.date] = { availableSeats: item.availableSeats, isAvailable: item.isAvailable };
+        });
+        setAvailabilityData(map);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [trek?._id]);
 
-  // Auto-calculate numberOfMembers when individual counts change
+  // Total members is derived from the four counters
   useEffect(() => {
     const total = formData.adults + formData.women + formData.children + formData.infants;
-    if (total !== formData.numberOfMembers) {
-      setFormData(prev => ({
-        ...prev,
-        numberOfMembers: total
-      }));
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    setFormData((prev) => (prev.numberOfMembers === total ? prev : { ...prev, numberOfMembers: total }));
   }, [formData.adults, formData.women, formData.children, formData.infants]);
 
-  // GSAP Animations (unchanged)
   useEffect(() => {
-    if (!sectionRef.current || !trek) return;
-
+    if (!sectionRef.current || !trek) return undefined;
     const ctx = gsap.context(() => {
-      gsap.fromTo(sectionRef.current,
-        { 
-          opacity: 0,
-          y: 50
-        },
-        { 
-          opacity: 1,
-          y: 0,
-          duration: 1,
-          ease: "power3.out"
-        }
-      );
-
-      if (headerRef.current) {
-        gsap.fromTo(headerRef.current.children,
-          { 
-            y: 30,
-            opacity: 0
-          },
-          { 
-            y: 0,
-            opacity: 1,
-            duration: 0.8,
-            stagger: 0.15,
-            ease: "back.out(1.4)"
-          }
-        );
-      }
-
-      if (formContainerRef.current) {
-        gsap.fromTo(formContainerRef.current,
-          { 
-            x: 50,
-            opacity: 0,
-            scale: 0.95
-          },
-          { 
-            x: 0,
-            opacity: 1,
-            scale: 1,
-            duration: 0.8,
-            ease: "power2.out",
-            delay: 0.3
-          }
-        );
-      }
-
-      if (galleryRef.current) {
-        gsap.fromTo(galleryRef.current.children,
-          { 
-            y: 30,
-            opacity: 0
-          },
-          { 
-            y: 0,
-            opacity: 1,
-            duration: 0.6,
-            stagger: 0.1,
-            ease: "power2.out",
-            delay: 0.5
-          }
-        );
-      }
-
+      gsap.fromTo(sectionRef.current, { opacity: 0, y: 30 }, { opacity: 1, y: 0, duration: 0.6, ease: 'power2.out' });
     }, sectionRef);
-
     return () => ctx.revert();
   }, [trek]);
 
-  // Itinerary animations (unchanged)
   useEffect(() => {
-    const cards = itineraryRef.current.filter(Boolean);
-    if (cards.length > 0) {
-      gsap.fromTo(cards,
-        { 
-          y: 30,
-          opacity: 0
-        },
-        { 
-          y: 0,
-          opacity: 1,
-          duration: 0.6,
-          stagger: 0.1,
-          ease: "power2.out"
-        }
-      );
-    }
-  }, [expandedItinerary]);
-
-  // Success animation (unchanged)
-  useEffect(() => {
-    if (showSuccessAnimation && successRef.current) {
-      const ctx = gsap.context(() => {
-        gsap.fromTo(successRef.current,
-          { 
-            scale: 0.8,
-            opacity: 0
-          },
-          { 
-            scale: 1,
-            opacity: 1,
-            duration: 0.8,
-            ease: "back.out(1.7)"
-          }
-        );
-
-        gsap.to('.confetti', {
-          y: -100,
-          rotation: 360,
-          opacity: 0,
-          duration: 1,
-          stagger: 0.1,
-          ease: "power2.out"
-        });
-
-      }, successRef.current);
-
-      return () => ctx.revert();
-    }
+    if (!showSuccessAnimation || !successRef.current) return undefined;
+    const ctx = gsap.context(() => {
+      gsap.fromTo(successRef.current, { scale: 0.8, opacity: 0 }, { scale: 1, opacity: 1, duration: 0.8, ease: 'back.out(1.7)' });
+      gsap.to('.confetti', { y: -400, rotation: 360, opacity: 0, duration: 2, stagger: 0.03, ease: 'power2.out' });
+    }, successRef.current.parentElement);
+    return () => ctx.revert();
   }, [showSuccessAnimation]);
 
-  // Handle independent scrolling (unchanged)
-  useEffect(() => {
-    const leftContent = leftContentRef.current;
-    const formContainer = formContainerRef.current;
-    
-    if (leftContent && formContainer) {
-      leftContent.style.overflowY = 'auto';
-      leftContent.style.maxHeight = 'calc(100vh - 2rem)';
-      leftContent.style.position = 'relative';
-      
-      formContainer.style.overflowY = 'auto';
-      formContainer.style.maxHeight = 'calc(100vh - 2rem)';
-      formContainer.style.position = 'sticky';
-      formContainer.style.top = '1rem';
-    }
+  // ---------- Derived data ----------
 
-    return () => {
-      if (leftContent) {
-        leftContent.style.overflowY = '';
-        leftContent.style.maxHeight = '';
-        leftContent.style.position = '';
-      }
-      if (formContainer) {
-        formContainer.style.overflowY = '';
-        formContainer.style.maxHeight = '';
-        formContainer.style.position = '';
-        formContainer.style.top = '';
-      }
-    };
+  const cityData = useMemo(
+    () => trek?.cityPricing?.find((cp) => cp.city === selectedCity),
+    [trek, selectedCity]
+  );
+  const selectedOption = cityData?.pricingOptions?.find((o) => o.categoryName === formData.selectedPricingOption);
+
+  const startingPrice = useMemo(() => {
+    const prices = (trek?.cityPricing || [])
+      .flatMap((cp) => cp.pricingOptions || [])
+      .map((o) => Number(o.price))
+      .filter((p) => p > 0);
+    return prices.length ? Math.min(...prices) : 0;
   }, [trek]);
 
-  // Image modal handlers with useCallback (unchanged)
-  const closeImageModal = useCallback(() => {
-    setSelectedImage(null);
-    setCurrentImageIndex(0);
-    document.body.style.overflow = 'auto';
-  }, []);
+  // Dates for the chosen city (new format) with fallback to legacy global dates
+  const dateOptions = useMemo(() => {
+    if (!trek || !selectedCity) return [];
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
 
-  const navigateImage = useCallback((direction) => {
-    const images = trek?.showcaseImages || [];
-    let newIndex = currentImageIndex + direction;
-    
-    if (newIndex < 0) newIndex = images.length - 1;
-    if (newIndex >= images.length) newIndex = 0;
-    
-    setCurrentImageIndex(newIndex);
-    setSelectedImage(images[newIndex]);
-  }, [currentImageIndex, trek?.showcaseImages]);
-
-  // Keyboard navigation for image modal (unchanged)
-  useEffect(() => {
-    if (!selectedImage) return;
-
-    const handleKeyDown = (e) => {
-      if (e.key === 'Escape') {
-        closeImageModal();
-      } else if (e.key === 'ArrowLeft') {
-        navigateImage(-1);
-      } else if (e.key === 'ArrowRight') {
-        navigateImage(1);
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [selectedImage, closeImageModal, navigateImage]);
-
-  const openImageModal = (image) => {
-    const images = trek.showcaseImages || [];
-    const index = images.indexOf(image);
-    setCurrentImageIndex(index);
-    setSelectedImage(image);
-    document.body.style.overflow = 'hidden';
-  };
-
-  // All handler functions remain unchanged
-  const handleInputChange = (e) => {
-    const { name, value, type } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: type === 'number' ? parseInt(value) || 0 : value
-    }));
-    
-    if (formErrors[name]) {
-      setFormErrors(prev => ({ ...prev, [name]: '' }));
+    if (cityData?.departureDates?.length > 0) {
+      return cityData.departureDates
+        .filter((d) => new Date(d.startDate) >= today && d.isAvailable !== false)
+        .map((d) => ({
+          value: toDateKey(d.startDate),
+          label: `${formatDate(d.startDate)}${d.endDate ? ` → ${formatDate(d.endDate)}` : ''}`,
+        }));
     }
+    return (trek.availableDates || [])
+      .filter((d) => new Date(d) >= today)
+      .map((d) => ({ value: toDateKey(d), label: formatDate(d) }));
+  }, [trek, selectedCity, cityData]);
+
+  const seatsLeft = availabilityData[formData.bookingDate]?.availableSeats;
+
+  const calculateTotalPrice = useCallback(() => {
+    if (!selectedOption) return 0;
+    let total = formData.numberOfMembers * (Number(selectedOption.price) || 0);
+    formData.selectedAddOns.forEach((addonId) => {
+      const addon = trek.addOns?.find((a) => a._id === addonId);
+      if (addon) total += (Number(addon.price) || 0) * formData.numberOfMembers;
+    });
+    return total;
+  }, [selectedOption, formData.numberOfMembers, formData.selectedAddOns, trek]);
+
+  const totalPrice = calculateTotalPrice();
+  const finalPrice = couponApplied && couponData ? couponData.finalAmount : totalPrice;
+
+  // A coupon is computed against a specific amount; drop it when that amount changes
+  const couponBaseRef = useRef(null);
+  useEffect(() => {
+    if (couponBaseRef.current !== null && couponBaseRef.current !== totalPrice && couponApplied) {
+      setCouponApplied(false);
+      setCouponData(null);
+      setCouponError('Price changed — please re-apply your coupon.');
+    }
+    couponBaseRef.current = totalPrice;
+  }, [totalPrice, couponApplied]);
+
+  // ---------- Handlers ----------
+
+  const clearFieldError = (name) => setFormErrors((prev) => (prev[name] ? { ...prev, [name]: '' } : prev));
+
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
+    clearFieldError(name);
   };
 
-  const handleCityChange = (e) => {
-    const city = e.target.value;
+  const handleMobileChange = (e) => {
+    setFormData((prev) => ({ ...prev, mobile: e.target.value.replace(/\D/g, '').slice(0, 10) }));
+    clearFieldError('mobile');
+  };
+
+  const setCount = (name) => (value) => {
+    setFormData((prev) => ({ ...prev, [name]: value }));
+    clearFieldError('numberOfMembers');
+  };
+
+  // Select a city and keep a valid category (same category if it exists there, else the first)
+  const selectCity = (city, preferredCategory) => {
+    const cp = trek.cityPricing.find((c) => c.city === city);
+    const options = cp?.pricingOptions || [];
+    const keep = options.find((o) => o.categoryName === (preferredCategory ?? formData.selectedPricingOption));
+    const option = keep || options[0];
     setSelectedCity(city);
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
       pickupCity: city,
-      pickupPoint: '', // Reset pickup point when city changes
-      bookingDate: '', // Reset date when city changes
-      selectedPricingOption: '', // Reset pricing option
-      pricePerPerson: 0
+      pickupPoint: '',
+      bookingDate: '',
+      selectedPricingOption: option?.categoryName || '',
+      pricePerPerson: option?.price || 0,
     }));
+    setFormErrors((prev) => ({ ...prev, pickupCity: '', bookingDate: '', selectedPricingOption: '' }));
   };
 
-  const handlePricingOptionChange = (e) => {
-    const categoryName = e.target.value;
-    const cityPrice = trek.cityPricing.find(cp => cp.city === selectedCity);
-    const selectedOption = cityPrice?.pricingOptions?.find(opt => opt.categoryName === categoryName);
-    const price = selectedOption?.price || 0;
-    const minMembers = selectedOption?.minMembers || 1;
-    
-    // Validate minimum members
-    if (formData.numberOfMembers < minMembers) {
-      setFormErrors(prev => ({
-        ...prev,
-        selectedPricingOption: `This pricing option requires minimum ${minMembers} members`
-      }));
-    } else {
-      setFormErrors(prev => ({
-        ...prev,
-        selectedPricingOption: ''
-      }));
-    }
-    
-    setFormData(prev => ({
-      ...prev,
-      selectedPricingOption: categoryName,
-      pricePerPerson: price
-    }));
+  const selectOption = (categoryName) => {
+    const option = cityData?.pricingOptions?.find((o) => o.categoryName === categoryName);
+    setFormData((prev) => ({ ...prev, selectedPricingOption: categoryName, pricePerPerson: option?.price || 0 }));
+    clearFieldError('selectedPricingOption');
   };
 
   const handleAddOnToggle = (addonId) => {
-    setFormData(prev => {
-      const isSelected = prev.selectedAddOns.includes(addonId);
-      return {
-        ...prev,
-        selectedAddOns: isSelected
-          ? prev.selectedAddOns.filter(id => id !== addonId)
-          : [...prev.selectedAddOns, addonId]
-      };
-    });
-  };
-
-  const toggleItineraryDay = (dayIndex) => {
-    setExpandedItinerary(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      [dayIndex]: !prev[dayIndex]
+      selectedAddOns: prev.selectedAddOns.includes(addonId)
+        ? prev.selectedAddOns.filter((a) => a !== addonId)
+        : [...prev.selectedAddOns, addonId],
     }));
   };
 
-  const calculateTotalPrice = () => {
-    // Get the selected city's pricing
-    if (!trek || !selectedCity) return 0;
-    
-    const cityPrice = trek.cityPricing?.find(cp => cp.city === selectedCity);
-    if (!cityPrice) return 0;
-    
-    // Find the selected pricing option
-    const selectedOption = cityPrice.pricingOptions?.find(
-      opt => opt.categoryName === formData.selectedPricingOption
-    );
-    const basePrice = selectedOption ? selectedOption.price : 0;
-    
-    // Calculate base price total
-    let totalPrice = formData.numberOfMembers * basePrice;
-    
-    // Add selected add-ons (add-ons are typically per person)
-    if (trek.addOns && formData.selectedAddOns.length > 0) {
-      formData.selectedAddOns.forEach(addonId => {
-        const addon = trek.addOns.find(a => a._id === addonId);
-        if (addon) {
-          totalPrice += addon.price * formData.numberOfMembers;
-        }
-      });
-    }
-    
-    return totalPrice;
+  const toggleItineraryDay = (index) => setExpandedItinerary((prev) => ({ ...prev, [index]: !prev[index] }));
+
+  const allExpanded = trek?.itinerary?.length > 0 && trek.itinerary.every((_, i) => expandedItinerary[i]);
+  const toggleAllItinerary = () => {
+    const next = {};
+    trek.itinerary.forEach((_, i) => {
+      next[i] = !allExpanded;
+    });
+    setExpandedItinerary(next);
   };
 
-  // Fetch availability data
-  const fetchAvailability = async () => {
-    if (!trek || !trek._id) return;
-    
-    setLoadingAvailability(true);
-    try {
-      // Call the new bulk availability endpoint
-      const response = await treksAPI.getAvailability(trek._id);
-      
-      if (response.data.success && response.data.data) {
-        // Convert array to map for easier lookup
-        const availabilityMap = {};
-        response.data.data.forEach(item => {
-          availabilityMap[item.date] = {
-            availableSeats: item.availableSeats,
-            totalSeats: item.maxGroupSize,
-            totalBooked: item.totalBooked,
-            isAvailable: item.isAvailable
-          };
-        });
-        setAvailabilityData(availabilityMap);
-      }
-    } catch (err) {
-      showApiError(err);
-      // Set default availability on error
-      if (trek.availableDates && trek.availableDates.length > 0) {
-        const defaultMap = {};
-        trek.availableDates.forEach(date => {
-          const dateString = new Date(date).toISOString().split('T')[0];
-          defaultMap[dateString] = {
-            availableSeats: trek.maxGroupSize || 0,
-            totalSeats: trek.maxGroupSize || 0,
-            totalBooked: 0,
-            isAvailable: true
-          };
-        });
-        setAvailabilityData(defaultMap);
-      }
-    } finally {
-      setLoadingAvailability(false);
-    }
+  const scrollToId = (target) => document.getElementById(target)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+  // Lightbox
+  const closeLightbox = useCallback(() => {
+    setLightbox({ images: [], index: -1 });
+    document.body.style.overflow = '';
+  }, []);
+
+  const openLightbox = (images, index) => {
+    setLightbox({ images, index });
+    document.body.style.overflow = 'hidden';
   };
 
-  // Handle coupon application
+  const stepLightbox = useCallback((dir) => {
+    setLightbox((prev) => {
+      if (prev.images.length === 0) return prev;
+      return { ...prev, index: (prev.index + dir + prev.images.length) % prev.images.length };
+    });
+  }, []);
+
+  const lightboxOpen = lightbox.index >= 0;
+  useEffect(() => {
+    if (!lightboxOpen) return undefined;
+    const onKey = (e) => {
+      if (e.key === 'Escape') closeLightbox();
+      else if (e.key === 'ArrowLeft') stepLightbox(-1);
+      else if (e.key === 'ArrowRight') stepLightbox(1);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [lightboxOpen, closeLightbox, stepLightbox]);
+
+  // Always restore body scroll on unmount
+  useEffect(() => () => { document.body.style.overflow = ''; }, []);
+
+  // Coupon
   const handleApplyCoupon = async () => {
     if (!formData.couponCode.trim()) {
       setCouponError('Please enter a coupon code');
       return;
     }
-
     setApplyingCoupon(true);
     setCouponError('');
-
     try {
       const response = await axios.post(`${API_BASE_URL}/coupons/validate`, {
-        code: formData.couponCode.toUpperCase(),
+        code: formData.couponCode.trim().toUpperCase(),
         bookingType: 'trek',
         itemId: trek._id,
-        orderAmount: calculateTotalPrice()
+        orderAmount: totalPrice,
       });
-
       if (response.data.success) {
         setCouponData(response.data.data);
         setCouponApplied(true);
-        setCouponError('');
         showSuccess(`Coupon applied! You saved ₹${response.data.data.discountAmount}`);
       }
     } catch (err) {
-      const errorMsg = err.response?.data?.message || 'Invalid coupon code';
-      setCouponError(errorMsg);
+      const msg = err.response?.data?.message || 'Invalid coupon code';
+      setCouponError(msg);
       setCouponData(null);
       setCouponApplied(false);
-      showError(errorMsg);
+      showError(msg);
     } finally {
       setApplyingCoupon(false);
     }
   };
 
-  // Remove applied coupon
   const handleRemoveCoupon = () => {
     setCouponApplied(false);
     setCouponData(null);
     setCouponError('');
-    setFormData(prev => ({ ...prev, couponCode: '' }));
+    setFormData((prev) => ({ ...prev, couponCode: '' }));
   };
 
-  // Calculate final price with coupon
-  const calculateFinalPrice = () => {
-    if (couponApplied && couponData) {
-      return couponData.finalAmount;
-    }
-    return calculateTotalPrice();
-  };
+  // ---------- Validation & payment ----------
 
   const validateForm = () => {
     const errors = {};
-    
     if (!formData.name.trim()) errors.name = 'Name is required';
     if (!formData.email.trim()) errors.email = 'Email is required';
-    else if (!/^\S+@\S+\.\S+$/.test(formData.email)) errors.email = 'Invalid email format';
-    
+    else if (!/^\S+@\S+\.\S+$/.test(formData.email.trim())) errors.email = 'Invalid email format';
     if (!formData.mobile.trim()) errors.mobile = 'Mobile number is required';
     else if (!/^[0-9]{10}$/.test(formData.mobile)) errors.mobile = 'Mobile must be 10 digits';
-    
+
     if (formData.numberOfMembers < 1) errors.numberOfMembers = 'At least 1 member required';
+    else if (trek.maxGroupSize && formData.numberOfMembers > trek.maxGroupSize) {
+      errors.numberOfMembers = `Maximum group size is ${trek.maxGroupSize}`;
+    } else if (seatsLeft !== undefined && formData.numberOfMembers > seatsLeft) {
+      errors.numberOfMembers = `Only ${seatsLeft} seat${seatsLeft === 1 ? '' : 's'} left on this date`;
+    }
+
     if (!formData.pickupCity) errors.pickupCity = 'Please select pickup city';
     if (!formData.selectedPricingOption) errors.selectedPricingOption = 'Please select a pricing category';
-    if (!formData.bookingDate) errors.bookingDate = 'Booking date is required';
-    
-    const selectedDate = new Date(formData.bookingDate);
-    if (selectedDate <= new Date()) {
-      errors.bookingDate = 'Booking date must be in the future';
-    }
-    
-    // Validate minimum members for selected pricing option
-    const cityPrice = trek.cityPricing.find(cp => cp.city === selectedCity);
-    const selectedOption = cityPrice?.pricingOptions?.find(opt => opt.categoryName === formData.selectedPricingOption);
-    if (selectedOption && formData.numberOfMembers < selectedOption.minMembers) {
-      errors.selectedPricingOption = `This pricing option requires minimum ${selectedOption.minMembers} members. You have selected ${formData.numberOfMembers} members.`;
+    else if (selectedOption && formData.numberOfMembers < (selectedOption.minMembers || 1)) {
+      errors.selectedPricingOption = `This category needs at least ${selectedOption.minMembers} members (you have ${formData.numberOfMembers}).`;
     }
 
+    if (!formData.bookingDate) errors.bookingDate = 'Please choose a trek date';
+    else if (new Date(formData.bookingDate) <= new Date()) errors.bookingDate = 'Trek date must be in the future';
+
+    setFormErrors(errors);
     if (Object.keys(errors).length > 0) {
-      setFormErrors(errors);
-      gsap.fromTo('.error-message',
-        { scale: 0.8, opacity: 0 },
-        { scale: 1, opacity: 1, duration: 0.3, stagger: 0.05 }
+      // Bring the first problem into view
+      requestAnimationFrame(() =>
+        document.querySelector('.error-message')?.scrollIntoView({ behavior: 'smooth', block: 'center' })
       );
-    } else {
-      setFormErrors({});
+      return false;
     }
-    
-    return Object.keys(errors).length === 0;
+    return true;
   };
 
-  // Load Razorpay script dynamically (unchanged)
-  const loadRazorpayScript = () => {
-    return new Promise((resolve) => {
-      const script = document.createElement('script');
-      script.src = 'https://checkout.razorpay.com/v1/checkout.js';
-      script.onload = () => resolve(true);
-      script.onerror = () => resolve(false);
-      document.body.appendChild(script);
-    });
+  const logPaymentFailure = async (orderId, errorText, bookingData) => {
+    try {
+      await axios.post(`${API_BASE_URL}/payment/failure`, { orderId, error: errorText, bookingData });
+    } catch {
+      // logging is best-effort
+    }
   };
 
-  // Initialize Razorpay payment (unchanged)
   const initiateRazorpayPayment = async (bookingData) => {
     try {
       const scriptLoaded = await loadRazorpayScript();
-      if (!scriptLoaded) {
-        throw new Error('Failed to load Razorpay. Please check your internet connection.');
-      }
+      if (!scriptLoaded) throw new Error('Failed to load Razorpay. Please check your internet connection.');
 
       const orderResponse = await axios.post(`${API_BASE_URL}/payment/create-order`, {
-        amount: calculateFinalPrice(),
-        bookingData: bookingData
+        amount: finalPrice,
+        bookingData,
       });
-
-      if (!orderResponse.data.success) {
-        throw new Error('Failed to create payment order');
-      }
-
+      if (!orderResponse.data.success) throw new Error('Failed to create payment order');
       const order = orderResponse.data.data;
 
       const options = {
@@ -667,429 +662,199 @@ const BookTrek = () => {
         name: 'Aarohan-holidays',
         description: `Booking for ${trek.name}`,
         order_id: order.id,
-        prefill: {
-          name: formData.name,
-          email: formData.email,
-          contact: formData.mobile
-        },
-        theme: {
-          color: colors.primary
-        },
-        handler: async function (response) {
+        prefill: { name: formData.name, email: formData.email, contact: formData.mobile },
+        theme: { color: colors.primary },
+        handler: async (response) => {
           try {
             const verifyResponse = await axios.post(`${API_BASE_URL}/payment/verify`, {
               razorpay_order_id: response.razorpay_order_id,
               razorpay_payment_id: response.razorpay_payment_id,
               razorpay_signature: response.razorpay_signature,
-              bookingData: bookingData
+              bookingData,
             });
-
             if (verifyResponse.data.success) {
               setBookingSuccess(true);
               setBookingReference(verifyResponse.data.data.bookingReference);
               setShowSuccessAnimation(true);
-              
-              window.scrollTo({ 
-                top: 0, 
-                left: 0, 
-                behavior: 'instant' 
-              });
+              window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
             }
           } catch (verifyErr) {
-            const errorMsg = 'Payment successful but booking verification failed. Our team will contact you shortly.';
-            setError(errorMsg);
-            showError(errorMsg);
-            
-            try {
-              await axios.post(`${API_BASE_URL}/payment/failure`, {
-                orderId: order.id,
-                error: verifyErr.message,
-                bookingData: bookingData
-              });
-            } catch (logErr) {
-              // Silently fail payment failure logging
-            }
+            const msg = 'Payment successful but booking verification failed. Our team will contact you shortly.';
+            setError(msg);
+            showError(msg);
+            logPaymentFailure(order.id, verifyErr.message, bookingData);
           } finally {
             setSubmitting(false);
           }
         },
         modal: {
-          ondismiss: function() {
+          ondismiss: () => {
             setSubmitting(false);
             setError('Payment cancelled. Please try again to confirm your booking.');
-          }
-        }
+          },
+        },
       };
 
       const razorpay = new window.Razorpay(options);
-      razorpay.on('payment.failed', async function (response) {
+      razorpay.on('payment.failed', (response) => {
         setSubmitting(false);
         setError(`Payment failed: ${response.error.description}`);
-        
-        try {
-          await axios.post(`${API_BASE_URL}/payment/failure`, {
-            orderId: order.id,
-            error: response.error.description,
-            bookingData: bookingData
-          });
-        } catch (logErr) {
-          // Silently fail payment failure logging
-        }
+        logPaymentFailure(order.id, response.error.description, bookingData);
       });
-      
       razorpay.open();
-
     } catch (err) {
-      const errorMessage = err.response?.data?.message || err.message || 'Failed to initiate payment. Please try again.';
-      setError(errorMessage);
-      showError(errorMessage);
+      const msg = err.response?.data?.message || err.message || 'Failed to initiate payment. Please try again.';
+      setError(msg);
+      showError(msg);
       setSubmitting(false);
     }
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
-    if (!validateForm()) {
-      return;
-    }
+    if (submitting || !validateForm()) return;
 
     setSubmitting(true);
     setError('');
 
-    try {
-      const calculatedTotalPrice = calculateTotalPrice();
-      const finalAmount = calculateFinalPrice();
-      
-      const bookingData = {
-        name: formData.name,
-        email: formData.email,
-        mobile: formData.mobile,
-        bookingType: 'trek',
-        trekId: id,
-        numberOfMembers: formData.numberOfMembers,
-        adults: formData.adults,
-        women: formData.women,
-        children: formData.children,
-        infants: formData.infants,
-        selectedCategory: formData.selectedPricingOption, // Selected pricing category name
-        selectedAddOns: formData.selectedAddOns, // Selected add-on IDs
-        pickupCity: formData.pickupCity,
-        pickupPoint: formData.pickupPoint,
-        bookingDate: formData.bookingDate,
-        pricePerPerson: formData.pricePerPerson,
-        totalPrice: finalAmount, // Send the final calculated price (after discount)
-        originalPrice: calculatedTotalPrice, // Send the original price before discount
-        specialRequests: formData.specialRequests,
-        ...(couponApplied && couponData && {
-          couponCode: couponData.code,
-          discountPercentage: couponData.discountPercentage,
-          discountAmount: couponData.discountAmount
-        })
-      };
+    const bookingData = {
+      name: formData.name.trim(),
+      email: formData.email.trim(),
+      mobile: formData.mobile,
+      bookingType: 'trek',
+      trekId: id,
+      numberOfMembers: formData.numberOfMembers,
+      adults: formData.adults,
+      women: formData.women,
+      children: formData.children,
+      infants: formData.infants,
+      selectedCategory: formData.selectedPricingOption,
+      selectedAddOns: formData.selectedAddOns,
+      pickupCity: formData.pickupCity,
+      pickupPoint: formData.pickupPoint,
+      bookingDate: formData.bookingDate,
+      pricePerPerson: formData.pricePerPerson,
+      totalPrice: finalPrice,
+      originalPrice: totalPrice,
+      specialRequests: formData.specialRequests,
+      ...(couponApplied && couponData && {
+        couponCode: couponData.code,
+        discountPercentage: couponData.discountPercentage,
+        discountAmount: couponData.discountAmount,
+      }),
+    };
 
-      await initiateRazorpayPayment(bookingData);
-      
-    } catch (err) {
-      const errorMessage = err.response?.data?.message || 
-                          err.response?.data?.error || 
-                          'Failed to create booking. Please try again.';
-      
-      setError(errorMessage);
-      showApiError(err);
-      
-      gsap.fromTo('.error-alert',
-        { y: -20, opacity: 0 },
-        { y: 0, opacity: 1, duration: 0.5, ease: "back.out(1.7)" }
-      );
-      setSubmitting(false);
-    }
+    await initiateRazorpayPayment(bookingData);
   };
 
-  // Enhanced Itinerary Component with new colors
-  const ItineraryDay = ({ day, index }) => {
-    const isExpanded = expandedItinerary[index];
-    
-    return (
-      <div
-        ref={el => itineraryRef.current[index] = el}
-        className="bg-white rounded-lg shadow-md border overflow-hidden transition-all duration-300 hover:shadow-lg"
-        style={{ borderColor: colors.border, borderLeftColor: colors.primary, borderLeftWidth: '3px' }}
-      >
-        <button
-          onClick={() => toggleItineraryDay(index)}
-          className="w-full p-4 text-left flex items-center justify-between hover:bg-gray-50 transition-colors duration-200"
-        >
-          <div className="flex items-center gap-3">
-            <div 
-              className="flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-sm"
-              style={{ backgroundColor: colors.primary }}
-            >
-              DAY {day.day}
-            </div>
-            <div>
-              <h4 className="font-bold text-base" style={{ color: colors.text }}>{day.title}</h4>
-            </div>
-          </div>
-          <div className={`transform transition-transform duration-300 ${isExpanded ? 'rotate-180' : ''}`}>
-            <ChevronDown className="h-4 w-4" style={{ color: colors.primary }} />
-          </div>
-        </button>
-        
-        <div className={`overflow-hidden transition-all duration-500 ${isExpanded ? 'max-h-[2000px] opacity-100' : 'max-h-0 opacity-0'}`}>
-          <div className="p-4 border-t overflow-y-auto max-h-[1800px]" style={{ borderColor: colors.border, backgroundColor: colors.background }}>
-            <div 
-              className="leading-relaxed mb-3 text-sm rich-text-content" 
-              style={{ color: colors.text, textAlign: 'justify' }}
-              dangerouslySetInnerHTML={{ __html: day.description }}
-            />
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
-              {day.meals && (
-                <div className="flex items-center gap-3 p-3 rounded-lg border" style={{ backgroundColor: colors.accentLight, borderColor: colors.secondary + '40' }}>
-                  <div className="w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0" style={{ backgroundColor: colors.secondary + '20' }}>
-                    <span className="text-sm">🍽️</span>
-                  </div>
-                  <div>
-                    <p className="font-semibold text-xs" style={{ color: colors.text }}>Meals Included</p>
-                    <p className="text-xs" style={{ color: colors.secondary }}>{day.meals}</p>
-                  </div>
-                </div>
-              )}
-              
-              {day.accommodation && (
-                <div className="flex items-center gap-3 p-3 rounded-lg border" style={{ backgroundColor: colors.accentBlue, borderColor: colors.primary + '40' }}>
-                  <div className="w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0" style={{ backgroundColor: colors.primary + '20' }}>
-                    <span className="text-sm">⛺</span>
-                  </div>
-                  <div>
-                    <p className="font-semibold text-xs" style={{ color: colors.text }}>Accommodation</p>
-                    <p className="text-xs" style={{ color: colors.primary }}>{day.accommodation}</p>
-                  </div>
-                </div>
-              )}
-              
-              {day.cabType && (
-                <div className="flex items-center gap-3 p-3 rounded-lg border" style={{ backgroundColor: '#E0F2FE', borderColor: '#0EA5E9' + '40' }}>
-                  <div className="w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0" style={{ backgroundColor: '#0EA5E9' + '20' }}>
-                    <span className="text-sm">🚗</span>
-                  </div>
-                  <div>
-                    <p className="font-semibold text-xs" style={{ color: colors.text }}>Cab Type</p>
-                    <p className="text-xs" style={{ color: '#0EA5E9' }}>{day.cabType}</p>
-                  </div>
-                </div>
-              )}
-            </div>
-            
-            {/* NEW: Day Note - Display if present */}
-            {day.note && day.note.trim() && day.note.replace(/<[^>]*>/g, '').trim() && (
-              <div 
-                className="mt-3 p-3 rounded-lg border-l-4 transition-all duration-300 hover:shadow-md"
-                style={{ 
-                  backgroundColor: '#FEF9C3', 
-                  borderLeftColor: colors.warning,
-                  boxShadow: '0 2px 6px rgba(0,0,0,0.05)'
-                }}
-              >
-                <div className="flex items-start gap-2">
-                  <div 
-                    className="w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0"
-                    style={{ backgroundColor: colors.warning + '25' }}
-                  >
-                    <span className="text-sm">📝</span>
-                  </div>
-                  <div className="flex-1">
-                    <p className="font-bold text-xs mb-1" style={{ color: colors.text }}>Important Note</p>
-                    <div 
-                      className="text-xs leading-relaxed rich-text-content" 
-                      style={{ color: colors.text }}
-                      dangerouslySetInnerHTML={{ __html: day.note }}
-                    />
-                  </div>
-                </div>
-              </div>
-            )}
-            
-            {/* NEW: Activities List - Display if present */}
-            {day.activities && Array.isArray(day.activities) && day.activities.length > 0 && (
-              <div 
-                className="mt-3 p-3 rounded-lg border transition-all duration-300 hover:shadow-md"
-                style={{ 
-                  backgroundColor: colors.accentLight + '30', 
-                  borderColor: colors.secondary + '40',
-                  boxShadow: '0 2px 6px rgba(0,0,0,0.05)'
-                }}
-              >
-                <div className="flex items-start gap-2">
-                  <div 
-                    className="w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0"
-                    style={{ backgroundColor: colors.secondary + '20' }}
-                  >
-                    <span className="text-sm">🎯</span>
-                  </div>
-                  <div className="flex-1">
-                    <p className="font-bold text-xs mb-2" style={{ color: colors.text }}>Trek Activities</p>
-                    <ul className="space-y-1.5">
-                      {day.activities.filter(activity => activity && activity.trim()).map((activity, actIndex) => (
-                        <li key={actIndex} className="flex items-start gap-2">
-                          <span 
-                            className="w-1 h-1 rounded-full flex-shrink-0 mt-1.5"
-                            style={{ backgroundColor: colors.secondary }}
-                          ></span>
-                          <span className="text-xs leading-relaxed flex-1" style={{ color: colors.text }}>{activity}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-    );
-  };
-
-  // Extract YouTube video ID from URL (unchanged)
-  const getYouTubeVideoId = (url) => {
-    if (!url) return null;
-    const match = url.match(/(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/);
-    return match ? match[1] : null;
-  };
+  // ---------- Early returns ----------
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: colors.background }}>
-        <div className="text-center">
-          <div 
-            className="animate-spin rounded-full h-12 w-12 border-b-2 mx-auto mb-3"
-            style={{ borderColor: colors.primary }}
-          ></div>
-          <p className="text-sm" style={{ color: colors.lightText }}>Loading your trek adventure...</p>
+      <>
+        <Seo title="Loading trek" noindex />
+        <Navbar />
+        <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: colors.background }}>
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 mx-auto mb-3" style={{ borderColor: colors.primary }} />
+            <p className="text-sm" style={{ color: colors.lightText }}>Loading your trek adventure...</p>
+          </div>
         </div>
-      </div>
+      </>
     );
   }
 
   if (error && !trek) {
     return (
-      <div className="min-h-screen flex items-center justify-center p-4" style={{ backgroundColor: colors.background }}>
-        <div className="bg-white rounded-lg shadow-lg p-6 max-w-md w-full text-center border" style={{ borderColor: colors.border }}>
-          <div className="w-14 h-14 rounded-full flex items-center justify-center mx-auto mb-3" style={{ backgroundColor: colors.accentLight }}>
-            <XCircle className="h-7 w-7" style={{ color: colors.secondary }} />
+      <>
+        <Seo title="Trek not found" noindex />
+        <Navbar />
+        <div className="min-h-screen flex items-center justify-center p-4" style={{ backgroundColor: colors.background }}>
+          <div className="bg-white rounded-lg shadow-lg p-6 max-w-md w-full text-center border" style={{ borderColor: colors.border }}>
+            <div className="w-14 h-14 rounded-full flex items-center justify-center mx-auto mb-3" style={{ backgroundColor: colors.accentLight }}>
+              <XCircle className="h-7 w-7" style={{ color: colors.secondary }} />
+            </div>
+            <h2 className="text-lg font-bold mb-3" style={{ color: colors.text }}>Trek Not Found</h2>
+            <p className="text-sm mb-4" style={{ color: colors.lightText }}>{error}</p>
+            <button
+              onClick={() => navigate('/treks')}
+              className="w-full py-2.5 rounded-lg text-white font-semibold text-sm hover:opacity-90"
+              style={{ backgroundColor: colors.primary }}
+            >
+              Explore Available Treks
+            </button>
           </div>
-          <h2 className="text-lg font-bold mb-3" style={{ color: colors.text }}>Trek Not Found</h2>
-          <p className="text-sm mb-4" style={{ color: colors.lightText }}>{error}</p>
-          <button
-            onClick={() => navigate('/treks')}
-            className="w-full py-2.5 rounded-lg text-white font-semibold transition-colors text-sm"
-            style={{ backgroundColor: colors.primary }}
-            onMouseOver={(e) => e.target.style.backgroundColor = '#1A87A9'}
-            onMouseOut={(e) => e.target.style.backgroundColor = colors.primary}
-          >
-            Explore Available Treks
-          </button>
         </div>
-      </div>
+      </>
     );
   }
 
   if (!trek) return null;
 
-  // Success Modal with new colors
   if (bookingSuccess) {
+    const confetti = Array.from({ length: 50 }, (_, i) => ({
+      key: i,
+      left: `${(i * 37) % 100}%`,
+      size: 5 + ((i * 7) % 10),
+      color: [colors.primary, colors.secondary, '#10b981', '#8b5cf6'][i % 4],
+    }));
     return (
       <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden" style={{ backgroundColor: colors.background }}>
-        {/* Confetti Elements */}
-        <div className="absolute inset-0 pointer-events-none">
-          {[...Array(50)].map((_, i) => (
+        <div className="absolute inset-0 pointer-events-none" aria-hidden="true">
+          {confetti.map((c) => (
             <div
-              key={i}
-              className="confetti absolute"
-              style={{
-                left: `${Math.random() * 100}%`,
-                top: '100%',
-                width: `${Math.random() * 10 + 5}px`,
-                height: `${Math.random() * 10 + 5}px`,
-                backgroundColor: [colors.primary, colors.secondary, '#10b981', '#8b5cf6'][Math.floor(Math.random() * 4)],
-                borderRadius: '50%'
-              }}
+              key={c.key}
+              className="confetti absolute rounded-full"
+              style={{ left: c.left, top: '100%', width: c.size, height: c.size, backgroundColor: c.color }}
             />
           ))}
         </div>
 
-        <div ref={successRef} className="bg-white rounded-lg shadow-lg p-6 max-w-2xl w-full mx-4 relative z-10 border" style={{ borderColor: colors.border }}>
+        <div ref={successRef} className="bg-white rounded-lg shadow-lg p-6 max-w-2xl w-full relative z-10 border" style={{ borderColor: colors.border }}>
           <div className="text-center">
-            <div className="mb-4">
-              <div className="inline-flex items-center justify-center w-16 h-16 rounded-full animate-pulse" style={{ backgroundColor: colors.accentLight }}>
-                <CheckCircle className="w-10 h-10" style={{ color: colors.secondary }} />
-              </div>
+            <div className="inline-flex items-center justify-center w-16 h-16 rounded-full mb-4" style={{ backgroundColor: colors.accentLight }}>
+              <CheckCircle className="w-10 h-10" style={{ color: colors.secondary }} />
             </div>
-            
-            <h1 className="text-2xl font-bold mb-3" style={{ color: colors.text }}>
-              Trek Booking Confirmed! 🏔️
-            </h1>
-            
-            <div 
-              className="text-white rounded-lg p-4 mb-4 transform hover:scale-105 transition-transform duration-300"
-              style={{ backgroundColor: colors.primary }}
-            >
+            <h1 className="text-2xl font-bold mb-3" style={{ color: colors.text }}>Trek Booking Confirmed! 🏔️</h1>
+
+            <div className="text-white rounded-lg p-4 mb-4" style={{ backgroundColor: colors.primary }}>
               <p className="text-xs uppercase tracking-wide mb-1 opacity-90">Your Booking Reference</p>
-              <p className="text-2xl font-bold tracking-wider font-mono">{bookingReference}</p>
+              <p className="text-2xl font-bold tracking-wider font-mono break-all">{bookingReference}</p>
               <p className="text-xs mt-1 opacity-90">Save this reference for future communication</p>
             </div>
-            
-            <div 
-              className="rounded-lg p-4 mb-4 text-left border"
-              style={{ backgroundColor: colors.accentBlue, borderColor: colors.primary + '40' }}
-            >
+
+            <div className="rounded-lg p-4 mb-4 text-left border" style={{ backgroundColor: colors.accentBlue, borderColor: colors.primary + '40' }}>
               <h3 className="font-semibold mb-3 flex items-center text-base" style={{ color: colors.text }}>
                 <Mountain className="w-4 h-4 mr-2" style={{ color: colors.primary }} />
                 What's Next?
               </h3>
               <ul className="space-y-2 text-sm" style={{ color: colors.text }}>
-                <li className="flex items-start">
-                  <div className="w-5 h-5 rounded-full flex items-center justify-center mr-2 flex-shrink-0" style={{ backgroundColor: colors.primary + '20' }}>
-                    <CheckCircle className="w-3 h-3" style={{ color: colors.primary }} />
-                  </div>
-                  <span>Check your email for detailed trek booking confirmation</span>
-                </li>
-                <li className="flex items-start">
-                  <div className="w-5 h-5 rounded-full flex items-center justify-center mr-2 flex-shrink-0" style={{ backgroundColor: colors.primary + '20' }}>
-                    <CheckCircle className="w-3 h-3" style={{ color: colors.primary }} />
-                  </div>
-                  <span>You'll receive a WhatsApp message with trek details</span>
-                </li>
-                <li className="flex items-start">
-                  <div className="w-5 h-5 rounded-full flex items-center justify-center mr-2 flex-shrink-0" style={{ backgroundColor: colors.primary + '20' }}>
-                    <CheckCircle className="w-3 h-3" style={{ color: colors.primary }} />
-                  </div>
-                  <span>Our team will contact you within 24 hours</span>
-                </li>
-                <li className="flex items-start">
-                  <div className="w-5 h-5 rounded-full flex items-center justify-center mr-2 flex-shrink-0" style={{ backgroundColor: colors.primary + '20' }}>
-                    <CheckCircle className="w-3 h-3" style={{ color: colors.primary }} />
-                  </div>
-                  <span>Prepare your trek gear and fitness for the adventure!</span>
-                </li>
+                {[
+                  'Check your email for detailed trek booking confirmation',
+                  "You'll receive a WhatsApp message with trek details",
+                  'Our team will contact you within 24 hours',
+                  'Prepare your trek gear and fitness for the adventure!',
+                ].map((t) => (
+                  <li key={t} className="flex items-start">
+                    <CheckCircle className="w-4 h-4 mr-2 mt-0.5 flex-shrink-0" style={{ color: colors.primary }} />
+                    <span>{t}</span>
+                  </li>
+                ))}
               </ul>
             </div>
-            
+
             <div className="flex flex-col sm:flex-row gap-3">
               <button
                 onClick={() => navigate('/treks')}
-                className="flex-1 py-2.5 px-4 rounded-lg transition-all duration-300 font-semibold hover:scale-105 transform border text-sm"
-                style={{ backgroundColor: colors.cardBg, color: colors.text, borderColor: colors.border }}
+                className="flex-1 py-2.5 px-4 rounded-lg font-semibold border text-sm hover:bg-gray-50"
+                style={{ color: colors.text, borderColor: colors.border }}
               >
                 Browse More Treks
               </button>
               <button
                 onClick={() => navigate('/')}
-                className="flex-1 py-2.5 px-4 rounded-lg text-white transition-all duration-300 font-semibold hover:scale-105 transform shadow-md text-sm"
+                className="flex-1 py-2.5 px-4 rounded-lg text-white font-semibold shadow-md text-sm hover:opacity-90"
                 style={{ backgroundColor: colors.primary }}
-                onMouseOver={(e) => e.target.style.backgroundColor = '#1A87A9'}
-                onMouseOut={(e) => e.target.style.backgroundColor = colors.primary}
               >
                 Back to Home
               </button>
@@ -1100,1316 +865,779 @@ const BookTrek = () => {
     );
   }
 
+  // ---------- Page ----------
+
   const youtubeVideoId = getYouTubeVideoId(trek.videoLink);
+  const showcaseImages = trek.showcaseImages || [];
+  const hotelImages = trek.hotelImages || [];
+  const hasIntro = hasText(trek.introSection?.content);
+  const pickupPoints = cityData?.pickupPoints || [];
+  const whatsappHref = CONTACT.whatsappWithText(
+    `Hi, I'm interested in the trek: ${trek.name}. Please share the pricing details.`
+  );
+  const pricingUnavailable = trek.contactForPricing || !trek.cityPricing?.some((cp) => cp.pricingOptions?.length > 0);
+  const canSubmit = !submitting && !!selectedOption && formData.pricePerPerson > 0;
+
+  const navItems = [
+    { id: 'overview', label: 'Overview', show: true },
+    { id: 'pricing', label: 'Pricing', show: !pricingUnavailable },
+    { id: 'itinerary', label: 'Itinerary', show: trek.itinerary?.length > 0 },
+    { id: 'inclusions', label: 'Inclusions', show: trek.inclusions?.length > 0 || trek.exclusions?.length > 0 },
+    { id: 'gallery', label: 'Gallery', show: showcaseImages.length > 0 || hotelImages.length > 0 || !!youtubeVideoId },
+    { id: 'faqs', label: 'FAQs', show: trek.faqs?.length > 0 },
+  ].filter((n) => n.show);
+
+  const WhatsAppIcon = (
+    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.890-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z" />
+    </svg>
+  );
+
+  const renderImageGrid = (images, aspect) => (
+    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+      {images.map((image, index) => (
+        <button
+          type="button"
+          key={index}
+          className={`${aspect} rounded-lg overflow-hidden border group focus:outline-none focus:ring-2 focus:ring-[#1E9ABF]`}
+          style={{ borderColor: colors.border }}
+          onClick={() => openLightbox(images, index)}
+          aria-label={`Open image ${index + 1}`}
+        >
+          <img
+            src={image}
+            alt={`${trek.name} ${index + 1}`}
+            loading="lazy"
+            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+          />
+        </button>
+      ))}
+    </div>
+  );
+
+  const seoLd = {
+    '@context': 'https://schema.org',
+    '@graph': [
+      {
+        '@type': 'BreadcrumbList',
+        itemListElement: [
+          { '@type': 'ListItem', position: 1, name: 'Home', item: SITE.url },
+          { '@type': 'ListItem', position: 2, name: 'Treks', item: `${SITE.url}/treks` },
+          { '@type': 'ListItem', position: 3, name: trek.name, item: `${SITE.url}/trek/${id}` },
+        ],
+      },
+      {
+        '@type': 'Product',
+        name: trek.name,
+        image: [trek.thumbnail, ...showcaseImages.slice(0, 4)].filter(Boolean),
+        description: (trek.description || '').replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 500) || trek.name,
+        brand: { '@type': 'Brand', name: SITE.name },
+        ...(!pricingUnavailable && startingPrice > 0 && {
+          offers: {
+            '@type': 'Offer',
+            priceCurrency: 'INR',
+            price: startingPrice,
+            availability: 'https://schema.org/InStock',
+            url: `${SITE.url}/trek/${id}`,
+          },
+        }),
+      },
+    ],
+  };
 
   return (
     <>
+      <Seo
+        title={trek.metaTitle || trek.name}
+        description={trek.metaDescription || `${trek.name}${trek.duration ? ` – ${trek.duration}` : ''}${trek.location ? ` in ${trek.location}` : ''}. ${trek.description || ''}`}
+        image={trek.thumbnail}
+        path={`/trek/${id}`}
+        jsonLd={seoLd}
+      />
       <Navbar />
-      <div ref={sectionRef} className="min-h-screen py-6 pt-20" style={{ backgroundColor: colors.background }}>
-        {/* Image Modal with Navigation */}
-        {selectedImage && (
-          <div className="fixed inset-0 bg-black bg-opacity-95 z-50 flex items-center justify-center p-4">
-            <div className="relative max-w-6xl w-full h-full flex items-center justify-center">
+      <div ref={sectionRef} className="min-h-screen pt-[calc(var(--header-h)+1.5rem)] pb-28 lg:pb-10" style={{ backgroundColor: colors.background }}>
+        {/* Lightbox */}
+        {lightboxOpen && (
+          <div
+            className="fixed inset-0 bg-black/95 z-[100] flex items-center justify-center p-4"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Image viewer"
+            onClick={closeLightbox}
+          >
+            <button
+              onClick={closeLightbox}
+              className="absolute top-4 right-4 text-white z-20 bg-black/50 rounded-full p-2 hover:bg-black/70"
+              aria-label="Close"
+            >
+              <X className="w-6 h-6" />
+            </button>
+            {lightbox.images.length > 1 && (
               <button
-                onClick={closeImageModal}
-                className="absolute top-4 right-4 text-white hover:text-gray-300 transition-colors z-20 bg-black/50 rounded-full p-2 hover:bg-black/70"
-                aria-label="Close"
+                onClick={(e) => { e.stopPropagation(); stepLightbox(-1); }}
+                className="absolute left-4 text-white z-20 bg-black/50 rounded-full p-2 hover:bg-black/70"
+                aria-label="Previous image"
               >
-                <X className="w-6 h-6" />
+                <ChevronLeft className="w-6 h-6" />
               </button>
-
-              {trek.showcaseImages && trek.showcaseImages.length > 1 && (
+            )}
+            <img
+              src={lightbox.images[lightbox.index]}
+              alt={`${trek.name} enlarged view`}
+              className="max-w-full max-h-[90vh] object-contain rounded-lg"
+              onClick={(e) => e.stopPropagation()}
+            />
+            {lightbox.images.length > 1 && (
+              <>
                 <button
-                  onClick={() => navigateImage(-1)}
-                  className="absolute left-4 text-white hover:text-gray-300 transition-colors z-20 bg-black/50 rounded-full p-2 hover:bg-black/70"
-                  aria-label="Previous image"
-                >
-                  <ChevronDown className="w-6 h-6 transform rotate-90" />
-                </button>
-              )}
-
-              <div className="relative max-w-full max-h-full flex items-center justify-center">
-                <img
-                  src={selectedImage}
-                  alt="Enlarged trek view"
-                  className="max-w-full max-h-[90vh] object-contain rounded-lg"
-                />
-                {trek.showcaseImages && trek.showcaseImages.length > 1 && (
-                  <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 bg-black/70 text-white px-3 py-1 rounded-full text-sm">
-                    {currentImageIndex + 1} / {trek.showcaseImages.length}
-                  </div>
-                )}
-              </div>
-
-              {trek.showcaseImages && trek.showcaseImages.length > 1 && (
-                <button
-                  onClick={() => navigateImage(1)}
-                  className="absolute right-4 text-white hover:text-gray-300 transition-colors z-20 bg-black/50 rounded-full p-2 hover:bg-black/70"
+                  onClick={(e) => { e.stopPropagation(); stepLightbox(1); }}
+                  className="absolute right-4 text-white z-20 bg-black/50 rounded-full p-2 hover:bg-black/70"
                   aria-label="Next image"
                 >
-                  <ChevronDown className="w-6 h-6 transform -rotate-90" />
+                  <ChevronRight className="w-6 h-6" />
                 </button>
-              )}
-            </div>
+                <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-black/70 text-white px-3 py-1 rounded-full text-sm">
+                  {lightbox.index + 1} / {lightbox.images.length}
+                </div>
+              </>
+            )}
           </div>
         )}
 
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          
-          {/* Enhanced Header with new colors */}
-          <div ref={headerRef} className="mb-6">
-            <button
-              onClick={() => navigate(-1)}
-              className="inline-flex items-center gap-2 transition-colors mb-3 group"
-              style={{ color: colors.primary }}
-            >
-              <div className="w-7 h-7 bg-white rounded-lg shadow-sm flex items-center justify-center group-hover:scale-110 transition-transform border" style={{ borderColor: colors.border }}>
-                <ChevronDown className="w-3 h-3 transform rotate-90" style={{ color: colors.primary }} />
-              </div>
-              <span className="font-medium text-sm">Back to Treks</span>
-            </button>
-            <div className="flex items-center gap-3 mb-2">
-              <h1 className="text-2xl md:text-3xl font-bold" style={{ color: colors.text }}>
-                Book Your Trek Adventure
-              </h1>
-              {/* NEW: Fixed Departure Badge */}
-              {trek.isFixedDeparture && (
-                <span 
-                  className="px-3 py-1.5 rounded-full text-xs font-bold flex items-center gap-2 animate-pulse shadow-md"
-                  style={{ backgroundColor: colors.primary + '20', color: colors.primary, border: '2px solid ' + colors.primary }}
-                >
-                  📅 Fixed Departure
-                </span>
-              )}
-            </div>
-            <p className="text-base" style={{ color: colors.lightText }}>
-              Complete your booking for <span className="font-semibold" style={{ color: colors.primary }}>{trek.name}</span>
-            </p>
-          </div>
+          <button
+            onClick={() => navigate(-1)}
+            className="inline-flex items-center gap-2 my-4 text-sm font-medium hover:underline"
+            style={{ color: colors.primary }}
+          >
+            <ChevronLeft className="w-4 h-4" />
+            Back to Treks
+          </button>
 
-          {/* Main Content */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            
-            {/* Left Side - Scrollable Content */}
-            <div ref={leftContentRef} className="lg:col-span-2 space-y-6">
-              
-              {/* Trek Overview Card */}
-              <div className="bg-white rounded-lg shadow-lg overflow-hidden transition-all duration-300 border" style={{ borderColor: colors.border }}>
-                <div className="relative h-56 sm:h-64">
-                  <img
-                    src={trek.thumbnail}
-                    alt={trek.name}
-                    className="w-full h-full object-cover transform hover:scale-105 transition-transform duration-700"
-                  />
-                  <div className="absolute inset-0 bg-black/50"></div>
-                  <div className="absolute bottom-0 left-0 right-0 p-4 text-white">
-                    <h2 className="text-xl font-bold mb-2">{trek.name}</h2>
-                    <div className="flex flex-wrap gap-2 text-xs">
-                      <span className="flex items-center gap-1 bg-black/50 px-2 py-1 rounded">
-                        <MapPin className="w-3 h-3" />
-                        {trek.location}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
+            {/* ===== Left: details ===== */}
+            <div className="lg:col-span-2 space-y-6 min-w-0">
+              {/* Hero */}
+              <div id="overview" className="bg-white rounded-xl shadow-md overflow-hidden border scroll-mt-[calc(var(--header-h)+4rem)]" style={{ borderColor: colors.border }}>
+                <div className="relative h-60 sm:h-80">
+                  {trek.thumbnail && <img src={heroImage(trek.thumbnail)} alt={trek.name} className="w-full h-full object-cover" />}
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
+                  <div className="absolute bottom-0 left-0 right-0 p-4 sm:p-6 text-white">
+                    {trek.isFixedDeparture && (
+                      <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold mb-2" style={{ backgroundColor: colors.secondary }}>
+                        <CalendarDays className="w-3 h-3" /> Fixed Departure
                       </span>
-                      <span className="flex items-center gap-1 bg-black/50 px-2 py-1 rounded">
-                        <Clock className="w-3 h-3" />
-                        {trek.duration}
-                      </span>
-                      <span className="flex items-center gap-1 bg-black/50 px-2 py-1 rounded">
-                        <Mountain className="w-3 h-3" />
-                        {trek.difficulty}
-                      </span>
-                      {trek.altitude && (
-                        <span className="flex items-center gap-1 bg-black/50 px-2 py-1 rounded">
-                          <TrendingUp className="w-3 h-3" />
-                          {trek.altitude}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                </div>
-                
-                {/* Pricing Information - Hidden if contactForPricing is enabled */}
-                {trek?.contactForPricing ? (
-                  <div className="p-4 border-b bg-gradient-to-br from-green-50 to-emerald-50" style={{ borderColor: colors.border }}>
-                    <div className="text-center py-4">
-                      <div className="w-14 h-14 mx-auto rounded-full flex items-center justify-center mb-3" style={{ backgroundColor: '#25D366' + '20' }}>
-                        <Phone className="w-7 h-7" style={{ color: '#25D366' }} />
-                      </div>
-                      <h3 className="text-base font-bold mb-2" style={{ color: colors.text }}>Contact for Pricing</h3>
-                      <p className="text-sm mb-3" style={{ color: colors.lightText }}>
-                        This trek has customized pricing. Contact us for the best quote!
+                    )}
+                    <h1 className="text-2xl sm:text-3xl font-bold">{trek.name}</h1>
+                    {trek.location && (
+                      <p className="flex items-center gap-1 text-sm mt-1 opacity-90">
+                        <MapPin className="w-4 h-4" /> {trek.location}
                       </p>
-                      <a
-                        href={`https://wa.me/917276644221?text=${encodeURIComponent(`Hi, I'm interested in the trek: ${trek?.name}. Please share the pricing details.`)}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-semibold text-white transition-all duration-300 hover:scale-105 shadow-md text-sm"
-                        style={{ backgroundColor: '#25D366' }}
-                      >
-                        <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-                          <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.890-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/>
-                        </svg>
-                        Chat on WhatsApp
-                      </a>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="p-4 border-b bg-gradient-to-br from-blue-50 to-orange-50" style={{ borderColor: colors.border }}>
-                    <h3 className="text-base font-bold mb-3 flex items-center" style={{ color: colors.text }}>
-                      <span className="mr-2">💰</span>
-                      Pricing Details - All Cities
-                    </h3>
-                    
-                    {/* Show prices for ALL cities */}
-                    {trek.cityPricing && trek.cityPricing.length > 0 ? (
-                      <div className="space-y-4">
-                        {trek.cityPricing.map((cityPrice, cityIndex) => {
-                          const isSelectedCity = selectedCity === cityPrice.city;
-                          const pricingOptions = cityPrice.pricingOptions || [];
-                          
-                          if (pricingOptions.length === 0) return null;
-                          
-                          return (
-                            <div 
-                              key={cityIndex}
-                              className={`border-2 rounded-lg p-3 transition-all duration-300 ${
-                                isSelectedCity ? 'bg-white shadow-md' : 'bg-gray-50'
-                              }`}
-                              style={{ 
-                                borderColor: isSelectedCity ? colors.primary : colors.border
-                              }}
-                            >
-                              {/* City Header */}
-                              <div className="flex items-center gap-2 mb-2 pb-2 border-b" style={{ borderColor: colors.border }}>
-                                <MapPin className="w-4 h-4" style={{ color: isSelectedCity ? colors.primary : colors.lightText }} />
-                                <span className="font-bold text-sm" style={{ color: isSelectedCity ? colors.primary : colors.text }}>
-                                  {cityPrice.city}
-                                </span>
-                                {isSelectedCity && (
-                                  <span className="ml-auto text-xs font-semibold px-2 py-1 rounded-full" style={{ backgroundColor: colors.primary + '20', color: colors.primary }}>
-                                    Selected
-                                  </span>
-                                )}
-                              </div>
-                              
-                              {/* Pricing Options - Horizontal Scrollable */}
-                              <div className="flex gap-3 overflow-x-auto pb-2" style={{ scrollbarWidth: 'thin' }}>
-                                {pricingOptions.map((option, index) => {
-                                  const isSelectedOption = isSelectedCity && formData.selectedPricingOption === option.categoryName;
-                                  const colorIndex = index % 5;
-                                  const optionColors = [
-                                    colors.success,
-                                    colors.primary, 
-                                    colors.secondary,
-                                    '#9333EA',
-                                    '#DC2626'
-                                  ];
-                                  const optionColor = optionColors[colorIndex];
-                                  const minMembers = option.minMembers || 1;
-                                  
-                                  return (
-                                    <div 
-                                      key={index}
-                                      className={`bg-white rounded-lg p-3 border-2 transition-all duration-300 hover:shadow-sm flex-shrink-0 min-w-[180px] ${
-                                        isSelectedOption ? 'ring-2' : ''
-                                      }`}
-                                      style={{ 
-                                        borderColor: isSelectedOption ? optionColor : colors.border,
-                                        ringColor: optionColor,
-                                        opacity: isSelectedCity ? 1 : 0.7
-                                      }}
-                                    >
-                                      <div className="flex items-center gap-1.5 mb-2">
-                                        <span className="text-base">🎫</span>
-                                        <span className="font-semibold text-sm" style={{ color: colors.text }}>
-                                          {option.categoryName}
-                                        </span>
-                                      </div>
-                                      <p className="text-xl font-bold mb-1" style={{ color: optionColor }}>
-                                        ₹{option.price.toLocaleString('en-IN')}
-                                      </p>
-                                      <p className="text-xs text-gray-500 mb-2">Per person</p>
-                                      <div className="flex items-center gap-1 mb-2 px-2 py-1 rounded" style={{ backgroundColor: optionColor + '10' }}>
-                                        <Users className="w-3 h-3" style={{ color: optionColor }} />
-                                        <span className="text-xs font-semibold" style={{ color: optionColor }}>
-                                          Min: {minMembers} {minMembers === 1 ? 'member' : 'members'}
-                                        </span>
-                                      </div>
-                                      {isSelectedOption && (
-                                        <div className="mt-1 text-xs font-semibold flex items-center gap-1" style={{ color: optionColor }}>
-                                          <CheckCircle className="w-3 h-3" />
-                                          Selected
-                                        </div>
-                                      )}
-                                    </div>
-                                  );
-                                })}
-                              </div>
-                            </div>
-                          );
-                        })}
-                        
-                        <p className="text-xs text-gray-600 mt-3 italic">
-                          💡 Select your pickup city and preferred category in the booking form. Prices are per person and vary by city.
-                        </p>
-                      </div>
-                    ) : (
-                      <div className="text-center py-4">
-                        <p className="text-sm" style={{ color: colors.lightText }}>
-                          No pricing information available
-                        </p>
-                      </div>
                     )}
                   </div>
-                )}
+                </div>
+
+                <div className="p-4 sm:p-6">
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                    {trek.duration && <MetaTile icon={Clock} label="Duration" value={trek.duration} />}
+                    {trek.difficulty && <MetaTile icon={Mountain} label="Difficulty" value={trek.difficulty} />}
+                    {trek.altitude && <MetaTile icon={TrendingUp} label="Altitude" value={trek.altitude} />}
+                    {trek.maxGroupSize > 0 && <MetaTile icon={Users} label="Group Size" value={`Up to ${trek.maxGroupSize}`} />}
+                  </div>
+
+                  {!pricingUnavailable && startingPrice > 0 && (
+                    <p className="mt-4 text-sm" style={{ color: colors.lightText }}>
+                      Starting from <span className="text-xl font-bold" style={{ color: colors.primary }}>{formatINR(startingPrice)}</span> per person
+                    </p>
+                  )}
+                </div>
               </div>
 
-              {/* Introduction Section - Before About Trek */}
-              {trek.introSection && trek.introSection.content && trek.introSection.content.trim() !== '' && (
-                <div className="bg-white rounded-lg shadow-lg p-6 transition-all duration-300 border" style={{ borderColor: colors.border }}>
-                  <h3 className="text-xl font-bold mb-4" style={{ color: colors.text }}>
-                    {trek.introSection.header || 'Introduction'}
-                  </h3>
-                  <div 
-                    className="leading-relaxed rich-text-content" 
-                    style={{ color: colors.text, textAlign: 'justify' }}
-                    dangerouslySetInnerHTML={{ __html: trek.introSection.content }}
-                  />
-                </div>
+              {/* Section navigation */}
+              <nav
+                aria-label="Page sections"
+                className="lg:sticky lg:top-[calc(var(--header-h)+0.5rem)] z-30 -mx-4 px-4 sm:mx-0 sm:px-3 py-2 bg-white/95 backdrop-blur border-y sm:border sm:rounded-xl flex gap-1 overflow-x-auto"
+                style={{ borderColor: colors.border }}
+              >
+                {navItems.map((n) => (
+                  <button
+                    key={n.id}
+                    type="button"
+                    onClick={() => scrollToId(n.id)}
+                    className="px-3 py-1.5 rounded-full text-xs sm:text-sm font-semibold whitespace-nowrap hover:bg-gray-100"
+                    style={{ color: colors.primary }}
+                  >
+                    {n.label}
+                  </button>
+                ))}
+              </nav>
+
+              {/* Intro + About */}
+              {hasIntro && (
+                <Card title={trek.introSection.header || 'Introduction'}>
+                  <div className="leading-relaxed rich-text-content" style={{ color: colors.text }} dangerouslySetInnerHTML={{ __html: trek.introSection.content }} />
+                </Card>
               )}
 
-              {/* About This Trek Section */}
-              <div className="bg-white rounded-lg shadow-lg p-6 transition-all duration-300 border" style={{ borderColor: colors.border }}>
-                <h3 className="text-xl font-bold mb-4" style={{ color: colors.text }}>About This Trek</h3>
-                <div 
-                  className="leading-relaxed rich-text-content" 
-                  style={{ color: colors.text, textAlign: 'justify' }}
-                  dangerouslySetInnerHTML={{ __html: trek.description }}
-                />
-              </div>
+              {hasText(trek.description) && (
+                <Card title="About This Trek">
+                  <div className="leading-relaxed rich-text-content" style={{ color: colors.text }} dangerouslySetInnerHTML={{ __html: trek.description }} />
+                </Card>
+              )}
 
-              {/* Trek Highlights - Moved up */}
-              {trek.highlights && trek.highlights.length > 0 && (
-                <div className="bg-white rounded-lg shadow-lg p-4 transition-all duration-300 border" style={{ borderColor: colors.border }}>
-                  <h3 className="text-lg font-bold mb-4 flex items-center" style={{ color: colors.text }}>
-                    <Mountain className="w-5 h-5 mr-2" style={{ color: colors.secondary }} />
-                    Trek Highlights
-                  </h3>
+              {/* Highlights */}
+              {trek.highlights?.length > 0 && (
+                <Card title="Trek Highlights" icon={Mountain}>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     {trek.highlights.map((highlight, index) => (
-                      <div key={index} className="flex items-start group hover:transform hover:scale-105 transition-all duration-300">
-                        <div className="w-5 h-5 rounded-full flex items-center justify-center mr-2 flex-shrink-0 mt-0.5" style={{ backgroundColor: colors.accentLight }}>
-                          <CheckCircle className="w-3 h-3" style={{ color: colors.secondary }} />
-                        </div>
-                        <span className="text-sm pt-0.5" style={{ color: colors.text }}>{highlight}</span>
+                      <div key={index} className="flex items-start">
+                        <CheckCircle className="w-4 h-4 mr-2 mt-0.5 flex-shrink-0" style={{ color: colors.secondary }} />
+                        <span className="text-sm" style={{ color: colors.text }}>{highlight}</span>
                       </div>
                     ))}
                   </div>
-                </div>
+                </Card>
               )}
 
-              {/* Itinerary Section */}
-              {trek.itinerary && trek.itinerary.length > 0 && (
-                <div className="bg-white rounded-lg shadow-lg p-4 transition-all duration-300 border" style={{ borderColor: colors.border }}>
-                  <h3 className="text-lg font-bold mb-4" style={{ color: colors.text }}>TREK ITINERARY</h3>
+              {/* Pricing (click to choose) */}
+              {!pricingUnavailable && (
+                <Card id="pricing" title="Pricing by Pickup City" icon={Ticket}>
+                  <div className="flex gap-2 overflow-x-auto pb-2 mb-3" role="tablist">
+                    {trek.cityPricing.filter((cp) => cp.pricingOptions?.length > 0).map((cp) => (
+                      <button
+                        key={cp.city}
+                        type="button"
+                        role="tab"
+                        aria-selected={cp.city === selectedCity}
+                        onClick={() => selectCity(cp.city)}
+                        className="px-4 py-2 rounded-full text-sm font-semibold border whitespace-nowrap transition-colors"
+                        style={
+                          cp.city === selectedCity
+                            ? { backgroundColor: colors.primary, color: '#fff', borderColor: colors.primary }
+                            : { backgroundColor: '#fff', color: colors.text, borderColor: colors.border }
+                        }
+                      >
+                        <MapPin className="inline w-3 h-3 mr-1 -mt-0.5" />
+                        {cp.city}
+                      </button>
+                    ))}
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {(cityData?.pricingOptions || []).map((option, index) => {
+                      const color = optionColors[index % optionColors.length];
+                      const active = formData.selectedPricingOption === option.categoryName;
+                      const minMembers = option.minMembers || 1;
+                      return (
+                        <button
+                          key={option.categoryName}
+                          type="button"
+                          onClick={() => selectOption(option.categoryName)}
+                          aria-pressed={active}
+                          className="text-left rounded-lg p-3 border-2 bg-white transition-shadow hover:shadow-md"
+                          style={{ borderColor: active ? color : colors.border, boxShadow: active ? `0 0 0 2px ${color}33` : undefined }}
+                        >
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="font-semibold text-sm" style={{ color: colors.text }}>{option.categoryName}</span>
+                            {active && <CheckCircle className="w-4 h-4 flex-shrink-0" style={{ color }} />}
+                          </div>
+                          <p className="text-xl font-bold mt-1" style={{ color }}>
+                            {formatINR(option.price)} <span className="text-xs font-normal text-gray-500">/ person</span>
+                          </p>
+                          <p className="text-xs mt-1 flex items-center gap-1" style={{ color: colors.lightText }}>
+                            <Users className="w-3 h-3" /> Min {minMembers} {minMembers === 1 ? 'member' : 'members'}
+                          </p>
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => scrollToId('booking-form')}
+                    className="lg:hidden mt-4 w-full py-2.5 rounded-lg text-white font-semibold text-sm"
+                    style={{ backgroundColor: colors.primary }}
+                  >
+                    Continue to Booking
+                  </button>
+                </Card>
+              )}
+
+              {/* Itinerary */}
+              {trek.itinerary?.length > 0 && (
+                <Card id="itinerary" title="Trek Itinerary" icon={CalendarDays} iconColor={colors.primary}>
+                  <div className="flex justify-end -mt-2 mb-3">
+                    <button
+                      type="button"
+                      onClick={toggleAllItinerary}
+                      className="text-xs font-semibold hover:underline"
+                      style={{ color: colors.primary }}
+                    >
+                      {allExpanded ? 'Collapse all' : 'Expand all'}
+                    </button>
+                  </div>
                   <div className="space-y-3">
                     {trek.itinerary.map((day, index) => (
-                      <ItineraryDay key={index} day={day} index={index} />
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Cost Inclusion */}
-              {trek.inclusions && trek.inclusions.length > 0 && (
-                <div className="bg-white rounded-lg shadow-lg p-4 border transition-all duration-300" style={{ backgroundColor: '#ECFDF5', borderColor: '#10B981' }}>
-                  <h3 className="text-lg font-bold mb-3 flex items-center" style={{ color: colors.text }}>
-                    <CheckCircle className="w-5 h-5 mr-2" style={{ color: '#10B981' }} />
-                    Cost Inclusion
-                  </h3>
-                  <ul className="space-y-2">
-                    {trek.inclusions.map((item, index) => (
-                      <li key={index} className="text-sm flex items-start" style={{ color: colors.text }}>
-                        <span className="mr-2 text-sm" style={{ color: '#10B981' }}>✓</span>
-                        {item}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-
-              {/* Cost Exclusion */}
-              {trek.exclusions && trek.exclusions.length > 0 && (
-                <div className="bg-white rounded-lg shadow-lg p-4 border transition-all duration-300" style={{ backgroundColor: '#FEE2E2', borderColor: colors.error }}>
-                  <h3 className="text-lg font-bold mb-3 flex items-center" style={{ color: colors.text }}>
-                    <XCircle className="w-5 h-5 mr-2" style={{ color: colors.error }} />
-                    Cost Exclusion
-                  </h3>
-                  <ul className="space-y-2">
-                    {trek.exclusions.map((item, index) => (
-                      <li key={index} className="text-sm flex items-start" style={{ color: colors.text }}>
-                        <span className="mr-2 text-sm" style={{ color: colors.error }}>✗</span>
-                        {item}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-
-              {/* YouTube Video */}
-              {youtubeVideoId && (
-                <div className="bg-white rounded-lg shadow-lg p-4 transition-all duration-300 border" style={{ borderColor: colors.border }}>
-                  <h3 className="text-lg font-bold mb-3 flex items-center" style={{ color: colors.text }}>
-                    <Play className="w-4 h-4 mr-2" style={{ color: colors.secondary }} />
-                    Trek Video
-                  </h3>
-                  <div className="aspect-video rounded-lg overflow-hidden shadow-md">
-                    <iframe
-                      src={`https://www.youtube.com/embed/${youtubeVideoId}`}
-                      title="Trek Video"
-                      className="w-full h-full"
-                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                      allowFullScreen
-                    ></iframe>
-                  </div>
-                </div>
-              )}
-
-              {/* Gallery Images */}
-              {trek.showcaseImages && trek.showcaseImages.length > 0 && (
-                <div className="bg-white rounded-lg shadow-lg p-4 transition-all duration-300 border" style={{ borderColor: colors.border }}>
-                  <h3 className="text-lg font-bold mb-3" style={{ color: colors.text }}>Trek Gallery</h3>
-                  <div ref={galleryRef} className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-                    {trek.showcaseImages.map((image, index) => (
-                      <div 
-                        key={index} 
-                        className="aspect-square rounded-lg overflow-hidden hover:scale-105 transition-transform duration-300 cursor-pointer shadow-sm border" 
-                        style={{ borderColor: colors.border }}
-                        onClick={() => openImageModal(image)}
-                      >
-                        <img
-                          src={image}
-                          alt={`${trek.name} - Image ${index + 1}`}
-                          className="w-full h-full object-cover hover:scale-110 transition-transform duration-500"
-                        />
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Hotel Images Gallery */}
-              {trek.hotelImages && trek.hotelImages.length > 0 && (
-                <div className="bg-white rounded-xl shadow-lg p-5 transition-all duration-300 border" style={{ borderColor: colors.border }}>
-                  <h3 className="text-xl font-bold mb-5 flex items-center" style={{ color: colors.text }}>
-                    <Building className="w-5 h-5 mr-3" style={{ color: colors.secondary }} />
-                    Hotels & Accommodation
-                  </h3>
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                    {trek.hotelImages.map((image, index) => (
-                      <div
+                      <ItineraryDay
                         key={index}
-                        className="aspect-video rounded-lg overflow-hidden cursor-pointer group relative border-2 transition-all duration-300 hover:border-orange-500"
-                        style={{ borderColor: colors.border }}
-                        onClick={() => openImageModal(image)}
-                      >
-                        <img
-                          src={image}
-                          alt={`Hotel ${index + 1}`}
-                          className="w-full h-full object-cover hover:scale-110 transition-transform duration-500"
-                        />
-                      </div>
+                        day={day}
+                        expanded={!!expandedItinerary[index]}
+                        onToggle={() => toggleItineraryDay(index)}
+                      />
                     ))}
                   </div>
-                </div>
+                </Card>
               )}
 
-              {/* Addon Facilities Section - Each facility in separate box */}
-              {trek.addonFacilities && trek.addonFacilities.length > 0 && (
-                <>
-                  {trek.addonFacilities.map((facility, index) => (
-                    <div key={index} className="bg-white rounded-lg shadow-lg p-6 transition-all duration-300 border hover:shadow-xl" style={{ borderColor: colors.border }}>
-                      <h3 className="text-lg font-bold mb-4 flex items-center" style={{ color: colors.text }}>
-                        <CheckCircle className="w-5 h-5 mr-2" style={{ color: '#10B981' }} />
-                        {facility.header}
+              {/* Inclusions / Exclusions */}
+              {(trek.inclusions?.length > 0 || trek.exclusions?.length > 0) && (
+                <div id="inclusions" className="grid grid-cols-1 md:grid-cols-2 gap-6 scroll-mt-[calc(var(--header-h)+4rem)]">
+                  {trek.inclusions?.length > 0 && (
+                    <div className="rounded-xl shadow-md p-4 sm:p-6 border" style={{ backgroundColor: '#ECFDF5', borderColor: '#10B981' }}>
+                      <h3 className="text-lg font-bold mb-3 flex items-center" style={{ color: colors.text }}>
+                        <CheckCircle className="w-5 h-5 mr-2" style={{ color: '#10B981' }} /> Cost Inclusion
                       </h3>
                       <ul className="space-y-2">
-                        {facility.subPoints.map((point, pointIndex) => (
-                          <li key={pointIndex} className="text-sm flex items-start" style={{ color: colors.text }}>
-                            <span className="mr-3 mt-1 flex-shrink-0" style={{ color: '#10B981' }}>●</span>
-                            <span>{point}</span>
+                        {trek.inclusions.map((item, index) => (
+                          <li key={index} className="text-sm flex items-start" style={{ color: colors.text }}>
+                            <span className="mr-2" style={{ color: '#10B981' }}>✓</span>{item}
                           </li>
                         ))}
                       </ul>
                     </div>
-                  ))}
-                </>
-              )}
-
-              {/* FAQs Section */}
-              {trek.faqs && trek.faqs.length > 0 && (
-                <div className="bg-white rounded-lg shadow-lg p-4 transition-all duration-300 border" style={{ borderColor: colors.border }}>
-                  <h3 className="text-lg font-bold mb-4" style={{ color: colors.text }}>Frequently Asked Questions</h3>
-                  <div className="space-y-3">
-                    {trek.faqs.map((faq, index) => (
-                      <div key={index} className="rounded-lg p-3 hover:shadow-md transition-all duration-300 border" style={{ backgroundColor: colors.background, borderColor: colors.border }}>
-                        <h4 className="font-semibold mb-2 flex items-start text-sm" style={{ color: colors.text }}>
-                          <AlertCircle className="w-4 h-4 mr-2 flex-shrink-0 mt-0.5" style={{ color: colors.primary }} />
-                          {faq.question}
-                        </h4>
-                        <p className="text-sm ml-6 leading-relaxed" style={{ color: colors.text }}>{faq.answer}</p>
-                      </div>
-                    ))}
-                  </div>
+                  )}
+                  {trek.exclusions?.length > 0 && (
+                    <div className="rounded-xl shadow-md p-4 sm:p-6 border" style={{ backgroundColor: '#FEF2F2', borderColor: colors.error }}>
+                      <h3 className="text-lg font-bold mb-3 flex items-center" style={{ color: colors.text }}>
+                        <XCircle className="w-5 h-5 mr-2" style={{ color: colors.error }} /> Cost Exclusion
+                      </h3>
+                      <ul className="space-y-2">
+                        {trek.exclusions.map((item, index) => (
+                          <li key={index} className="text-sm flex items-start" style={{ color: colors.text }}>
+                            <span className="mr-2" style={{ color: colors.error }}>✗</span>{item}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
                 </div>
               )}
 
-              {/* Important Trek Information */}
-              <div className="rounded-lg shadow-lg p-4 border-l-4 transition-all duration-300" style={{ backgroundColor: colors.accentLight, borderLeftColor: colors.secondary }}>
+              {/* Add-on facilities */}
+              {trek.addonFacilities?.map((facility, index) => (
+                <Card key={index} title={facility.header} icon={CheckCircle} iconColor="#10B981">
+                  <ul className="space-y-2">
+                    {(facility.subPoints || []).map((point, pointIndex) => (
+                      <li key={pointIndex} className="text-sm flex items-start" style={{ color: colors.text }}>
+                        <span className="mr-3 mt-1 flex-shrink-0 text-[8px]" style={{ color: '#10B981' }}>●</span>
+                        <span>{point}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </Card>
+              ))}
+
+              {/* Media */}
+              {(showcaseImages.length > 0 || hotelImages.length > 0 || youtubeVideoId) && (
+                <div id="gallery" className="space-y-6 scroll-mt-[calc(var(--header-h)+4rem)]">
+                  {youtubeVideoId && (
+                    <Card title="Trek Video" icon={Play}>
+                      <div className="aspect-video rounded-lg overflow-hidden shadow-md">
+                        <iframe
+                          src={`https://www.youtube.com/embed/${youtubeVideoId}`}
+                          title={`${trek.name} video`}
+                          loading="lazy"
+                          className="w-full h-full"
+                          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                          allowFullScreen
+                        />
+                      </div>
+                    </Card>
+                  )}
+                  {showcaseImages.length > 0 && (
+                    <Card title="Trek Gallery">
+                      {renderImageGrid(showcaseImages, "aspect-square")}
+                    </Card>
+                  )}
+                  {hotelImages.length > 0 && (
+                    <Card title="Hotels & Accommodation" icon={Building}>
+                      {renderImageGrid(hotelImages, "aspect-video")}
+                    </Card>
+                  )}
+                </div>
+              )}
+
+              {/* Good to know */}
+              <div className="rounded-xl shadow-md p-4 sm:p-6 border-l-4" style={{ backgroundColor: colors.accentLight, borderLeftColor: colors.secondary }}>
                 <h3 className="text-base font-bold mb-3 flex items-center" style={{ color: colors.text }}>
                   <AlertCircle className="w-4 h-4 mr-2" style={{ color: colors.secondary }} />
                   Important Trek Information
                 </h3>
                 <ul className="space-y-2 text-sm" style={{ color: colors.text }}>
-                  <li className="flex items-start">
-                    <span className="mr-2 text-sm" style={{ color: colors.secondary }}>•</span>
-                    <span>Basic fitness level required - prepare with regular cardio exercises</span>
-                  </li>
-                  <li className="flex items-start">
-                    <span className="mr-2 text-sm" style={{ color: colors.secondary }}>•</span>
-                    <span>Carry valid ID proof and medical fitness certificate</span>
-                  </li>
-                  <li className="flex items-start">
-                    <span className="mr-2 text-sm" style={{ color: colors.secondary }}>•</span>
-                    <span>Weather conditions may cause itinerary changes</span>
-                  </li>
-                  <li className="flex items-start">
-                    <span className="mr-2 text-sm" style={{ color: colors.secondary }}>•</span>
-                    <span>Trek insurance is highly recommended</span>
-                  </li>
+                  {[
+                    'Basic fitness level required - prepare with regular cardio exercises',
+                    'Carry valid ID proof and medical fitness certificate',
+                    'Weather conditions may cause itinerary changes',
+                    'Trek insurance is highly recommended',
+                  ].map((t) => (
+                    <li key={t} className="flex items-start">
+                      <span className="mr-2" style={{ color: colors.secondary }}>•</span>
+                      <span>{t}</span>
+                    </li>
+                  ))}
                 </ul>
               </div>
 
-              {/* Why Choose Aarohan Holidays Section */}
-              <div className="bg-white rounded-xl shadow-lg p-6 border transition-all duration-300" style={{ borderColor: colors.border }}>
-                <div className="mb-6">
-                  <h3 className="text-2xl font-bold mb-2" style={{ color: colors.primary }}>Why Choose Aarohan Holidays?</h3>
-                  <div className="h-1 w-20 rounded" style={{ backgroundColor: colors.secondary }}></div>
+              {/* FAQs */}
+              {trek.faqs?.length > 0 && (
+                <Card id="faqs" title="Frequently Asked Questions">
+                  <div className="space-y-3">
+                    {trek.faqs.map((faq, index) => (
+                      <details key={index} className="group rounded-lg border p-3" style={{ backgroundColor: colors.background, borderColor: colors.border }}>
+                        <summary className="font-semibold text-sm cursor-pointer list-none flex items-start justify-between gap-2" style={{ color: colors.text }}>
+                          <span className="flex items-start">
+                            <AlertCircle className="w-4 h-4 mr-2 flex-shrink-0 mt-0.5" style={{ color: colors.primary }} />
+                            {faq.question}
+                          </span>
+                          <ChevronDown className="w-4 h-4 flex-shrink-0 mt-0.5 transition-transform group-open:rotate-180" style={{ color: colors.primary }} />
+                        </summary>
+                        <p className="text-sm mt-2 ml-6 leading-relaxed" style={{ color: colors.text }}>{faq.answer}</p>
+                      </details>
+                    ))}
+                  </div>
+                </Card>
+              )}
+
+              {/* Why us */}
+              <Card title="Why Choose Aarohan Holidays?" icon={Heart} iconColor={colors.secondary}>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {[
+                    { icon: CheckCircle, title: '5+ Years of Excellence', text: 'Trusted by 15,000+ travelers across 250+ destinations', c: colors.primary },
+                    { icon: Shield, title: 'Safe & Secure Travel', text: '100% secure payments and verified partners', c: colors.secondary },
+                    { icon: Users, title: 'Expert Trek Guides', text: 'Certified guides with deep local knowledge', c: colors.primary },
+                    { icon: Phone, title: '24/7 Support', text: 'Help via phone, WhatsApp, and email', c: colors.secondary },
+                  ].map(({ icon: Icon, title, text, c }) => (
+                    <div key={title} className="flex items-start gap-3 p-3 rounded-lg border" style={{ backgroundColor: colors.background, borderColor: colors.border }}>
+                      <div className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0" style={{ backgroundColor: c }}>
+                        <Icon className="w-5 h-5 text-white" />
+                      </div>
+                      <div>
+                        <h4 className="font-bold text-sm" style={{ color: colors.text }}>{title}</h4>
+                        <p className="text-xs mt-0.5" style={{ color: colors.lightText }}>{text}</p>
+                      </div>
+                    </div>
+                  ))}
                 </div>
-                <div className="space-y-4">
-                  {/* Card 1 */}
-                  <div className="flex items-start gap-4 p-4 rounded-xl transition-all duration-300 hover:shadow-md border" style={{ backgroundColor: colors.background, borderColor: colors.border }}>
-                    <div className="w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0" style={{ backgroundColor: colors.primary }}>
-                      <CheckCircle className="w-6 h-6 text-white" />
-                    </div>
-                    <div>
-                      <h4 className="font-bold text-lg mb-1" style={{ color: colors.text }}>5+ Years of Excellence</h4>
-                      <p className="text-sm" style={{ color: colors.lightText }}>Trusted by 15,000+ travelers with expert-curated experiences across 250+ destinations</p>
-                    </div>
-                  </div>
-
-                  {/* Card 2 */}
-                  <div className="flex items-start gap-4 p-4 rounded-xl transition-all duration-300 hover:shadow-md border" style={{ backgroundColor: colors.background, borderColor: colors.border }}>
-                    <div className="w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0" style={{ backgroundColor: colors.secondary }}>
-                      <Shield className="w-6 h-6 text-white" />
-                    </div>
-                    <div>
-                      <h4 className="font-bold text-lg mb-1" style={{ color: colors.text }}>Safe & Secure Travel</h4>
-                      <p className="text-sm" style={{ color: colors.lightText }}>100% secure payments, verified partners, and comprehensive travel insurance options</p>
-                    </div>
-                  </div>
-
-                  {/* Card 3 */}
-                  <div className="flex items-start gap-4 p-4 rounded-xl transition-all duration-300 hover:shadow-md border" style={{ backgroundColor: colors.background, borderColor: colors.border }}>
-                    <div className="w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0" style={{ backgroundColor: colors.primary }}>
-                      <Users className="w-6 h-6 text-white" />
-                    </div>
-                    <div>
-                      <h4 className="font-bold text-lg mb-1" style={{ color: colors.text }}>Expert Travel Guides</h4>
-                      <p className="text-sm" style={{ color: colors.lightText }}>Professional, certified guides with local knowledge to make your journey memorable</p>
-                    </div>
-                  </div>
-
-                  {/* Card 4 */}
-                  <div className="flex items-start gap-4 p-4 rounded-xl transition-all duration-300 hover:shadow-md border" style={{ backgroundColor: colors.background, borderColor: colors.border }}>
-                    <div className="w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0" style={{ backgroundColor: colors.secondary }}>
-                      <Heart className="w-6 h-6 text-white" />
-                    </div>
-                    <div>
-                      <h4 className="font-bold text-lg mb-1" style={{ color: colors.text }}>Personalized Experiences</h4>
-                      <p className="text-sm" style={{ color: colors.lightText }}>Customizable itineraries tailored to your preferences, budget, and travel style</p>
-                    </div>
-                  </div>
-
-                  {/* Card 5 */}
-                  <div className="flex items-start gap-4 p-4 rounded-xl transition-all duration-300 hover:shadow-md border" style={{ backgroundColor: colors.background, borderColor: colors.border }}>
-                    <div className="w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0" style={{ backgroundColor: colors.primary }}>
-                      <Phone className="w-6 h-6 text-white" />
-                    </div>
-                    <div>
-                      <h4 className="font-bold text-lg mb-1" style={{ color: colors.text }}>24/7 Travel Support</h4>
-                      <p className="text-sm" style={{ color: colors.lightText }}>Round-the-clock assistance via phone, WhatsApp, and email for a worry-free journey</p>
-                    </div>
-                  </div>
-                </div>
-              </div>
+              </Card>
             </div>
 
-            {/* Right Side - Sticky Booking Form */}
-            <div className="lg:col-span-1">
-              <div ref={formContainerRef} className="bg-white rounded-lg shadow-lg p-4 sticky top-6 transition-all duration-300 border" style={{ borderColor: colors.border }}>
-                <div 
-                  className="text-white rounded-lg p-3 mb-4 text-center transition-all duration-300"
-                  style={{ backgroundColor: colors.primary }}
-                >
-                  <h3 className="text-lg font-bold mb-1">Secure Your Trek Spot</h3>
-                  <p className="text-xs opacity-90">Limited seats available!</p>
+            {/* ===== Right: booking ===== */}
+            <aside id="booking-form" ref={formRef} className="lg:col-span-1 lg:sticky lg:top-[calc(var(--header-h)+1rem)] scroll-mt-[calc(var(--header-h)+1rem)]">
+              <div className="bg-white rounded-xl shadow-lg border lg:max-h-[calc(100vh-var(--header-h)-2rem)] lg:overflow-y-auto" style={{ borderColor: colors.border }}>
+                <div className="text-white p-4 text-center rounded-t-xl" style={{ backgroundColor: colors.primary }}>
+                  <h2 className="text-lg font-bold">Secure Your Trek Spot</h2>
+                  <p className="text-xs opacity-90">{trek.name}</p>
                 </div>
 
-                {error && (
-                  <div className="error-alert px-3 py-2 rounded-lg mb-4 flex items-start gap-2" style={{ backgroundColor: '#FEF2F2', border: '1px solid ' + colors.error + '40' }}>
-                    <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" style={{ color: colors.error }} />
-                    <p className="text-sm font-medium" style={{ color: colors.error }}>{error}</p>
-                  </div>
-                )}
+                <div className="p-4">
+                  {error && (
+                    <div className="px-3 py-2 rounded-lg mb-4 flex items-start gap-2" role="alert" style={{ backgroundColor: '#FEF2F2', border: `1px solid ${colors.error}40` }}>
+                      <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" style={{ color: colors.error }} />
+                      <p className="text-sm font-medium" style={{ color: colors.error }}>{error}</p>
+                    </div>
+                  )}
 
-                {/* Contact for Pricing - Show WhatsApp button instead of booking form */}
-                {trek?.contactForPricing ? (
-                  <div className="text-center space-y-5 py-6">
-                    <div className="w-16 h-16 mx-auto rounded-full flex items-center justify-center" style={{ backgroundColor: colors.primary + '15' }}>
-                      <Phone className="w-8 h-8" style={{ color: colors.primary }} />
-                    </div>
-                    <div>
-                      <h3 className="text-xl font-bold mb-2" style={{ color: colors.text }}>Contact for Pricing</h3>
-                      <p className="text-sm" style={{ color: colors.lightText }}>
-                        This trek has customized pricing.
-                        <br />Contact us for the best quote!
-                      </p>
-                    </div>
-                    <a
-                      href={`https://wa.me/917276644221?text=${encodeURIComponent(`Hi, I'm interested in the trek: ${trek?.name}. Please share the pricing details.`)}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl font-bold text-white transition-all duration-300 hover:scale-105 shadow-lg hover:shadow-xl text-sm"
-                      style={{ backgroundColor: '#25D366' }}
-                    >
-                      <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-                        <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.890-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/>
-                      </svg>
-                      Chat on WhatsApp
-                    </a>
-                    <div className="flex items-center justify-center gap-3 text-xs" style={{ color: colors.lightText }}>
-                      <span className="flex items-center gap-1">
-                        <CheckCircle className="w-3 h-3" style={{ color: colors.success }} />
-                        Quick Response
-                      </span>
-                      <span className="flex items-center gap-1">
-                        <CheckCircle className="w-3 h-3" style={{ color: colors.success }} />
-                        Best Prices
-                      </span>
-                    </div>
-                  </div>
-                ) : (
-                <form onSubmit={handleSubmit} className="space-y-4">
-                  
-                  {/* Personal Information */}
-                  <div className="space-y-3">
-                    <h4 className="font-bold text-sm pb-2 border-b" style={{ color: colors.text, borderColor: colors.border }}>Personal Information</h4>
-                    
-                    <div>
-                      <label className="block text-xs font-semibold mb-1" style={{ color: colors.text }}>
-                        Full Name *
-                      </label>
-                      <input
-                        type="text"
-                        name="name"
-                        value={formData.name}
-                        onChange={handleInputChange}
-                        className={`w-full px-3 py-2 border rounded-lg focus:ring-1 transition-all duration-300 text-sm ${
-                          formErrors.name ? 'bg-red-50' : 'hover:border-gray-400'
-                        }`}
-                        style={{ 
-                          borderColor: formErrors.name ? colors.error : colors.border,
-                          focusBorderColor: colors.primary,
-                          focusRingColor: colors.primary
-                        }}
-                        placeholder="Enter your full name"
-                      />
-                      {formErrors.name && (
-                        <p className="error-message text-xs mt-1 flex items-center gap-1" style={{ color: colors.error }}>
-                          <AlertCircle className="w-3 h-3" />
-                          {formErrors.name}
+                  {pricingUnavailable ? (
+                    <div className="text-center space-y-4 py-6">
+                      <div className="w-16 h-16 mx-auto rounded-full flex items-center justify-center" style={{ backgroundColor: colors.primary + '15' }}>
+                        <Phone className="w-8 h-8" style={{ color: colors.primary }} />
+                      </div>
+                      <div>
+                        <h3 className="text-xl font-bold mb-2" style={{ color: colors.text }}>Contact for Pricing</h3>
+                        <p className="text-sm" style={{ color: colors.lightText }}>
+                          This trek has customized pricing. Contact us for the best quote!
                         </p>
-                      )}
-                    </div>
-
-                    <div>
-                      <label className="block text-xs font-semibold mb-1" style={{ color: colors.text }}>
-                        Email Address *
-                      </label>
-                      <input
-                        type="email"
-                        name="email"
-                        value={formData.email}
-                        onChange={handleInputChange}
-                        className={`w-full px-3 py-2 border rounded-lg focus:ring-1 transition-all duration-300 text-sm ${
-                          formErrors.email ? 'bg-red-50' : 'hover:border-gray-400'
-                        }`}
-                        style={{ 
-                          borderColor: formErrors.email ? colors.error : colors.border,
-                          focusBorderColor: colors.primary,
-                          focusRingColor: colors.primary
-                        }}
-                        placeholder="your@email.com"
-                      />
-                      {formErrors.email && (
-                        <p className="error-message text-xs mt-1 flex items-center gap-1" style={{ color: colors.error }}>
-                          <AlertCircle className="w-3 h-3" />
-                          {formErrors.email}
-                        </p>
-                      )}
-                    </div>
-
-                    <div>
-                      <label className="block text-xs font-semibold mb-1" style={{ color: colors.text }}>
-                        Mobile Number *
-                      </label>
-                      <input
-                        type="tel"
-                        name="mobile"
-                        value={formData.mobile}
-                        onChange={handleInputChange}
-                        className={`w-full px-3 py-2 border rounded-lg focus:ring-1 transition-all duration-300 text-sm ${
-                          formErrors.mobile ? 'bg-red-50' : 'hover:border-gray-400'
-                        }`}
-                        style={{ 
-                          borderColor: formErrors.mobile ? colors.error : colors.border,
-                          focusBorderColor: colors.primary,
-                          focusRingColor: colors.primary
-                        }}
-                        placeholder="10-digit mobile number"
-                        maxLength="10"
-                      />
-                      {formErrors.mobile && (
-                        <p className="error-message text-xs mt-1 flex items-center gap-1" style={{ color: colors.error }}>
-                          <AlertCircle className="w-3 h-3" />
-                          {formErrors.mobile}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Group Details */}
-                  <div className="border-t pt-4" style={{ borderColor: colors.border }}>
-                    <h4 className="font-bold text-sm mb-3" style={{ color: colors.text }}>Group Details</h4>
-                    
-                    <div className="grid grid-cols-2 gap-3">
-                      <div>
-                        <label className="block text-xs font-semibold mb-1" style={{ color: colors.text }}>
-                          Total Members *
-                        </label>
-                        <input
-                          type="number"
-                          name="numberOfMembers"
-                          value={formData.numberOfMembers}
-                          readOnly
-                          min="1"
-                          max={trek.maxGroupSize}
-                          className="w-full px-3 py-2 border rounded-lg focus:ring-1 transition-all duration-300 text-sm bg-gray-50 cursor-not-allowed"
-                          style={{ borderColor: colors.border, backgroundColor: '#F9FAFB', color: colors.lightText }}
-                          title="Auto-calculated from Adults + Women + Children + Infants"
-                        />
                       </div>
-
-                      <div>
-                        <label className="block text-xs font-semibold mb-1" style={{ color: colors.text }}>
-                          Adults
-                        </label>
-                        <input
-                          type="number"
-                          name="adults"
-                          value={formData.adults}
-                          onChange={handleInputChange}
-                          min="0"
-                          className="w-full px-3 py-2 border rounded-lg focus:ring-1 transition-all duration-300 text-sm hover:border-gray-400"
-                          style={{ borderColor: colors.border, focusBorderColor: colors.primary, focusRingColor: colors.primary }}
-                        />
-                      </div>
-
-                      <div>
-                        <label className="block text-xs font-semibold mb-1" style={{ color: colors.text }}>
-                          Women
-                        </label>
-                        <input
-                          type="number"
-                          name="women"
-                          value={formData.women}
-                          onChange={handleInputChange}
-                          min="0"
-                          className="w-full px-3 py-2 border rounded-lg focus:ring-1 transition-all duration-300 text-sm hover:border-gray-400"
-                          style={{ borderColor: colors.border, focusBorderColor: colors.primary, focusRingColor: colors.primary }}
-                        />
-                      </div>
-
-                      <div>
-                        <label className="block text-xs font-semibold mb-1" style={{ color: colors.text }}>
-                          Children
-                          <span className="text-xs font-bold ml-1" style={{ color: colors.error }}>
-                            (5-18 years)
-                          </span>
-                        </label>
-                        <input
-                          type="number"
-                          name="children"
-                          value={formData.children}
-                          onChange={handleInputChange}
-                          min="0"
-                          className="w-full px-3 py-2 border rounded-lg focus:ring-1 transition-all duration-300 text-sm hover:border-gray-400"
-                          style={{ borderColor: colors.border, focusBorderColor: colors.primary, focusRingColor: colors.primary }}
-                        />
-                      </div>
-
-                      <div>
-                        <label className="block text-xs font-semibold mb-1" style={{ color: colors.text }}>
-                          Infants
-                          <span className="text-xs font-bold ml-1" style={{ color: colors.error }}>
-                            (Below 5 years)
-                          </span>
-                        </label>
-                        <input
-                          type="number"
-                          name="infants"
-                          value={formData.infants}
-                          onChange={handleInputChange}
-                          min="0"
-                          className="w-full px-3 py-2 border rounded-lg focus:ring-1 transition-all duration-300 text-sm hover:border-gray-400"
-                          style={{ borderColor: colors.border, focusBorderColor: colors.primary, focusRingColor: colors.primary }}
-                        />
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Pickup & Date */}
-                  <div className="border-t pt-4" style={{ borderColor: colors.border }}>
-                    <div className="mb-3">
-                      <label className="block text-xs font-semibold mb-1" style={{ color: colors.text }}>
-                        Pickup City *
-                      </label>
-                      <select
-                        value={selectedCity}
-                        onChange={handleCityChange}
-                        className={`w-full px-3 py-2 border rounded-lg focus:ring-1 transition-all duration-300 text-sm ${
-                          formErrors.pickupCity ? 'bg-red-50' : 'hover:border-gray-400'
-                        }`}
-                        style={{ 
-                          borderColor: formErrors.pickupCity ? colors.error : colors.border,
-                          focusBorderColor: colors.primary,
-                          focusRingColor: colors.primary,
-                          color: colors.text,
-                          backgroundColor: '#FFFFFF'
-                        }}
+                      <a
+                        href={whatsappHref}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl font-bold text-white shadow-lg hover:opacity-90 text-sm"
+                        style={{ backgroundColor: '#25D366' }}
                       >
-                        <option value="" style={{ backgroundColor: '#FFFFFF', color: colors.lightText }}>Select pickup city</option>
-                        {trek.cityPricing?.map((cityPrice, index) => {
-                          // Get the first pricing option or fallback to 0
-                          const displayPrice = cityPrice.pricingOptions?.[0]?.price || 0;
-                          return (
-                            <option key={index} value={cityPrice.city} style={{ backgroundColor: '#FFFFFF', color: colors.text }}>
-                              {cityPrice.city} - ₹{displayPrice.toLocaleString('en-IN')}
-                            </option>
-                          );
-                        })}
-                      </select>
-                      {formErrors.pickupCity && (
-                        <p className="error-message text-xs mt-1 flex items-center gap-1" style={{ color: colors.error }}>
-                          <AlertCircle className="w-3 h-3" />
-                          {formErrors.pickupCity}
-                        </p>
-                      )}
+                        {WhatsAppIcon} Chat on WhatsApp
+                      </a>
                     </div>
+                  ) : (
+                    <form onSubmit={handleSubmit} className="space-y-5" noValidate>
+                      {/* 1. Trip */}
+                      <div className="space-y-3">
+                        <h3 className="font-bold text-sm pb-2 border-b" style={{ color: colors.text, borderColor: colors.border }}>1. Choose your trip</h3>
 
-                    {/* Pickup Point Selection */}
-                    {selectedCity && trek.cityPricing?.find(cp => cp.city === selectedCity)?.pickupPoints?.length > 0 && (
-                      <div className="mb-3">
-                        <label className="block text-xs font-semibold mb-1" style={{ color: colors.text }}>
-                          Select Pickup Point <span className="text-xs font-normal" style={{ color: colors.lightText }}>(optional)</span>
-                        </label>
-                        <select
-                          name="pickupPoint"
-                          value={formData.pickupPoint}
-                          onChange={handleInputChange}
-                          className="w-full px-3 py-2 border rounded-lg focus:ring-1 transition-all duration-300 text-sm hover:border-gray-400"
-                          style={{ 
-                            borderColor: colors.border,
-                            focusBorderColor: colors.primary,
-                            focusRingColor: colors.primary,
-                            color: colors.text,
-                            backgroundColor: '#FFFFFF'
-                          }}
-                        >
-                          <option value="" style={{ color: colors.lightText }}>Choose pickup location</option>
-                          {trek.cityPricing.find(cp => cp.city === selectedCity)?.pickupPoints?.map((point, index) => (
-                            <option key={index} value={point} style={{ color: colors.text }}>
-                              {point}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                    )}
+                        <Field label="Pickup City *" error={formErrors.pickupCity}>
+                          <select value={selectedCity} onChange={(e) => selectCity(e.target.value)} className={inputClass(formErrors.pickupCity)}>
+                            {trek.cityPricing.filter((cp) => cp.pricingOptions?.length > 0).map((cp) => (
+                              <option key={cp.city} value={cp.city}>{cp.city}</option>
+                            ))}
+                          </select>
+                        </Field>
 
-                    <div>
-                      <label className="block text-xs font-semibold mb-1" style={{ color: colors.text }}>
-                        Trek Date *
-                      </label>
-                      {(() => {
-                        const cityPricingData = trek.cityPricing?.find(cp => cp.city === selectedCity);
-                        const hasDepartureDates = cityPricingData?.departureDates?.length > 0;
-                        const hasOldDates = trek.availableDates?.length > 0;
-                        
-                        // Debug logging
-                        console.log('🔍 Trek - Selected City:', selectedCity);
-                        console.log('🔍 Trek - City Pricing Data:', cityPricingData);
-                        console.log('🔍 Trek - Has Departure Dates:', hasDepartureDates);
-                        console.log('🔍 Trek - Has Old Dates:', hasOldDates);
-                        
-                        if (selectedCity && hasDepartureDates) {
-                          // New format: city-specific departure dates
-                          return (
-                            <select
-                              name="bookingDate"
-                              value={formData.bookingDate}
-                              onChange={handleInputChange}
-                              className={`w-full px-3 py-2 border rounded-lg focus:ring-1 transition-all duration-300 text-sm ${
-                                formErrors.bookingDate ? 'bg-red-50' : 'hover:border-gray-400'
-                              }`}
-                              style={{ 
-                                borderColor: formErrors.bookingDate ? colors.error : colors.border,
-                                focusBorderColor: colors.primary,
-                                focusRingColor: colors.primary,
-                                color: colors.text,
-                                backgroundColor: '#FFFFFF'
-                              }}
-                            >
-                              <option value="" style={{ color: colors.lightText }}>Select departure date</option>
-                              {cityPricingData.departureDates
-                                .filter(departure => {
-                                  const startDate = new Date(departure.startDate);
-                                  const today = new Date();
-                                  today.setHours(0, 0, 0, 0);
-                                  return startDate >= today && departure.isAvailable !== false;
-                                })
-                                .map((departure, index) => {
-                                  const startDate = new Date(departure.startDate);
-                                  const endDate = new Date(departure.endDate);
-                                  const startFormatted = startDate.toLocaleDateString('en-IN', {
-                                    weekday: 'short',
-                                    year: 'numeric',
-                                    month: 'short',
-                                    day: 'numeric'
-                                  });
-                                  const endFormatted = endDate.toLocaleDateString('en-IN', {
-                                    weekday: 'short',
-                                    year: 'numeric',
-                                    month: 'short',
-                                    day: 'numeric'
-                                  });
-                                  return (
-                                    <option key={index} value={startDate.toISOString().split('T')[0]} style={{ color: colors.text }}>
-                                      {startFormatted} to {endFormatted}
-                                    </option>
-                                  );
-                                })}
+                        {pickupPoints.length > 0 && (
+                          <Field label="Pickup Point" hint="(optional)">
+                            <select name="pickupPoint" value={formData.pickupPoint} onChange={handleInputChange} className={inputClass(false)}>
+                              <option value="">Choose pickup location</option>
+                              {pickupPoints.map((point) => (
+                                <option key={point} value={point}>{point}</option>
+                              ))}
                             </select>
-                          );
-                        } else if (hasOldDates) {
-                          // Fallback: Old format with global availableDates
-                          return (
-                            <select
-                              name="bookingDate"
-                              value={formData.bookingDate}
-                              onChange={handleInputChange}
-                              className={`w-full px-3 py-2 border rounded-lg focus:ring-1 transition-all duration-300 text-sm ${
-                                formErrors.bookingDate ? 'bg-red-50' : 'hover:border-gray-400'
-                              }`}
-                              style={{ 
-                                borderColor: formErrors.bookingDate ? colors.error : colors.border,
-                                focusBorderColor: colors.primary,
-                                focusRingColor: colors.primary,
-                                color: colors.text,
-                                backgroundColor: '#FFFFFF'
-                              }}
-                            >
-                              <option value="" style={{ color: colors.lightText }}>Select available date</option>
-                              {trek.availableDates
-                                .filter(date => {
-                                  const dateObj = new Date(date);
-                                  const today = new Date();
-                                  today.setHours(0, 0, 0, 0);
-                                  return dateObj >= today;
-                                })
-                                .map((date, index) => {
-                                  const dateObj = new Date(date);
-                                  const formattedDate = dateObj.toLocaleDateString('en-IN', {
-                                    weekday: 'short',
-                                    year: 'numeric',
-                                    month: 'short',
-                                    day: 'numeric'
-                                  });
-                                  return (
-                                    <option key={index} value={dateObj.toISOString().split('T')[0]} style={{ color: colors.text }}>
-                                      {formattedDate}
-                                    </option>
-                                  );
-                                })}
-                            </select>
-                          );
-                        } else if (selectedCity) {
-                          return (
-                            <div className="px-3 py-2 border rounded-lg text-xs" style={{ borderColor: colors.border, color: colors.lightText }}>
-                              No departure dates available for selected city. Please add dates in admin panel.
-                            </div>
-                          );
-                        } else {
-                          return (
-                            <div className="px-3 py-2 border rounded-lg text-xs" style={{ borderColor: colors.border, color: colors.lightText }}>
-                              Please select a city first
-                            </div>
-                          );
-                        }
-                      })()}
-                      {formErrors.bookingDate && (
-                        <p className="error-message text-xs mt-1 flex items-center gap-1" style={{ color: colors.error }}>
-                          <AlertCircle className="w-3 h-3" />
-                          {formErrors.bookingDate}
-                        </p>
-                      )}
-                    </div>
-                  </div>
+                          </Field>
+                        )}
 
-                  {/* Pricing Option Selection */}
-                  <div className="border-t pt-3" style={{ borderColor: colors.border }}>
-                    <label className="block text-xs font-semibold mb-1" style={{ color: colors.text }}>
-                      Select Pricing Category * <span className="text-xs font-normal" style={{ color: colors.lightText }}>(per person)</span>
-                    </label>
-                    <select
-                      value={formData.selectedPricingOption}
-                      onChange={handlePricingOptionChange}
-                      className={`w-full px-3 py-2 border rounded-lg focus:ring-1 transition-all duration-300 text-sm ${
-                        formErrors.selectedPricingOption ? 'bg-red-50' : 'hover:border-gray-400'
-                      }`}
-                      style={{ 
-                        borderColor: formErrors.selectedPricingOption ? colors.error : colors.border,
-                        focusBorderColor: colors.primary,
-                        focusRingColor: colors.primary,
-                        color: colors.text,
-                        backgroundColor: '#FFFFFF'
-                      }}
-                    >
-                      <option value="" style={{ backgroundColor: '#FFFFFF', color: colors.lightText }}>Select pricing category</option>
-                      {selectedCity && trek.cityPricing?.find(cp => cp.city === selectedCity)?.pricingOptions && (
-                        <>
-                          {trek.cityPricing
-                            .find(cp => cp.city === selectedCity)
-                            .pricingOptions.map((option, index) => {
-                              const minMembers = option.minMembers || 1;
-                              const isDisabled = formData.numberOfMembers < minMembers;
+                        <Field label="Trek Date *" error={formErrors.bookingDate}>
+                          {dateOptions.length > 0 ? (
+                            <select name="bookingDate" value={formData.bookingDate} onChange={handleInputChange} className={inputClass(formErrors.bookingDate)}>
+                              <option value="">Select departure date</option>
+                              {dateOptions.map((d) => (
+                                <option key={d.value} value={d.value} disabled={availabilityData[d.value]?.isAvailable === false}>
+                                  {d.label}{availabilityData[d.value]?.isAvailable === false ? ' — Sold out' : ''}
+                                </option>
+                              ))}
+                            </select>
+                          ) : (
+                            <div className="px-3 py-3 border rounded-lg text-xs" style={{ borderColor: colors.border, color: colors.lightText }}>
+                              No upcoming departures for {selectedCity || 'this city'}.{' '}
+                              <a href={whatsappHref} target="_blank" rel="noopener noreferrer" className="font-semibold underline" style={{ color: colors.primary }}>
+                                Ask us on WhatsApp
+                              </a>
+                            </div>
+                          )}
+                          {seatsLeft !== undefined && formData.bookingDate && (
+                            <p className="text-xs mt-1 font-medium" style={{ color: seatsLeft <= 5 ? colors.warning : colors.success }}>
+                              {seatsLeft} seat{seatsLeft === 1 ? '' : 's'} left on this date
+                            </p>
+                          )}
+                        </Field>
+
+                        <Field label="Pricing Category *" hint="(per person)" error={formErrors.selectedPricingOption}>
+                          <select
+                            value={formData.selectedPricingOption}
+                            onChange={(e) => selectOption(e.target.value)}
+                            className={inputClass(formErrors.selectedPricingOption)}
+                          >
+                            {(cityData?.pricingOptions || []).map((option) => {
+                              const min = option.minMembers || 1;
                               return (
-                                <option 
-                                  key={index} 
-                                  value={option.categoryName}
-                                  disabled={isDisabled}
-                                  style={{ 
-                                    backgroundColor: isDisabled ? '#F3F4F6' : '#FFFFFF', 
-                                    color: isDisabled ? '#9CA3AF' : colors.text 
-                                  }}
-                                >
-                                  🎫 {option.categoryName} - ₹{option.price.toLocaleString('en-IN')}/person
-                                  {minMembers > 1 ? ` (Min: ${minMembers} members)` : ''}
-                                  {isDisabled ? ' - Not enough members' : ''}
+                                <option key={option.categoryName} value={option.categoryName}>
+                                  {option.categoryName} — {formatINR(option.price)}{min > 1 ? ` (min ${min})` : ''}
                                 </option>
                               );
                             })}
-                        </>
-                      )}
-                    </select>
-                    {formErrors.selectedPricingOption && (
-                      <p className="error-message text-xs mt-1 flex items-center gap-1" style={{ color: colors.error }}>
-                        <AlertCircle className="w-3 h-3" />
-                        {formErrors.selectedPricingOption}
-                      </p>
-                    )}
-                  </div>
-
-                  {/* Add-ons Selection */}
-                  {trek.addOns && trek.addOns.length > 0 && (
-                    <div className="border rounded-lg p-3" style={{ borderColor: colors.border, backgroundColor: colors.accentLight }}>
-                      <h4 className="font-semibold mb-2 flex items-center text-sm" style={{ color: colors.text }}>
-                        <CheckCircle className="w-3 h-3 mr-1" style={{ color: colors.secondary }} />
-                        Optional Add-ons
-                      </h4>
-                      <p className="text-xs text-gray-600 mb-2">Select additional services (price per person)</p>
-                      <div className="space-y-2">
-                        {trek.addOns.map((addon) => (
-                          <label 
-                            key={addon._id}
-                            className="flex items-start p-2 bg-white rounded-lg border cursor-pointer hover:shadow-sm transition-all text-sm"
-                            style={{ 
-                              borderColor: formData.selectedAddOns.includes(addon._id) ? colors.secondary : colors.border 
-                            }}
-                          >
-                            <input
-                              type="checkbox"
-                              checked={formData.selectedAddOns.includes(addon._id)}
-                              onChange={() => handleAddOnToggle(addon._id)}
-                              className="mt-1 mr-2"
-                            />
-                            <div className="flex-1">
-                              <div className="flex items-center justify-between mb-0.5">
-                                <span className="font-semibold text-xs" style={{ color: colors.text }}>
-                                  {addon.name}
-                                </span>
-                                <span className="font-bold text-xs" style={{ color: colors.secondary }}>
-                                  +₹{addon.price.toLocaleString('en-IN')}/person
-                                </span>
-                              </div>
-                              {addon.description && (
-                                <p className="text-xs text-gray-600">{addon.description}</p>
-                              )}
-                            </div>
-                          </label>
-                        ))}
+                          </select>
+                          {selectedOption?.minMembers > 1 && formData.numberOfMembers < selectedOption.minMembers && !formErrors.selectedPricingOption && (
+                            <p className="text-xs mt-1" style={{ color: colors.warning }}>
+                              Needs at least {selectedOption.minMembers} members — add {selectedOption.minMembers - formData.numberOfMembers} more.
+                            </p>
+                          )}
+                        </Field>
                       </div>
-                    </div>
-                  )}
 
-                  {/* Special Requests */}
-                  <div>
-                    <label className="block text-xs font-semibold mb-1" style={{ color: colors.text }}>
-                      Special Requests (Optional)
-                    </label>
-                    <textarea
-                      name="specialRequests"
-                      value={formData.specialRequests}
-                      onChange={handleInputChange}
-                      rows="2"
-                      className="w-full px-3 py-2 border rounded-lg focus:ring-1 focus:border-blue-500 transition-all duration-300 hover:border-gray-400 resize-none text-sm"
-                      style={{ borderColor: colors.border, focusBorderColor: colors.primary, focusRingColor: colors.primary }}
-                      placeholder="Medical conditions, dietary requirements, special gear needs..."
-                    />
-                  </div>
-
-                  {/* Coupon Code */}
-                  <div>
-                    <label className="block text-xs font-semibold mb-1" style={{ color: colors.text }}>
-                      Coupon Code (Optional)
-                    </label>
-                    <div className="flex gap-2">
-                      <input
-                        type="text"
-                        name="couponCode"
-                        value={formData.couponCode}
-                        onChange={handleInputChange}
-                        disabled={couponApplied}
-                        className="flex-1 px-3 py-2 border rounded-lg focus:ring-1 transition-all duration-300 hover:border-gray-400 text-sm uppercase disabled:bg-gray-100 disabled:cursor-not-allowed"
-                        style={{ borderColor: colors.border, focusBorderColor: colors.primary, focusRingColor: colors.primary }}
-                        placeholder="Enter coupon code"
-                      />
-                      <button
-                        type="button"
-                        onClick={couponApplied ? handleRemoveCoupon : handleApplyCoupon}
-                        disabled={applyingCoupon}
-                        className="px-4 py-2 rounded-lg font-semibold text-xs transition-all duration-300 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
-                        style={{ backgroundColor: couponApplied ? '#ef4444' : colors.secondary, color: 'white' }}
-                      >
-                        {applyingCoupon ? 'Applying...' : couponApplied ? 'Remove' : 'Apply'}
-                      </button>
-                    </div>
-                    {couponError && (
-                      <p className="text-xs mt-1" style={{ color: '#ef4444' }}>{couponError}</p>
-                    )}
-                    {couponApplied && couponData && (
-                      <p className="text-xs mt-1" style={{ color: '#10b981' }}>
-                        ✓ Coupon applied! You save {couponData.discountPercentage}%
-                      </p>
-                    )}
-                  </div>
-
-                  {/* Price Summary */}
-                  <div 
-                    className="rounded-lg p-3 border transition-all duration-300"
-                    style={{ backgroundColor: colors.accentBlue, borderColor: colors.primary + '40' }}
-                  >
-                    <h4 className="font-bold mb-3 text-sm" style={{ color: colors.text }}>Price Summary</h4>
-                    
-                    {/* Show selected city */}
-                    {selectedCity && (
-                      <div className="mb-3 pb-2 border-b" style={{ borderColor: colors.primary + '40' }}>
-                        <div className="flex items-center gap-2">
-                          <MapPin className="w-3 h-3" style={{ color: colors.primary }} />
-                          <span className="text-xs font-semibold" style={{ color: colors.text }}>
-                            Pickup from: {selectedCity}
+                      {/* 2. Group */}
+                      <div>
+                        <h3 className="font-bold text-sm pb-2 border-b flex items-center justify-between" style={{ color: colors.text, borderColor: colors.border }}>
+                          <span>2. Who's going?</span>
+                          <span className="text-xs font-semibold px-2 py-0.5 rounded-full" style={{ backgroundColor: colors.accentBlue, color: colors.primary }}>
+                            {formData.numberOfMembers} total
                           </span>
+                        </h3>
+                        <div className="divide-y" style={{ borderColor: colors.border }}>
+                          <Stepper label="Adults" value={formData.adults} onChange={setCount('adults')} />
+                          <Stepper label="Women" value={formData.women} onChange={setCount('women')} />
+                          <Stepper label="Children" hint="5-18 years" value={formData.children} onChange={setCount('children')} />
+                          <Stepper label="Infants" hint="Below 5 years" value={formData.infants} onChange={setCount('infants')} />
                         </div>
-                      </div>
-                    )}
-                    
-                    <div className="space-y-2">
-                      {/* Show price breakdown */}
-                      {trek && selectedCity && trek.cityPricing ? (() => {
-                        const cityPrice = trek.cityPricing.find(cp => cp.city === selectedCity);
-                        if (!cityPrice) {
-                          return (
-                            <div className="text-xs p-2 rounded" style={{ color: colors.error, backgroundColor: '#FEF2F2' }}>
-                              ⚠️ Please select a pickup city to see pricing
-                            </div>
-                          );
-                        }
-                        
-                        const selectedOption = cityPrice.pricingOptions?.find(
-                          opt => opt.categoryName === formData.selectedPricingOption
-                        );
-                        const categoryPrice = selectedOption?.price || 0;
-                        const baseTotal = categoryPrice * formData.numberOfMembers;
-                        
-                        return (
-                          <>
-                            <div className="flex justify-between items-center text-xs p-2 rounded" style={{ backgroundColor: colors.accentLight }}>
-                              <span style={{ color: colors.text }}>
-                                🎫 {formData.selectedPricingOption}
-                              </span>
-                              <span className="font-semibold" style={{ color: colors.secondary }}>
-                                ₹{categoryPrice.toLocaleString('en-IN')}/person
-                              </span>
-                            </div>
-                            <div className="flex justify-between items-center text-xs">
-                              <span style={{ color: colors.lightText }}>
-                                Total Members: {formData.numberOfMembers}
-                              </span>
-                              <span className="font-semibold text-sm" style={{ color: colors.text }}>
-                                ₹{baseTotal.toLocaleString('en-IN')}
-                              </span>
-                            </div>
-                            {/* Show demographics breakdown for reference */}
-                            <div className="text-xs pt-2 border-t" style={{ borderColor: colors.border, color: colors.lightText }}>
-                              <div className="flex justify-between mb-1">
-                                <span>Adults: {formData.adults}</span>
-                                <span>Women: {formData.women}</span>
-                              </div>
-                              <div className="flex justify-between">
-                                <span>Children: {formData.children}</span>
-                                <span>Infants: {formData.infants}</span>
-                              </div>
-                            </div>
-                            {/* Show selected add-ons */}
-                            {formData.selectedAddOns.length > 0 && (
-                              <div className="text-xs pt-2 border-t" style={{ borderColor: colors.border }}>
-                                <div className="font-semibold mb-2" style={{ color: colors.text }}>Selected Add-ons:</div>
-                                {formData.selectedAddOns.map(addonId => {
-                                  const addon = trek.addOns?.find(a => a._id === addonId);
-                                  if (!addon) return null;
-                                  const addonTotal = addon.price * formData.numberOfMembers;
-                                  return (
-                                    <div key={addonId} className="flex justify-between mb-1" style={{ color: colors.lightText }}>
-                                      <span>{addon.name}</span>
-                                      <span style={{ color: colors.secondary }}>+₹{addonTotal.toLocaleString('en-IN')}</span>
-                                    </div>
-                                  );
-                                })}
-                              </div>
-                            )}
-                          </>
-                        );
-                      })() : (
-                        <div className="text-xs" style={{ color: colors.lightText }}>
-                          Loading pricing information...
-                        </div>
-                      )}
-                      
-                      <div className="border-t pt-2 mt-2" style={{ borderColor: colors.primary + '40' }}>
-                        <div className="flex justify-between items-center">
-                          <span className="font-bold text-sm" style={{ color: colors.text }}>Subtotal:</span>
-                          <span className="text-sm font-bold" style={{ color: colors.text }}>
-                            ₹{(calculateTotalPrice() || 0).toLocaleString('en-IN')}
-                          </span>
-                        </div>
-                        {couponApplied && couponData && (
-                          <div className="flex justify-between items-center mt-2">
-                            <span className="font-semibold text-xs" style={{ color: '#10b981' }}>
-                              Discount ({couponData.discountPercentage}%):
-                            </span>
-                            <span className="text-sm font-bold" style={{ color: '#10b981' }}>
-                              -₹{(couponData.discountAmount || 0).toLocaleString('en-IN')}
-                            </span>
-                          </div>
+                        {formErrors.numberOfMembers && (
+                          <p className="error-message text-xs mt-1 flex items-center gap-1" role="alert" style={{ color: colors.error }}>
+                            <AlertCircle className="w-3 h-3" /> {formErrors.numberOfMembers}
+                          </p>
                         )}
-                        <div className="flex justify-between items-center mt-2 pt-2 border-t" style={{ borderColor: colors.primary + '40' }}>
-                          <span className="font-bold text-sm" style={{ color: colors.text }}>Final Amount:</span>
-                          <span className="text-lg font-bold" style={{ color: colors.primary }}>
-                            ₹{(calculateFinalPrice() || 0).toLocaleString('en-IN')}
-                          </span>
+                      </div>
+
+                      {/* 3. Contact */}
+                      <div className="space-y-3">
+                        <h3 className="font-bold text-sm pb-2 border-b" style={{ color: colors.text, borderColor: colors.border }}>3. Your details</h3>
+                        <Field label="Full Name *" error={formErrors.name}>
+                          <input type="text" name="name" autoComplete="name" value={formData.name} onChange={handleInputChange} className={inputClass(formErrors.name)} placeholder="Enter your full name" />
+                        </Field>
+                        <Field label="Email Address *" error={formErrors.email}>
+                          <input type="email" name="email" autoComplete="email" value={formData.email} onChange={handleInputChange} className={inputClass(formErrors.email)} placeholder="your@email.com" />
+                        </Field>
+                        <Field label="Mobile Number *" error={formErrors.mobile}>
+                          <input type="tel" inputMode="numeric" name="mobile" autoComplete="tel-national" value={formData.mobile} onChange={handleMobileChange} className={inputClass(formErrors.mobile)} placeholder="10-digit mobile number" maxLength={10} />
+                        </Field>
+                      </div>
+
+                      {/* Add-ons */}
+                      {trek.addOns?.length > 0 && (
+                        <div className="border rounded-lg p-3" style={{ borderColor: colors.border, backgroundColor: colors.accentLight }}>
+                          <h3 className="font-semibold mb-1 text-sm" style={{ color: colors.text }}>Optional Add-ons</h3>
+                          <p className="text-xs text-gray-600 mb-2">Price per person</p>
+                          <div className="space-y-2">
+                            {trek.addOns.map((addon) => {
+                              const checked = formData.selectedAddOns.includes(addon._id);
+                              return (
+                                <label
+                                  key={addon._id}
+                                  className="flex items-start p-2 bg-white rounded-lg border cursor-pointer hover:shadow-sm"
+                                  style={{ borderColor: checked ? colors.secondary : colors.border }}
+                                >
+                                  <input type="checkbox" checked={checked} onChange={() => handleAddOnToggle(addon._id)} className="mt-1 mr-2" />
+                                  <div className="flex-1">
+                                    <div className="flex items-center justify-between gap-2">
+                                      <span className="font-semibold text-xs" style={{ color: colors.text }}>{addon.name}</span>
+                                      <span className="font-bold text-xs whitespace-nowrap" style={{ color: colors.secondary }}>+{formatINR(addon.price)}</span>
+                                    </div>
+                                    {addon.description && <p className="text-xs text-gray-600">{addon.description}</p>}
+                                  </div>
+                                </label>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
+
+                      <Field label="Special Requests" hint="(optional)">
+                        <textarea
+                          name="specialRequests"
+                          value={formData.specialRequests}
+                          onChange={handleInputChange}
+                          rows={2}
+                          className={`${inputClass(false)} resize-none`}
+                          placeholder="Medical conditions, dietary requirements, special gear needs..."
+                        />
+                      </Field>
+
+                      {/* Coupon */}
+                      <div>
+                        <label className="block text-xs font-semibold mb-1" style={{ color: colors.text }}>Coupon Code (optional)</label>
+                        <div className="flex gap-2">
+                          <input
+                            type="text"
+                            name="couponCode"
+                            value={formData.couponCode}
+                            onChange={handleInputChange}
+                            disabled={couponApplied}
+                            className={`${inputClass(false)} flex-1 uppercase disabled:bg-gray-100`}
+                            placeholder="Enter coupon code"
+                          />
+                          <button
+                            type="button"
+                            onClick={couponApplied ? handleRemoveCoupon : handleApplyCoupon}
+                            disabled={applyingCoupon || (!couponApplied && totalPrice === 0)}
+                            className="px-4 py-2 rounded-lg font-semibold text-xs text-white disabled:opacity-50 disabled:cursor-not-allowed"
+                            style={{ backgroundColor: couponApplied ? '#ef4444' : colors.secondary }}
+                          >
+                            {applyingCoupon ? 'Applying...' : couponApplied ? 'Remove' : 'Apply'}
+                          </button>
+                        </div>
+                        {couponError && <p className="text-xs mt-1" style={{ color: '#ef4444' }}>{couponError}</p>}
+                        {couponApplied && couponData && (
+                          <p className="text-xs mt-1" style={{ color: '#10b981' }}>✓ Coupon applied! You save {couponData.discountPercentage}%</p>
+                        )}
+                      </div>
+
+                      {/* Price summary */}
+                      <div className="rounded-lg p-3 border" style={{ backgroundColor: colors.accentBlue, borderColor: colors.primary + '40' }}>
+                        <h3 className="font-bold mb-2 text-sm" style={{ color: colors.text }}>Price Summary</h3>
+                        <div className="space-y-1.5 text-xs">
+                          {selectedOption ? (
+                            <div className="flex justify-between gap-2" style={{ color: colors.text }}>
+                              <span>{selectedOption.categoryName} × {formData.numberOfMembers}</span>
+                              <span className="font-semibold">{formatINR(selectedOption.price * formData.numberOfMembers)}</span>
+                            </div>
+                          ) : (
+                            <p style={{ color: colors.lightText }}>Select a pricing category to see the total.</p>
+                          )}
+                          {formData.selectedAddOns.map((addonId) => {
+                            const addon = trek.addOns?.find((a) => a._id === addonId);
+                            if (!addon) return null;
+                            return (
+                              <div key={addonId} className="flex justify-between gap-2" style={{ color: colors.lightText }}>
+                                <span>{addon.name} × {formData.numberOfMembers}</span>
+                                <span style={{ color: colors.secondary }}>+{formatINR(addon.price * formData.numberOfMembers)}</span>
+                              </div>
+                            );
+                          })}
+                          {couponApplied && couponData && (
+                            <div className="flex justify-between" style={{ color: '#10b981' }}>
+                              <span className="font-semibold">Discount ({couponData.discountPercentage}%)</span>
+                              <span className="font-bold">-{formatINR(couponData.discountAmount)}</span>
+                            </div>
+                          )}
+                          <div className="flex justify-between items-center pt-2 mt-1 border-t" style={{ borderColor: colors.primary + '40' }}>
+                            <span className="font-bold text-sm" style={{ color: colors.text }}>Total</span>
+                            <span className="text-lg font-bold" style={{ color: colors.primary }}>{formatINR(finalPrice)}</span>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  </div>
 
-                  {/* Submit Button OR WhatsApp Button for Free Treks */}
-                  {formData.pricePerPerson === 0 || calculateTotalPrice() === 0 ? (
-                    <a
-                      href="https://wa.me/917276644221?text=Hi,%20I'm%20interested%20in%20the%20trek:%20<?php%20echo%20urlencode(trek.name);%20?>"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="w-full py-2.5 rounded-lg font-bold transition-all duration-300 flex items-center justify-center gap-2 text-sm text-white shadow-md hover:shadow-lg"
-                      style={{ backgroundColor: '#25D366' }}
-                      onMouseOver={(e) => e.target.style.backgroundColor = '#20BA5A'}
-                      onMouseOut={(e) => e.target.style.backgroundColor = '#25D366'}
-                    >
-                      <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-                        <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.890-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/>
-                      </svg>
-                      Enquire on WhatsApp
-                    </a>
-                  ) : (
-                    <button
-                      type="submit"
-                      disabled={submitting || !formData.pricePerPerson}
-                      className={`w-full py-2.5 rounded-lg font-bold transition-all duration-300 flex items-center justify-center gap-2 text-sm ${
-                        submitting || !formData.pricePerPerson
-                          ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                          : 'text-white shadow-md hover:shadow-lg'
-                      }`}
-                      style={!submitting && formData.pricePerPerson ? { backgroundColor: colors.primary } : {}}
-                      onMouseOver={(e) => {
-                        if (!submitting && formData.pricePerPerson) {
-                          e.target.style.backgroundColor = '#1A87A9';
-                        }
-                      }}
-                      onMouseOut={(e) => {
-                        if (!submitting && formData.pricePerPerson) {
-                          e.target.style.backgroundColor = colors.primary;
-                        }
-                      }}
-                    >
-                      {submitting ? (
-                        <>
-                          <Loader className="w-4 h-4 animate-spin" />
-                          Processing Your Booking...
-                        </>
-                      ) : (
-                        <>
-                          <Mountain className="w-4 h-4" />
-                          Confirm Trek Booking
-                        </>
-                      )}
-                    </button>
+                      <button
+                        type="submit"
+                        disabled={!canSubmit}
+                        className={`w-full py-3 rounded-lg font-bold flex items-center justify-center gap-2 text-sm transition ${
+                          canSubmit ? 'text-white shadow-md hover:shadow-lg hover:brightness-95' : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                        }`}
+                        style={canSubmit ? { backgroundColor: colors.primary } : undefined}
+                      >
+                        {submitting ? (
+                          <><Loader className="w-4 h-4 animate-spin" /> Processing Your Booking...</>
+                        ) : (
+                          <><Mountain className="w-4 h-4" /> Confirm &amp; Pay {formatINR(finalPrice)}</>
+                        )}
+                      </button>
+
+                      <a
+                        href={whatsappHref}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="w-full py-2.5 rounded-lg font-semibold flex items-center justify-center gap-2 text-sm border hover:bg-green-50"
+                        style={{ color: '#128C7E', borderColor: '#25D366' }}
+                      >
+                        <MessageCircle className="w-4 h-4" /> Have questions? Chat on WhatsApp
+                      </a>
+
+                      <p className="text-xs text-center" style={{ color: colors.lightText }}>
+                        🔒 Secure payment · ✅ Best price guarantee · 🏔️ Instant confirmation
+                      </p>
+                    </form>
                   )}
-
-                  <p className="text-xs text-center" style={{ color: colors.lightText }}>
-                    🔒 Secure booking · ✅ Best price guarantee · 🏔️ Instant confirmation
-                  </p>
-                </form>
-                )}
+                </div>
               </div>
-            </div>
+            </aside>
           </div>
+        </div>
+
+        {/* Mobile booking bar */}
+        <div className="lg:hidden fixed bottom-0 inset-x-0 z-40 bg-white border-t shadow-[0_-4px_12px_rgba(0,0,0,0.08)] pl-4 pr-24 py-3 flex items-center justify-between gap-3" style={{ borderColor: colors.border }}>
+          {pricingUnavailable ? (
+            <a href={whatsappHref} target="_blank" rel="noopener noreferrer" className="w-full py-2.5 rounded-lg text-white font-bold text-sm flex items-center justify-center gap-2" style={{ backgroundColor: '#25D366' }}>
+              {WhatsAppIcon} Get a Quote
+            </a>
+          ) : (
+            <>
+              <div>
+                <p className="text-[11px]" style={{ color: colors.lightText }}>{selectedOption ? `Total for ${formData.numberOfMembers}` : 'Starting from'}</p>
+                <p className="text-lg font-bold leading-tight" style={{ color: colors.primary }}>
+                  {formatINR(selectedOption ? finalPrice : startingPrice)}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => scrollToId('booking-form')}
+                className="px-6 py-2.5 rounded-lg text-white font-bold text-sm"
+                style={{ backgroundColor: colors.secondary }}
+              >
+                Book Now
+              </button>
+            </>
+          )}
         </div>
       </div>
     </>

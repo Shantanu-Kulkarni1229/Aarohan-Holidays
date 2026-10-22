@@ -10,7 +10,6 @@ import BookTrek from './pages/BookTrek'
 import BlogsPage from './pages/BlogsPage'
 import BlogPage from './pages/BlogPage'
 import HistoryPage from './pages/HistoryPage'
-import Gallery from './pages/Gallery'
 import PrivacyPolicy from './pages/PrivacyPolicy'
 import TermsOfService from './pages/TermsOfService'
 import ContactSupport from './pages/ContactSupport'
@@ -29,11 +28,12 @@ import ExtrasManagement from './admin/ExtrasManagement'
 import CustomBookingsManagement from './admin/CustomBookingsManagement'
 import CustomBookingForm from './admin/CustomBookingForm'
 import CustomBookingDetail from './admin/CustomBookingDetail'
-import NavigationLoader from './components/NavigationLoader'
 import { FaWhatsapp } from 'react-icons/fa'
 import CancellationPolicy from './pages/CancellationPolicy'
 import About from './pages/About'
 import OtherServicesPage from './pages/OtherServicesPage'
+import NotFound from './pages/NotFound'
+import { CONTACT } from './utils/contact';
 
 // Wrapper component to use location as key
 const BookTourWrapper = () => {
@@ -55,7 +55,7 @@ const WhatsAppButton = () => {
 
   return (
     <a
-      href="https://wa.me/+917276644221?text=Hello! I'm interested in booking a tour/trek."
+      href={CONTACT.whatsappWithText("Hello! I'm interested in booking a tour/trek.")}
       target="_blank"
       rel="noopener noreferrer"
       className="whatsapp-float group"
@@ -71,11 +71,6 @@ const WhatsAppButton = () => {
         
         {/* WhatsApp Icon */}
         <FaWhatsapp className="text-white relative z-10 group-hover:rotate-12 transition-transform duration-300" size={32} />
-        
-        {/* Notification Badge */}
-        <div className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 rounded-full flex items-center justify-center border-2 border-white animate-pulse">
-          <span className="text-white text-xs font-bold">1</span>
-        </div>
       </div>
 
       {/* Tooltip on Hover */}
@@ -90,7 +85,6 @@ const WhatsAppButton = () => {
 const App = () => {
   return (
     <Router>
-      <NavigationLoader />
       <Routes>
         {/* Public Routes */}
         <Route path="/" element={<HomePage />} />
@@ -104,7 +98,6 @@ const App = () => {
           <Route path="/blogs/:identifier" element={<BlogPage />} />
           <Route path="/history" element={<HistoryPage />} />
           <Route path="/history/:identifier" element={<HistoryPage />} />
-          {/* <Route path="/gallery" element={<Gallery />} /> */}
           <Route path="/privacy" element={<PrivacyPolicy />} />
           <Route path="/terms" element={<TermsOfService />} />
           <Route path="/contact" element={<ContactSupport />} />
@@ -134,6 +127,7 @@ const App = () => {
             <Route path="enquiries" element={<EnquiriesManagement />} />
             <Route path="extras" element={<ExtrasManagement />} />
           </Route>
+          <Route path="*" element={<NotFound />} />
         </Routes>
 
       {/* Global Floating WhatsApp Button */}

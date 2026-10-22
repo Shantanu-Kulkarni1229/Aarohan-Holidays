@@ -1,10 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { toursAPI } from '../api/userAPI';
+import { useNavigate, Link } from 'react-router-dom';
+import { toursAPI, LIST_ALL } from '../api/userAPI';
 import { MapPin, Filter, Camera, Calendar, Users, ChevronLeft, ChevronRight, BookOpen, ArrowRight, Star, Clock, Shield, Award } from 'lucide-react';
 import { gsap } from 'gsap';
 import { showApiError } from '../utils/toast';
+import { cardImage } from '../utils/image';
 
 const UpcomingTours = () => {
+  const navigate = useNavigate();
   const [tours, setTours] = useState([]);
   const [allTours, setAllTours] = useState([]);
   const [groupedTours, setGroupedTours] = useState({});
@@ -14,8 +17,6 @@ const UpcomingTours = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [pagination, setPagination] = useState({});
   const [showFilters, setShowFilters] = useState(false);
-  const [hoveredTour, setHoveredTour] = useState(null);
-  const [isScrolling, setIsScrolling] = useState(false);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(false);
 
@@ -24,7 +25,6 @@ const UpcomingTours = () => {
   const headerRef = useRef(null);
   const filtersRef = useRef(null);
   const cardsRef = useRef([]);
-  const paginationRef = useRef(null);
   const scrollContainerRef = useRef(null);
 
   // New color palette without gradients
@@ -86,38 +86,10 @@ const UpcomingTours = () => {
 
     checkScrollPosition(scrollContainer);
 
-    let isScrolling = false;
-    let scrollAnimationFrame = null;
-
-    // Handle wheel events on desktop
-    const handleWheel = (e) => {
-      // Skip if horizontal scroll is already happening
-      if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) return;
-      
-      // Only convert vertical to horizontal on non-touch devices
-      const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
-      if (isTouchDevice) return;
-      
-      e.preventDefault();
-      
-      // Cancel any ongoing scroll animation
-      if (scrollAnimationFrame) {
-        cancelAnimationFrame(scrollAnimationFrame);
-      }
-      
-      // Use requestAnimationFrame for smooth scrolling
-      scrollAnimationFrame = requestAnimationFrame(() => {
-        scrollContainer.scrollLeft += e.deltaY;
-        checkScrollPosition(scrollContainer);
-      });
-    };
-
     const handleScrollUpdate = () => {
       checkScrollPosition(scrollContainer);
     };
 
-    // Attach wheel event to the container and propagate to children
-    scrollContainer.addEventListener('wheel', handleWheel, { passive: false });
     scrollContainer.addEventListener('scroll', handleScrollUpdate, { passive: true });
 
     const resizeObserver = new ResizeObserver(() => {
@@ -126,10 +98,6 @@ const UpcomingTours = () => {
     resizeObserver.observe(scrollContainer);
 
     return () => {
-      if (scrollAnimationFrame) {
-        cancelAnimationFrame(scrollAnimationFrame);
-      }
-      scrollContainer.removeEventListener('wheel', handleWheel);
       scrollContainer.removeEventListener('scroll', handleScrollUpdate);
       resizeObserver.disconnect();
     };
@@ -246,17 +214,10 @@ const UpcomingTours = () => {
     return tour.thumbnail || (tour.images && tour.images[0]) || null;
   };
 
-  const fetchTours = async (category = 'ALL', page = 1) => {
+  const fetchTours = async (category = 'ALL') => {
     try {
       setLoading(true);
-      const params = {
-        page,
-        limit: 100,
-        sortBy: 'createdAt',
-        sortOrder: 'desc'
-      };
-
-      const response = await toursAPI.getAll(params);
+      const response = await toursAPI.getAll(LIST_ALL);
       let fetchedTours = response.data.data || [];
       
       // Filter based on category selection
@@ -309,7 +270,7 @@ const UpcomingTours = () => {
   };
 
   useEffect(() => {
-    fetchTours(selectedCategory, currentPage);
+    fetchTours(selectedCategory);
   }, [selectedCategory, currentPage]);
 
   const handleCategoryChange = (categoryKey) => {
@@ -345,10 +306,10 @@ const UpcomingTours = () => {
 
   const formatPrice = (tour) => {
     // Check if admin has enabled "Contact for Pricing"
-    if (tour.contactForPricing) return 'Contact Us for Pricing';
+    if (tour.contactForPricing) return 'Price on request';
     
     const cityPricing = tour.cityPricing;
-    if (!cityPricing || cityPricing.length === 0) return 'Contact Us for Pricing';
+    if (!cityPricing || cityPricing.length === 0) return 'Price on request';
     
     // Extract all prices from flexible pricingOptions array
     const allPrices = [];
@@ -362,7 +323,7 @@ const UpcomingTours = () => {
       }
     });
     
-    if (allPrices.length === 0) return 'Contact Us for Pricing';
+    if (allPrices.length === 0) return 'Price on request';
     
     const minPrice = Math.min(...allPrices);
     return `₹${minPrice.toLocaleString()}`;
@@ -374,7 +335,6 @@ const UpcomingTours = () => {
 
   // Enhanced card hover animations
   const handleCardHover = (tourId, isHovering) => {
-    if (isScrolling) return;
     
     const cardIndex = tours.findIndex(tour => tour._id === tourId);
     const card = cardsRef.current[cardIndex];
@@ -382,7 +342,6 @@ const UpcomingTours = () => {
     if (!card) return;
 
     if (isHovering) {
-      setHoveredTour(tourId);
       
       gsap.to(card, {
         y: -8,
@@ -403,7 +362,6 @@ const UpcomingTours = () => {
       }
 
     } else {
-      setHoveredTour(null);
       
       gsap.to(card, {
         y: 0,
@@ -425,37 +383,12 @@ const UpcomingTours = () => {
     }
   };
 
-  const handlePageChange = (newPage) => {
-    const currentCards = cardsRef.current.filter(Boolean);
-    
-    if (currentCards.length > 0) {
-      gsap.to(currentCards, {
-        opacity: 0,
-        x: -30,
-        duration: 0.2,
-        stagger: 0.02,
-        ease: "power2.in",
-        onComplete: () => {
-          setCurrentPage(newPage);
-          cardsRef.current = [];
-        }
-      });
-    } else {
-      setCurrentPage(newPage);
-    }
-  };
-
-  const handleCardClick = (tourId) => {
-    const navigationEvent = new CustomEvent('navigationStart', {
-      detail: { path: `/book-tour/${tourId}` }
-    });
-    window.dispatchEvent(navigationEvent);
-  };
+  const handleCardClick = (tourId) => navigate(`/tour/${tourId}`);
 
   // Enhanced skeleton loader
   const SkeletonCard = () => (
-    <div className="flex-shrink-0 w-80 bg-white rounded-2xl shadow-lg overflow-hidden border border-gray-200">
-      <div className="h-60 bg-gradient-to-br from-gray-100 to-gray-200 animate-pulse"></div>
+    <div className="flex-shrink-0 w-[85vw] max-w-[20rem] bg-white rounded-2xl shadow-lg overflow-hidden border border-gray-200">
+      <div className="aspect-video bg-gradient-to-br from-gray-100 to-gray-200 animate-pulse"></div>
       <div className="p-6">
         <div className="h-5 bg-gray-200 rounded mb-3 animate-pulse"></div>
         <div className="h-4 bg-gray-200 rounded w-2/3 mb-4 animate-pulse"></div>
@@ -491,7 +424,7 @@ const UpcomingTours = () => {
               {error}
             </p>
             <button 
-              onClick={() => fetchTours(selectedCategory, currentPage)}
+              onClick={() => fetchTours(selectedCategory)}
               className="px-8 py-3 rounded-xl font-semibold transition-all duration-300 hover:shadow-lg"
               style={{ 
                 backgroundColor: colors.primary,
@@ -716,19 +649,22 @@ const UpcomingTours = () => {
                         if (el) cardsRef.current[index] = el;
                       }}
                       onClick={() => handleCardClick(tour._id)}
+                      role="link"
+                      tabIndex={0}
+                      onKeyDown={(e) => e.key === 'Enter' && handleCardClick(tour._id)}
                       onMouseEnter={() => handleCardHover(tour._id, true)}
                       onMouseLeave={() => handleCardHover(tour._id, false)}
-                      className="group bg-white rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden border cursor-pointer flex-shrink-0 w-80 snap-start"
+                      className="group bg-white rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden border cursor-pointer flex-shrink-0 w-[85vw] max-w-[20rem] snap-start"
                       style={{ 
                         borderColor: colors.border,
                         transform: 'translateZ(0)'
                       }}
                     >
                       {/* Image Container */}
-                      <div className="relative h-60 bg-gray-100 overflow-hidden">
+                      <div className="relative aspect-video bg-gray-100 overflow-hidden">
                         {getImageSrc(tour) ? (
-                          <img
-                            src={getImageSrc(tour)}
+                          <img loading="lazy" decoding="async"
+                            {...cardImage(getImageSrc(tour))}
                             alt={tour.name}
                             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                           />
@@ -765,7 +701,7 @@ const UpcomingTours = () => {
                         </div>
 
                         <h3 className="text-lg font-bold mb-2 line-clamp-2 group-hover:text-blue-600 transition-colors" style={{ color: colors.text }}>
-                          {tour.name}
+                          <Link to={`/tour/${tour._id}`} onClick={(e) => e.stopPropagation()} className="hover:underline">{tour.name}</Link>
                         </h3>
 
                         <div className="flex items-center gap-2 mb-3">
@@ -836,19 +772,22 @@ const UpcomingTours = () => {
                           if (el) cardsRef.current[globalIndex] = el;
                         }}
                         onClick={() => handleCardClick(tour._id)}
+                      role="link"
+                      tabIndex={0}
+                      onKeyDown={(e) => e.key === 'Enter' && handleCardClick(tour._id)}
                         onMouseEnter={() => handleCardHover(tour._id, true)}
                         onMouseLeave={() => handleCardHover(tour._id, false)}
-                        className="group bg-white rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden border cursor-pointer flex-shrink-0 w-80 snap-start"
+                        className="group bg-white rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden border cursor-pointer flex-shrink-0 w-[85vw] max-w-[20rem] snap-start"
                         style={{ 
                           borderColor: colors.border,
                           transform: 'translateZ(0)'
                         }}
                       >
                         {/* Image Container */}
-                        <div className="relative h-60 bg-gray-100 overflow-hidden">
+                        <div className="relative aspect-video bg-gray-100 overflow-hidden">
                           {getImageSrc(tour) ? (
-                            <img
-                              src={getImageSrc(tour)}
+                            <img loading="lazy" decoding="async"
+                              {...cardImage(getImageSrc(tour))}
                               alt={tour.name}
                               className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                             />
@@ -885,7 +824,7 @@ const UpcomingTours = () => {
                           </div>
 
                           <h3 className="text-lg font-bold mb-2 line-clamp-2 group-hover:text-blue-600 transition-colors" style={{ color: colors.text }}>
-                            {tour.name}
+                            <Link to={`/tour/${tour._id}`} onClick={(e) => e.stopPropagation()} className="hover:underline">{tour.name}</Link>
                           </h3>
 
                           <div className="flex items-center gap-2 mb-3">

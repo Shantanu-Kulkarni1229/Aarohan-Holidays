@@ -10,6 +10,7 @@ import {
   deleteEnquiry,
   getEnquiryStats
 } from "../controllers/otherServices.js";
+import { requireAdmin } from "../middlewares/adminAuth.js";
 
 const router = express.Router();
 
@@ -26,8 +27,9 @@ router.post("/enquiry", createEnquiry);
 router.get("/enquiry/reference/:reference", getEnquiryByReference);
 
 // ========================================
-// ADMIN ROUTES (Should be protected with authentication middleware)
+// ADMIN ROUTES (everything below requires an admin token)
 // ========================================
+router.use(requireAdmin);
 
 // ✅ Get enquiry statistics
 // GET /api/other-services/stats

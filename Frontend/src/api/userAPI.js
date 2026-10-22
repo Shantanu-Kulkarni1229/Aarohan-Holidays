@@ -2,10 +2,11 @@
 // Add this to your frontend src/api/ folder
 
 import axios from 'axios';
+import { attachAdminAuth } from '../utils/adminAuth';
 
 // const BASE_URL = 'https://4zb5qb7j-5000.inc1.devtunnels.ms/api';
-// const BASE_URL = 'https://aarohan-holidays.vercel.app/api';
-const BASE_URL = 'http://localhost:5000/api';
+const BASE_URL = 'https://aarohan-holidays.vercel.app/api';
+// const BASE_URL = 'http://localhost:5000/api';
 
 // Create axios instance
 const userAPI = axios.create({
@@ -13,10 +14,31 @@ const userAPI = axios.create({
   timeout: 30000, // 30 seconds to handle Render cold starts
 });
 
+// The admin enquiry/testimonial calls below use this client too, so it needs the admin token as well
+attachAdminAuth(userAPI);
+
+// Params that fetch the complete list. Navbar, home carousels and list pages all use these,
+// so they share one cached request instead of each downloading the same data again.
+export const LIST_ALL = { page: 1, limit: 1000, sortBy: 'createdAt', sortOrder: 'desc' };
+
+// Short-lived cache + in-flight de-duplication for list requests
+const cachedList = (path, ttl = 60000) => {
+  const store = new Map();
+  return (params = {}) => {
+    const key = JSON.stringify(params);
+    const hit = store.get(key);
+    if (hit && Date.now() - hit.time < ttl) return hit.promise;
+    const promise = userAPI.get(path, { params });
+    store.set(key, { promise, time: Date.now() });
+    promise.catch(() => store.delete(key));
+    return promise;
+  };
+};
+
 // Tours API Functions
 export const toursAPI = {
-  // Get all tours with filters and pagination
-  getAll: (params = {}) => userAPI.get('/tours', { params }),
+  // Get all tours with filters and pagination (cached for 60s)
+  getAll: cachedList('/tours'),
   
   // Get single tour by ID
   getById: (id) => userAPI.get(`/tours/${id}`),
@@ -55,8 +77,8 @@ export const toursAPI = {
 
 // Treks API Functions
 export const treksAPI = {
-  // Get all treks with filters and pagination
-  getAll: (params = {}) => userAPI.get('/treks', { params }),
+  // Get all treks with filters and pagination (cached for 60s)
+  getAll: cachedList('/treks'),
   
   // Get single trek by ID
   getById: (id) => userAPI.get(`/treks/${id}`),

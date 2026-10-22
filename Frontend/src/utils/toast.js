@@ -16,7 +16,8 @@ export const showSuccess = (message, options = {}) => {
 };
 
 export const showError = (message, options = {}) => {
-  toast.error(message, { ...defaultOptions, ...options });
+  // toastId = message, so the same error raised by several components shows once
+  toast.error(message, { ...defaultOptions, toastId: String(message), ...options });
 };
 
 export const showInfo = (message, options = {}) => {

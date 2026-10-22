@@ -6,6 +6,7 @@ import { showApiError } from '../utils/toast';
 import { API_BASE_URL } from '../api/api';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
+import Seo from '../components/Seo';
 
 const BlogsPage = () => {
   const navigate = useNavigate();
@@ -77,7 +78,7 @@ const BlogsPage = () => {
     <div className="group bg-white rounded-2xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2">
       {/* Featured Image */}
       <div className="relative h-56 overflow-hidden">
-        <img
+        <img loading="lazy" decoding="async"
           src={blog.featuredImage || '/api/placeholder/400/300'}
           alt={blog.title}
           className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
@@ -191,8 +192,9 @@ const BlogsPage = () => {
   if (loading) {
     return (
       <>
+        <Seo title="Travel Blog – Destination Guides, Trek Tips & Stories" description="Read destination guides, trekking tips and travel stories from the Aarohan Holidays team to plan your next trip." />
         <Navbar />
-        <div className="min-h-screen pt-24 pb-20" style={{ backgroundColor: colors.background }}>
+        <div className="min-h-screen pt-[calc(var(--header-h)+1.5rem)] pb-20" style={{ backgroundColor: colors.background }}>
           <div className="container mx-auto px-4">
             <div className="text-center mb-12">
               <h1 className="text-5xl font-bold text-gray-900 mb-4">Our Blog</h1>
@@ -220,8 +222,9 @@ const BlogsPage = () => {
 
   return (
     <>
+      <Seo title="Travel Blog – Destination Guides, Trek Tips & Stories" description="Read destination guides, trekking tips and travel stories from the Aarohan Holidays team to plan your next trip." />
       <Navbar />
-      <div className="min-h-screen pt-28 pb-20" style={{ backgroundColor: colors.background }}>
+      <div className="min-h-screen pt-[calc(var(--header-h)+1.5rem)] pb-20" style={{ backgroundColor: colors.background }}>
         <div className="container mx-auto px-4">
           {/* Header */}
           <div className="text-center mb-12">

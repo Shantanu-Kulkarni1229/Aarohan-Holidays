@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { adminAPI } from '../api/api';
 import { showSuccess, showError } from '../utils/toast';
@@ -18,7 +18,8 @@ import {
   AlertCircle,
   X,
   MapPin,
-  TrendingUp
+  TrendingUp,
+  RefreshCw
 } from 'lucide-react';
 
 const ToursManagement = () => {
@@ -31,12 +32,6 @@ const ToursManagement = () => {
   const [toursPerPage] = useState(10);
   const [error, setError] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
-  const [stats, setStats] = useState({
-    total: 0,
-    published: 0,
-    draft: 0,
-    featured: 0
-  });
 
   // Color palette
   const colors = {
@@ -53,9 +48,10 @@ const ToursManagement = () => {
     fetchTours();
   }, []);
 
+  // Back to page 1 whenever the filters change, so a filter never leaves you on an empty page
   useEffect(() => {
-    calculateStats();
-  }, [tours]);
+    setCurrentPage(1);
+  }, [searchTerm, statusFilter, categoryFilter]);
 
   const fetchTours = async () => {
     try {
@@ -76,14 +72,12 @@ const ToursManagement = () => {
     }
   };
 
-  const calculateStats = () => {
-    const total = tours.length;
-    const published = tours.filter(tour => tour.isActive).length;
-    const draft = tours.filter(tour => !tour.isActive).length;
-    const featured = tours.filter(tour => tour.isFeatured).length;
-    
-    setStats({ total, published, draft, featured });
-  };
+  const stats = useMemo(() => ({
+    total: tours.length,
+    published: tours.filter((tour) => tour.isActive).length,
+    draft: tours.filter((tour) => !tour.isActive).length,
+    featured: tours.filter((tour) => tour.isFeatured).length,
+  }), [tours]);
 
   const handleDelete = async (tourId, tourName) => {
     if (window.confirm(`Are you sure you want to delete "${tourName}"? This action cannot be undone.`)) {
@@ -131,8 +125,8 @@ const ToursManagement = () => {
   };
 
   const filteredTours = tours.filter(tour => {
-    const matchesSearch = tour.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         tour.location.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesSearch = (tour.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         (tour.location || '').toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = statusFilter === 'all' || 
       (statusFilter === 'published' && tour.isActive) ||
       (statusFilter === 'draft' && !tour.isActive);
@@ -143,10 +137,12 @@ const ToursManagement = () => {
 
   const categories = [...new Set(tours.map(tour => tour.category).filter(Boolean))];
 
+  // Deleting the last item on a page would otherwise leave you on a page that no longer exists
+  if (currentPage > Math.ceil(filteredTours.length / toursPerPage) && currentPage > 1) setCurrentPage(1);
   const indexOfLastTour = currentPage * toursPerPage;
   const indexOfFirstTour = indexOfLastTour - toursPerPage;
   const currentTours = filteredTours.slice(indexOfFirstTour, indexOfLastTour);
-  const totalPages = Math.ceil(filteredTours.length / toursPerPage);
+  const totalPages = Math.max(1, Math.ceil(filteredTours.length / toursPerPage));
 
   const StatusBadge = ({ isActive }) => (
     <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold border ${
@@ -371,7 +367,7 @@ const ToursManagement = () => {
         </div>
 
         {/* Tours Table */}
-        <div className="overflow-hidden rounded-xl border" style={{ borderColor: colors.border }}>
+        <div className="overflow-x-auto rounded-xl border" style={{ borderColor: colors.border }}>
           <table className="min-w-full divide-y" style={{ divideColor: colors.border }}>
             <thead style={{ backgroundColor: colors.lightBg }}>
               <tr>
@@ -406,7 +402,7 @@ const ToursManagement = () => {
                             className="h-16 w-16 rounded-xl flex items-center justify-center text-white font-bold text-xl shadow-md"
                             style={{ backgroundColor: colors.secondary }}
                           >
-                            {tour.name.charAt(0)}
+                            {(tour.name || '?').charAt(0)}
                           </div>
                         )}
                       </div>

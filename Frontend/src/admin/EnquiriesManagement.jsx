@@ -80,8 +80,8 @@ const EnquiriesManagement = () => {
           if (statsResponse.data.success) {
             setStatistics(statsResponse.data.data);
           }
-        } catch (statsError) {
-          console.log('Stats fetch failed:', statsError);
+        } catch {
+          // statistics are optional; the list above still works
         }
       }
     } catch (error) {
@@ -228,8 +228,8 @@ const EnquiriesManagement = () => {
 
   // Filter enquiries based on search term
   const filteredEnquiries = (enquiries || []).filter(enquiry =>
-    enquiry.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    enquiry.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (enquiry.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (enquiry.email || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
     enquiry.phone.includes(searchTerm) ||
     (enquiry.enquiryReference && enquiry.enquiryReference.toLowerCase().includes(searchTerm.toLowerCase()))
   );
@@ -669,7 +669,7 @@ const EnquiriesManagement = () => {
 
       {/* Details Modal */}
       {showDetailsModal && selectedEnquiry && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg max-w-3xl w-full max-h-[90vh] overflow-y-auto">
             <div className="p-6">
               <div className="flex justify-between items-start mb-4">

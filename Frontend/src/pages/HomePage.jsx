@@ -1,54 +1,56 @@
-import React, { useEffect } from 'react'
+import React from 'react'
 import Navbar from '../components/Navbar'
 import Hero from '../components/Hero'
+import HomeIntro from '../components/HomeIntro'
 import UpcomingTours from '../components/UpcomingTours'
 import UpcomingTreks from '../components/upcomingTreks'
-import Featured from '../components/Featured'
 import Testomonial from '../components/Testomonial'
 import Footer from '../components/Footer'
 import WhyTravelWithUs from '../components/WhyTravelWithUs'
+import Seo from '../components/Seo'
+import { SITE } from '../utils/contact'
 
-const HomePage = () => {
-  useEffect(() => {
-    // Dispatch custom event to update Locomotive Scroll after all components mount
-    const timer = setTimeout(() => {
-      window.dispatchEvent(new Event('resize'));
-    }, 1000);
-    
-    return () => clearTimeout(timer);
-  }, []);
-
-  return (
-    <div className="relative">
-        {/* Main Content - Removed heavy background effects for better performance */}
-        <div className="relative z-10">
-          <Navbar />
-          <div id="hero">
-            <Hero />
-          </div>
-          
-          {/* Removed RevealOnScroll wrappers for better performance */}
-          <div id="tours">
-            <UpcomingTours />
-          </div>
-          
-          <div id="treks">
-            <UpcomingTreks />
-          </div>
-          
-        <WhyTravelWithUs />
-          
-          <div id="testimonials">
-            <Testomonial />
-          </div>
-          
-          {/* Footer - Always visible */}
-          <div id="footer">
-            <Footer />
-          </div>
-        </div>
-    </div>
-  )
+const websiteLd = {
+  '@context': 'https://schema.org',
+  '@type': 'WebSite',
+  name: SITE.name,
+  url: SITE.url,
+  potentialAction: {
+    '@type': 'SearchAction',
+    target: `${SITE.url}/tours?q={search_term_string}`,
+    'query-input': 'required name=search_term_string',
+  },
 }
+
+const HomePage = () => (
+  <div className="relative">
+    <Seo jsonLd={websiteLd} />
+    <Navbar />
+    <main>
+      <div id="hero">
+        <Hero />
+      </div>
+
+      <HomeIntro />
+
+      <div id="tours">
+        <UpcomingTours />
+      </div>
+
+      <div id="treks">
+        <UpcomingTreks />
+      </div>
+
+      <WhyTravelWithUs />
+
+      <div id="testimonials">
+        <Testomonial />
+      </div>
+    </main>
+    <div id="footer">
+      <Footer />
+    </div>
+  </div>
+)
 
 export default HomePage

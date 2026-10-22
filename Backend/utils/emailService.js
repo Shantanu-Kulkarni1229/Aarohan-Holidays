@@ -1,6 +1,7 @@
 import nodemailer from 'nodemailer';
 import { customBookingEmailTemplate } from './customBookingEmailTemplate.js';
 
+import { SITE } from './siteConfig.js';
 // Create transporter with multiple fallback options for Render
 const createTransporter = () => {
   // Try different configurations based on environment
@@ -131,14 +132,14 @@ const userConfirmationTemplate = (enquiry) => {
           </p>
           
           <div style="text-align: center;">
-            <a href="tel:+918482813688" class="button">📞 Call Us: +91 8482813688</a>
-            <a href="https://wa.me/918482813688" class="button" style="background: #25D366;">💬 WhatsApp</a>
+            <a href="tel:${SITE.phone}" class="button">📞 Call Us: ${SITE.phoneDisplay}</a>
+            <a href="${SITE.whatsapp}" class="button" style="background: #25D366;">💬 WhatsApp</a>
           </div>
         </div>
         <div class="footer">
           <p><strong>Aarohan Holidays</strong></p>
-          <p>📧 Email: info@ravitours.com | 📞 Phone: +91 8482813688</p>
-          <p>🌐 Website: www.ravitours.com</p>
+          <p>📧 Email: ${SITE.email} | 📞 Phone: ${SITE.phoneDisplay}</p>
+          <p>🌐 Website: ${SITE.websiteDisplay}</p>
           <p style="font-size: 12px; color: #94a3b8;">This is an automated confirmation email. Please do not reply directly to this email.</p>
         </div>
       </div>
@@ -301,6 +302,7 @@ export const sendUserConfirmationEmail = async (enquiry) => {
       
       const mailOptions = {
         from: `"Aarohan Holidays" <${process.env.EMAIL_USER}>`,
+        replyTo: SITE.email,
         to: enquiry.email,
         subject: `✅ Enquiry Confirmation - ${enquiry.referenceNumber}`,
         html: userConfirmationTemplate(enquiry)
@@ -339,7 +341,8 @@ export const sendAdminNotificationEmail = async (enquiry) => {
       const adminEmail = process.env.ADMIN_EMAIL || process.env.EMAIL_USER;
       
       const mailOptions = {
-        from: `"Ravi Tours System" <${process.env.EMAIL_USER}>`,
+        from: `"Aarohan Holidays System" <${process.env.EMAIL_USER}>`,
+        replyTo: SITE.email,
         to: adminEmail,
         subject: `🚨 New Enquiry - ${enquiry.serviceType} - ${enquiry.referenceNumber}`,
         html: adminNotificationTemplate(enquiry),
@@ -423,6 +426,7 @@ export const sendCustomBookingEmail = async (booking, pdfBuffer) => {
       
       const mailOptions = {
         from: `"Aarohan Holidays" <${process.env.EMAIL_USER}>`,
+        replyTo: SITE.email,
         to: booking.customerEmail,
         subject: `🎉 Your Customized ${booking.packageType} Package - ${emailData.packageName}`,
         html: customBookingEmailTemplate(emailData),

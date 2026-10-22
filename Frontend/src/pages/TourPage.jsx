@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { toursAPI } from '../api/userAPI';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { useNavigate, Link } from 'react-router-dom';
+import { toursAPI, LIST_ALL } from '../api/userAPI';
 import { showApiError } from '../utils/toast';
 import {
   Search,
@@ -18,6 +18,11 @@ import {
 } from 'lucide-react';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
+import Seo from '../components/Seo';
+import { cardImage } from '../utils/image';
+
+// Default 'no upper limit' for the price filter (tours can cost more than any fixed slider max)
+const PRICE_ANY = 10000000;
 
 const TourPage = () => {
   const navigate = useNavigate();
@@ -40,7 +45,8 @@ const TourPage = () => {
   const [allTours, setAllTours] = useState([]);
   const [filteredTours, setFilteredTours] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [searchQuery, setSearchQuery] = useState('');
+  // Home page search strip links here with ?q=destination&max=budget
+  const [searchQuery, setSearchQuery] = useState(() => new URLSearchParams(window.location.search).get('q') || '');
   const [showFilters, setShowFilters] = useState(false);
   const [viewMode, setViewMode] = useState('grid'); // 'grid' or 'list'
   const [sortBy, setSortBy] = useState('featured'); // 'featured', 'price-low', 'price-high', 'duration', 'name'
@@ -48,7 +54,7 @@ const TourPage = () => {
 
   // Filter States
   const [filters, setFilters] = useState({
-    priceRange: [0, 100000],
+    priceRange: [0, Number(new URLSearchParams(window.location.search).get('max')) || PRICE_ANY],
     duration: [],
     categories: [],
     locations: [],
@@ -72,14 +78,7 @@ const TourPage = () => {
   const fetchTours = async () => {
     setLoading(true);
     try {
-      const params = {
-        page: 1,
-        limit: 1000,
-        sortBy: 'createdAt',
-        sortOrder: 'desc'
-      };
-
-      const response = await toursAPI.getAll(params);
+      const response = await toursAPI.getAll(LIST_ALL);
       const tours = response.data.data || [];
       
       setAllTours(tours);
@@ -208,6 +207,12 @@ const TourPage = () => {
     return allPrices.length > 0 ? Math.min(...allPrices) : 0;
   };
 
+  // Slider upper bound follows the real data, rounded up to the next 5,000
+  const priceCeiling = useMemo(() => {
+    const top = Math.max(0, ...allTours.map(getMinPrice));
+    return Math.max(5000, Math.ceil(top / 5000) * 5000);
+  }, [allTours]);
+
   const getTourDaysCount = (tour) => {
     if (tour.duration) {
       const match = tour.duration.match(/(\d+)/);
@@ -217,7 +222,7 @@ const TourPage = () => {
   };
 
   const formatPrice = (cityPricing) => {
-    if (!cityPricing || cityPricing.length === 0) return 'Contact Us for Pricing';
+    if (!cityPricing || cityPricing.length === 0) return 'Price on request';
     
     // Tours use pricingOptions array with flexible categoryName and price
     const allPrices = [];
@@ -229,10 +234,10 @@ const TourPage = () => {
       }
     });
     
-    if (allPrices.length === 0) return 'Contact Us for Pricing';
+    if (allPrices.length === 0) return 'Price on request';
     
     const minPrice = Math.min(...allPrices);
-    return `₹${minPrice.toLocaleString()}`;
+    return `₹${minPrice.toLocaleString('en-IN')}`;
   };
 
   const getImageSrc = (tour) => {
@@ -265,7 +270,7 @@ const TourPage = () => {
 
   const clearAllFilters = () => {
     setFilters({
-      priceRange: [0, 100000],
+      priceRange: [0, PRICE_ANY],
       duration: [],
       categories: [],
       locations: [],
@@ -289,6 +294,7 @@ const TourPage = () => {
   if (loading) {
     return (
       <>
+        <Seo title="Tour Packages in India – Domestic & International Holidays" description="Browse handpicked tour packages and fixed departures across India and abroad. Compare prices, durations and itineraries, then book online." />
         <Navbar />
         <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: colors.lightBg }}>
           <div className="text-center">
@@ -308,11 +314,12 @@ const TourPage = () => {
 
   return (
     <>
+      <Seo title="Tour Packages in India – Domestic & International Holidays" description="Browse handpicked tour packages and fixed departures across India and abroad. Compare prices, durations and itineraries, then book online." />
       <Navbar />
       <div className="min-h-screen" style={{ backgroundColor: colors.lightBg }}>
         {/* Hero Section */}
       <div 
-        className="relative py-20 overflow-hidden"
+        className="relative pb-20 pt-[calc(var(--header-h)+3rem)] overflow-hidden"
         style={{
           background: `linear-gradient(135deg, ${colors.darkBg} 0%, ${colors.accent} 100%)`
         }}
@@ -594,14 +601,14 @@ const TourPage = () => {
                   <div className="flex items-center justify-between text-sm font-medium"
                        style={{ color: colors.textLight }}>
                     <span>₹ {filters.priceRange[0].toLocaleString('en-IN')}</span>
-                    <span>₹ {filters.priceRange[1].toLocaleString('en-IN')}</span>
+                    <span>₹ {Math.min(filters.priceRange[1], priceCeiling).toLocaleString('en-IN')}</span>
                   </div>
                   <input
                     type="range"
                     min="0"
-                    max="100000"
+                    max={priceCeiling}
                     step="5000"
-                    value={filters.priceRange[1]}
+                    value={Math.min(filters.priceRange[1], priceCeiling)}
                     onChange={(e) => setFilters(prev => ({
                       ...prev,
                       priceRange: [0, parseInt(e.target.value)]
@@ -681,11 +688,11 @@ const TourPage = () => {
               >
                 {/* Image Container */}
                 <div className={`relative bg-gray-100 overflow-hidden ${
-                  viewMode === 'list' ? 'w-80 flex-shrink-0' : 'h-60'
+                  viewMode === 'list' ? 'w-80 flex-shrink-0' : 'aspect-video'
                 }`}>
                   {getImageSrc(tour) ? (
-                    <img
-                      src={getImageSrc(tour)}
+                    <img loading="lazy" decoding="async"
+                      {...cardImage(getImageSrc(tour))}
                       alt={tour.name}
                       className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                     />
@@ -749,7 +756,7 @@ const TourPage = () => {
                   <h3 className={`font-bold mb-2 line-clamp-2 group-hover:text-blue-600 transition-colors ${
                     viewMode === 'list' ? 'text-2xl mb-3' : 'text-lg'
                   }`} style={{ color: colors.text }}>
-                    {tour.name}
+                    <Link to={`/tour/${tour._id}`} onClick={(e) => e.stopPropagation()} className="hover:underline">{tour.name}</Link>
                   </h3>
 
                   <div className={`flex items-center gap-2 ${viewMode === 'list' ? 'mb-4' : 'mb-3'}`}>

@@ -69,7 +69,7 @@ const CustomBookingDetail = () => {
       if (response.data.success) {
         showSuccess('Booking resent successfully!');
       }
-    } catch (err) {
+    } catch {
       showError('Failed to resend booking');
     }
   };
@@ -81,7 +81,7 @@ const CustomBookingDetail = () => {
       await axios.delete(`${API_BASE_URL}/custom-bookings/${id}`);
       showSuccess('Booking deleted successfully');
       navigate('/admin/custom-bookings');
-    } catch (err) {
+    } catch {
       showError('Failed to delete booking');
     }
   };
@@ -112,7 +112,7 @@ const CustomBookingDetail = () => {
       window.URL.revokeObjectURL(url);
       
       showSuccess('PDF downloaded successfully');
-    } catch (err) {
+    } catch {
       showError('Failed to download PDF');
     }
   };
@@ -126,7 +126,7 @@ const CustomBookingDetail = () => {
       if (response.data.success) {
         setBooking({ ...booking, paymentStatus: newStatus });
       }
-    } catch (err) {
+    } catch {
       showError('Failed to update payment status');
     }
   };
@@ -150,7 +150,7 @@ const CustomBookingDetail = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: colors.lightBg }}>
+      <div className="min-h-[60vh] flex items-center justify-center" style={{ backgroundColor: colors.lightBg }}>
         <div className="text-center">
           <div className="animate-spin rounded-full h-16 w-16 border-b-2 mx-auto mb-4" style={{ borderColor: colors.primary }}></div>
           <p className="text-gray-600">Loading booking details...</p>
@@ -161,7 +161,7 @@ const CustomBookingDetail = () => {
 
   if (error || !booking) {
     return (
-      <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: colors.lightBg }}>
+      <div className="min-h-[60vh] flex items-center justify-center" style={{ backgroundColor: colors.lightBg }}>
         <div className="text-center bg-white p-8 rounded-xl shadow-lg">
           <XCircle className="mx-auto mb-4 text-red-500" size={64} />
           <h2 className="text-2xl font-bold text-gray-800 mb-2">Booking Not Found</h2>
@@ -180,7 +180,7 @@ const CustomBookingDetail = () => {
   }
 
   return (
-    <div className="min-h-screen p-6" style={{ backgroundColor: colors.lightBg }}>
+    <div className="p-4 sm:p-6" style={{ backgroundColor: colors.lightBg }}>
       {/* Header */}
       <div className="mb-6">
         <button

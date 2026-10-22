@@ -1,12 +1,11 @@
 import { useState, useEffect, useRef, useMemo } from "react";
 import { gsap } from "gsap";
+import { Link } from "react-router-dom";
 import { FiStar } from "react-icons/fi";
 import { FaMountain, FaUmbrellaBeach, FaCompass } from "react-icons/fa";
 
 const Hero = () => {
   const [currentSlide, setCurrentSlide] = useState(0);
-  const [typedText, setTypedText] = useState("");
-  const [isTyping, setIsTyping] = useState(true);
 
   const heroRef = useRef(null);
   const imageRef = useRef(null);
@@ -33,7 +32,7 @@ const Hero = () => {
   () => [
     {
       image:
-        "https://images.unsplash.com/photo-1551632811-561732d1e306?ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&q=100&w=1980",
+        "https://images.unsplash.com/photo-1551632811-561732d1e306?ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&q=75&w=1600",
       text: "Aarohan Holidays",
       subtext:
         "Crafting Journeys, Creating Memories — Explore India with Heart & Soul",
@@ -41,7 +40,7 @@ const Hero = () => {
     },
     {
       image:
-        "https://images.unsplash.com/photo-1584395631446-e41b0fc3f68d?ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&q=100&w=1980",
+        "https://images.unsplash.com/photo-1584395631446-e41b0fc3f68d?ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&q=75&w=1600",
       text: "Himalayan Heights",
       subtext:
         "Whispers of snow-clad peaks and serene monasteries — find peace above the clouds.",
@@ -49,7 +48,7 @@ const Hero = () => {
     },
     {
       image:
-        "https://images.unsplash.com/photo-1668007598394-292ee944e83b?ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&q=100&w=1980",
+        "https://images.unsplash.com/photo-1668007598394-292ee944e83b?ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&q=75&w=1600",
       text: "Northern Majesty",
       subtext:
         "Where history meets grandeur — from Delhi’s charm to Kashmir’s calm.",
@@ -57,7 +56,7 @@ const Hero = () => {
     },
     {
       image:
-        "https://images.unsplash.com/photo-1602216056096-3b40cc0c9944?ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&q=100&w=1980",
+        "https://images.unsplash.com/photo-1602216056096-3b40cc0c9944?ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&q=75&w=1600",
       text: "Southern Serenity",
       subtext:
         "Coconut breezes, temple bells, and backwater tales — dive into the soul of the South.",
@@ -65,7 +64,7 @@ const Hero = () => {
     },
     {
       image:
-        "https://images.unsplash.com/photo-1663745430674-180c6858f46c?ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&q=100&w=1980",
+        "https://images.unsplash.com/photo-1663745430674-180c6858f46c?ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&q=75&w=1600",
       text: "Western Wonders",
       subtext:
         "Golden sands, royal forts, and coastal sunsets — a symphony of color and culture.",
@@ -73,7 +72,7 @@ const Hero = () => {
     },
     {
       image:
-        "https://images.unsplash.com/photo-1593813738953-fb3c93e0769d?ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&q=100&w=2154",
+        "https://images.unsplash.com/photo-1593813738953-fb3c93e0769d?ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&q=75&w=1600",
       text: "Eastern Essence",
       subtext:
         "Mystical mountains, tea-scented trails, and soulful rhythms of life.",
@@ -81,7 +80,7 @@ const Hero = () => {
     },
     {
       image:
-        "https://plus.unsplash.com/premium_photo-1661919589683-f11880119fb7?ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&q=100&w=1980",
+        "https://plus.unsplash.com/premium_photo-1661919589683-f11880119fb7?ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&q=75&w=1600",
       text: "Central Chronicles",
       subtext:
         "Untamed wilderness and timeless heritage — discover the beating heart of India.",
@@ -89,7 +88,7 @@ const Hero = () => {
     },
     {
       image:
-        "https://plus.unsplash.com/premium_photo-1661962428918-6a57ab674e23?ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&q=100&w=1980",
+        "https://plus.unsplash.com/premium_photo-1661962428918-6a57ab674e23?ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&q=75&w=1600",
       text: "Desert Dreams",
       subtext:
         "Ride through golden dunes under starlit skies — Rajasthan’s timeless whispers await.",
@@ -97,7 +96,7 @@ const Hero = () => {
     },
     {
       image:
-        "https://plus.unsplash.com/premium_photo-1661903221734-11c7d6fc11e7?ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&q=100&w=1980",
+        "https://plus.unsplash.com/premium_photo-1661903221734-11c7d6fc11e7?ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&q=75&w=1600",
       text: "Island Escapes",
       subtext:
         "Turquoise waters, coral gardens, and tranquil tides — lose yourself to island bliss.",
@@ -105,7 +104,7 @@ const Hero = () => {
     },
     {
       image:
-        "https://images.unsplash.com/photo-1635337136044-83e78752bc4a?ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&q=100&w=1980",
+        "https://images.unsplash.com/photo-1635337136044-83e78752bc4a?ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&q=75&w=1600",
       text: "Cultural Odyssey",
       subtext:
         "Walk through centuries of tradition — where every festival tells a story.",
@@ -113,7 +112,7 @@ const Hero = () => {
     },
     {
       image:
-        "https://images.unsplash.com/photo-1575550959106-5a7defe28b56?ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&q=100&w=1980",
+        "https://images.unsplash.com/photo-1575550959106-5a7defe28b56?ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&q=75&w=1600",
       text: "Wildlife Trails",
       subtext:
         "Encounter nature’s raw beauty — from tiger roars to tranquil forests.",
@@ -121,7 +120,7 @@ const Hero = () => {
     },
     {
       image:
-        "https://images.unsplash.com/photo-1701430662597-ff86c1cba95a?ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&q=100&w=1980",
+        "https://images.unsplash.com/photo-1701430662597-ff86c1cba95a?ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&q=75&w=1600",
       text: "Heritage Horizons",
       subtext:
         "Explore ancient forts, palaces, and timeless architecture that echo India’s glory.",
@@ -129,7 +128,7 @@ const Hero = () => {
     },
     {
       image:
-        "https://images.unsplash.com/photo-1560179406-1c6c60e0dc76?ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&q=100&w=1980",
+        "https://images.unsplash.com/photo-1560179406-1c6c60e0dc76?ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&q=75&w=1600",
       text: "Coastal Charms",
       subtext:
         "Sun, sand, and serenity — from Goa’s glow to Andaman’s allure.",
@@ -137,7 +136,7 @@ const Hero = () => {
     },
     {
       image:
-        "https://images.unsplash.com/photo-1666264474857-d09401e9eb4f?ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&q=100&w=1980",
+        "https://images.unsplash.com/photo-1666264474857-d09401e9eb4f?ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&q=75&w=1600",
       text: "Festive India",
       subtext:
         "Colors, lights, and melodies — celebrate India’s spirit in full bloom.",
@@ -145,7 +144,7 @@ const Hero = () => {
     },
     {
       image:
-        "https://plus.unsplash.com/premium_photo-1663047386229-637af57cecfe?ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&q=100&w=1980",
+        "https://plus.unsplash.com/premium_photo-1663047386229-637af57cecfe?ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&q=75&w=1600",
       text: "Adventure Beyond",
       subtext:
         "Trek, dive, or soar — unleash your wanderlust with thrilling experiences.",
@@ -283,26 +282,6 @@ const Hero = () => {
 
   }, []);
 
-  // Typing effect
-  useEffect(() => {
-    const currentText = slides[currentSlide].text;
-    let index = 0;
-    setTypedText("");
-    setIsTyping(true);
-
-    const typingInterval = setInterval(() => {
-      if (index <= currentText.length) {
-        setTypedText(currentText.slice(0, index));
-        index++;
-      } else {
-        setIsTyping(false);
-        clearInterval(typingInterval);
-      }
-    }, 50);
-
-    return () => clearInterval(typingInterval);
-  }, [currentSlide, slides]);
-
   // Auto slide
   useEffect(() => {
     const slideInterval = setInterval(() => {
@@ -314,6 +293,8 @@ const Hero = () => {
 
   // Slide transition
   useEffect(() => {
+    // Warm the next image so the reveal never shows an empty frame
+    new Image().src = slides[(currentSlide + 1) % slides.length].image;
     const tl = gsap.timeline();
 
     tl.to(imageRef.current, {
@@ -371,13 +352,13 @@ const Hero = () => {
       {/* Hero Section */}
       <div
         ref={heroRef}
-        className="relative w-full h-screen overflow-hidden"
+        className="relative w-full h-[100svh] min-h-[560px] overflow-hidden"
         style={{ background: colors.darkBg }}
       >
         {/* Background Image */}
         <div
           ref={imageRef}
-          className="absolute inset-0 bg-cover bg-center bg-fixed"
+          className="absolute inset-0 bg-cover bg-center"
           style={{
             backgroundImage: `url(${slides[0].image})`,
             clipPath: "polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%)"
@@ -434,24 +415,14 @@ const Hero = () => {
 
             {/* Main Heading */}
             <div ref={textRef} className="space-y-6">
-              <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-black leading-tight">
-                <span
-                  className="bg-clip-text text-transparent bg-gradient-to-r from-white to-gray-200"
-                  style={{
-                    backgroundImage: `linear-gradient(135deg, ${colors.textLight}, #CBD5E1)`
-                  }}
-                >
-                  {typedText}
-                </span>
-                <span
-                  className="cursor ml-1"
-                  style={{
-                    color: colors.primary,
-                    opacity: isTyping ? 1 : 0,
-                    textShadow: `0 0 20px ${colors.primary}`
-                  }}
-                >|</span>
-              </h1>
+              <h1 className="sr-only">Aarohan Holidays – Tours, treks and holiday packages across India</h1>
+              <p
+                aria-hidden="true"
+                className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-black leading-tight min-h-[2.4em] sm:min-h-[1.2em] bg-clip-text text-transparent"
+                style={{ backgroundImage: `linear-gradient(135deg, ${colors.textLight}, #CBD5E1)` }}
+              >
+                {slides[currentSlide].text}
+              </p>
             </div>
 
             {/* Subtext */}
@@ -461,8 +432,25 @@ const Hero = () => {
               </p>
             </div>
 
+            {/* Primary actions */}
+            <div className="flex flex-wrap gap-3">
+              <Link
+                to="/tours"
+                className="px-6 py-3 rounded-xl font-bold text-white shadow-lg transition-transform hover:scale-105"
+                style={{ backgroundColor: colors.primary }}
+              >
+                Explore Tours
+              </Link>
+              <Link
+                to="/treks"
+                className="px-6 py-3 rounded-xl font-bold text-white border-2 border-white/60 backdrop-blur-md transition-transform hover:scale-105 hover:bg-white/10"
+              >
+                Explore Treks
+              </Link>
+            </div>
+
             {/* Features Grid */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 max-w-2xl">
+            <div className="hidden sm:grid grid-cols-2 lg:grid-cols-4 gap-4 max-w-2xl">
               {features.map((feature, index) => {
                 const Icon = feature.icon;
                 return (
@@ -506,11 +494,12 @@ const Hero = () => {
         </div>
 
         {/* Slide Indicators */}
-        <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 flex space-x-2 z-20 backdrop-blur-md rounded-full p-2 bg-black/20">
+        <div className="absolute bottom-28 left-1/2 transform -translate-x-1/2 hidden md:flex space-x-2 z-20 backdrop-blur-md rounded-full p-2 bg-black/20">
           {slides.map((_, index) => (
             <button
               key={index}
               onClick={() => handleSlideChange(index)}
+              aria-label={`Show slide ${index + 1}`}
               className={`w-3 h-3 rounded-full transition-all duration-500 ease-out ${currentSlide === index
                   ? "scale-125 shadow-lg"
                   : "bg-white/50 hover:bg-white/80"
@@ -522,15 +511,6 @@ const Hero = () => {
           ))}
         </div>
 
-        {/* Scroll Indicator */}
-        <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 z-20">
-          <div className="w-6 h-10 border-2 border-white/50 rounded-full flex justify-center">
-            <div
-              className="w-1 h-3 rounded-full mt-2 animate-bounce"
-              style={{ backgroundColor: colors.primary }}
-            ></div>
-          </div>
-        </div>
       </div>
     </div>
   );

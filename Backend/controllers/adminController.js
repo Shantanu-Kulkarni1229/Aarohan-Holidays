@@ -6,17 +6,33 @@ import cloudinary from "../config/cloudinary.js";
 import mongoose from "mongoose";
 
 // Utility function for image uploads
-const uploadImage = async (filePath, folderName) => {
+const uploadImage = async (filePath, folderName, extraOptions = {}) => {
   try {
     const result = await cloudinary.uploader.upload(filePath, {
       folder: folderName,
       resource_type: "image",
+      ...extraOptions,
     });
     return result.secure_url;
   } catch (error) {
     throw new Error("Image upload failed: " + error.message);
   }
 };
+
+// Card thumbnails are shown in a 16:9 frame. Normalise to 1080p: crop to 16:9 if needed
+// (lfill never upscales smaller images) and let Cloudinary pick the best quality/format.
+const THUMBNAIL_OPTIONS = {
+  transformation: [{ width: 1920, height: 1080, crop: "lfill", gravity: "auto", quality: "auto" }],
+};
+const uploadThumbnailImage = (filePath, folderName) => uploadImage(filePath, folderName, THUMBNAIL_OPTIONS);
+
+// Counters and metadata the server owns. The admin form loads the whole record and sends it back on save,
+// so without this a stale copy of the seat counter would overwrite bookings made while the form was open.
+// hotelImages only ever changes through uploaded files; the form also echoes the saved URL list back as JSON text,
+// which would otherwise be stored as one broken string.
+const SERVER_MANAGED_FIELDS = ['_id', '__v', 'createdAt', 'updatedAt', 'totalBookings', 'totalViews', 'hotelImages'];
+const omitServerManaged = (body) =>
+  Object.fromEntries(Object.entries(body).filter(([key]) => !SERVER_MANAGED_FIELDS.includes(key)));
 
 // Utility function to parse JSON fields from FormData
 const parseJSONField = (value, fallback = []) => {
@@ -115,7 +131,7 @@ export const createTour = async (req, res) => {
       return res.status(400).json({ success: false, message: "Thumbnail image is required." });
     }
 
-    const thumbnailUrl = await uploadImage(req.files.thumbnail[0].path, "Tours/Thumbnails");
+    const thumbnailUrl = await uploadThumbnailImage(req.files.thumbnail[0].path, "Tours/Thumbnails");
 
     let showcaseUrls = [];
     if (req.files.showcaseImages) {
@@ -232,8 +248,9 @@ export const updateTour = async (req, res) => {
     const {
       thumbnail: thumbnailField,
       showcaseImages: showcaseField,
-      ...rest
+      ...restBody
     } = req.body;
+    const rest = omitServerManaged(restBody);
 
     const parsedRest = {};
     for (const [key, value] of Object.entries(rest)) {
@@ -248,9 +265,6 @@ export const updateTour = async (req, res) => {
       }
     }
 
-    // DEBUG: Log parsed cityPricing with pickup points
-    console.log('🔍 DEBUG UPDATE - Parsed cityPricing:', JSON.stringify(parsedRest.cityPricing, null, 2));
-
     // Clean up empty state/country fields to avoid validation errors
     if (parsedRest.state === '' || parsedRest.state === null) {
       delete parsedRest.state;
@@ -261,7 +275,7 @@ export const updateTour = async (req, res) => {
 
     // Update images if new ones uploaded
     if (req.files?.thumbnail) {
-      const newThumb = await uploadImage(req.files.thumbnail[0].path, "Tours/Thumbnails");
+      const newThumb = await uploadThumbnailImage(req.files.thumbnail[0].path, "Tours/Thumbnails");
       parsedRest.thumbnail = newThumb;
     }
 
@@ -280,7 +294,6 @@ export const updateTour = async (req, res) => {
     }
 
     const updatedTour = await Tour.findByIdAndUpdate(id, parsedRest, { new: true });
-    console.log('🔍 DEBUG UPDATE - Saved cityPricing:', JSON.stringify(updatedTour.cityPricing, null, 2));
     res.status(200).json({ success: true, message: "Tour updated successfully!", data: updatedTour });
   } catch (error) {
     console.error('Error updating tour:', error);
@@ -350,7 +363,7 @@ export const createTrek = async (req, res) => {
       }
     }
 
-    const thumbnailUrl = await uploadImage(req.files.thumbnail[0].path, "Treks/Thumbnails");
+    const thumbnailUrl = await uploadThumbnailImage(req.files.thumbnail[0].path, "Treks/Thumbnails");
 
     let showcaseUrls = [];
     if (req.files.showcaseImages) {
@@ -467,20 +480,14 @@ export const updateTrek = async (req, res) => {
     const {
       thumbnail: thumbnailField,
       showcaseImages: showcaseField,
-      ...rest
+      ...restBody
     } = req.body;
-
-    // Debug logging
-    console.log('📥 Updating trek - Raw cityPricing from request:', rest.cityPricing);
+    const rest = omitServerManaged(restBody);
 
     const parsedRest = {};
     for (const [key, value] of Object.entries(rest)) {
       if (arrayFields.includes(key)) {
         parsedRest[key] = parseJSONField(value, []);
-        // Special debug for cityPricing
-        if (key === 'cityPricing') {
-          console.log('📦 Parsed cityPricing for update:', parsedRest[key]);
-        }
       } else if (booleanFields.includes(key)) {
         parsedRest[key] = value === 'true' || value === true;
       } else if (numberFields.includes(key)) {
@@ -491,7 +498,7 @@ export const updateTrek = async (req, res) => {
     }
 
     if (req.files?.thumbnail) {
-      const newThumb = await uploadImage(req.files.thumbnail[0].path, "Treks/Thumbnails");
+      const newThumb = await uploadThumbnailImage(req.files.thumbnail[0].path, "Treks/Thumbnails");
       parsedRest.thumbnail = newThumb;
     }
 

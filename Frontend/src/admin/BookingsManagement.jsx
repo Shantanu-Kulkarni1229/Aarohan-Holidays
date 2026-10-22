@@ -28,7 +28,8 @@ import {
   FileText,
   MessageCircle,
   CreditCard,
-  Shield
+  Shield,
+  Package
 } from 'lucide-react';
 
 const BookingsManagement = () => {
@@ -84,6 +85,11 @@ const BookingsManagement = () => {
     error: '#DC2626'
   };
 
+  // Back to page 1 when any filter changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, statusFilter, typeFilter, dateFilter, filteredItemId]);
+
   useEffect(() => {
     const urlType = searchParams.get('type');
     const urlItemId = searchParams.get('itemId');
@@ -120,11 +126,13 @@ const BookingsManagement = () => {
           total: bookingsData.length,
           pending: bookingsData.filter(b => b.bookingStatus === 'pending').length,
           confirmed: bookingsData.filter(b => b.bookingStatus === 'confirmed').length,
-          revenue: bookingsData.reduce((sum, b) => sum + (b.amountPaid || 0), 0),
+          revenue: bookingsData
+            .filter(b => b.paymentStatus !== 'refunded' && b.paymentStatus !== 'failed')
+            .reduce((sum, b) => sum + (b.amountPaid || 0), 0),
           today: todayBookings.length
         });
       }
-    } catch (error) {
+    } catch {
       setError('Unable to load bookings data. Please check your connection and try again.');
       showError('Failed to load bookings');
     } finally {
@@ -146,7 +154,7 @@ const BookingsManagement = () => {
       if (treksResponse.data.success) {
         setAvailableTreks(treksResponse.data.data);
       }
-    } catch (error) {
+    } catch {
       // Silently fail - not critical for main functionality
     }
   };
@@ -195,6 +203,9 @@ const BookingsManagement = () => {
   };
 
   const handleStatusUpdate = async (bookingId, newStatus) => {
+    if (newStatus === 'cancelled' && !window.confirm('Cancel this booking? The customer may be notified and the seats are released.')) {
+      return;
+    }
     try {
       const response = await axios.patch(
         `${API_BASE_URL}/admin/bookings/${bookingId}/status`,
@@ -205,7 +216,7 @@ const BookingsManagement = () => {
         showSuccess(`Booking status updated to ${newStatus}`);
         fetchBookings();
       }
-    } catch (error) {
+    } catch {
       setError('Failed to update booking status. Please try again.');
       setTimeout(() => setError(''), 5000);
       showError('Failed to update booking status');
@@ -226,7 +237,7 @@ const BookingsManagement = () => {
         showSuccess(`Payment status updated to ${newPaymentStatus}`);
         fetchBookings();
       }
-    } catch (error) {
+    } catch {
       setError('Failed to update payment status. Please try again.');
       setTimeout(() => setError(''), 5000);
       showError('Failed to update payment status');
@@ -243,7 +254,7 @@ const BookingsManagement = () => {
       if (response.data.success) {
         showSuccess('Confirmation email and WhatsApp message sent successfully!');
       }
-    } catch (error) {
+    } catch {
       setError('Failed to resend confirmation. Please try again.');
       setTimeout(() => setError(''), 5000);
       showError('Failed to resend confirmation');
@@ -266,7 +277,7 @@ const BookingsManagement = () => {
         showSuccess('Booking deleted successfully!');
         fetchBookings();
       }
-    } catch (error) {
+    } catch {
       setError('Failed to delete booking. Please try again.');
       setTimeout(() => setError(''), 5000);
       showError('Failed to delete booking');
@@ -281,6 +292,10 @@ const BookingsManagement = () => {
 
 
   const exportToExcel = () => {
+    if (filteredBookings.length === 0) {
+      showError('There are no bookings to export for the current filters');
+      return;
+    }
     const exportData = filteredBookings.map(booking => ({
       'Reference': booking.bookingReference,
       'Type': booking.bookingType.toUpperCase(),
@@ -325,10 +340,10 @@ const BookingsManagement = () => {
   // Filter bookings
   const filteredBookings = bookings.filter(booking => {
     const matchesSearch = 
-      booking.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      booking.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      booking.mobile.includes(searchTerm) ||
-      booking.bookingReference.toLowerCase().includes(searchTerm.toLowerCase());
+      (booking.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (booking.email || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (booking.mobile || '').includes(searchTerm) ||
+      (booking.bookingReference || '').toLowerCase().includes(searchTerm.toLowerCase());
 
     const matchesStatus = statusFilter === 'all' || booking.bookingStatus === statusFilter;
     const matchesType = typeFilter === 'all' || booking.bookingType === typeFilter;
@@ -351,7 +366,7 @@ const BookingsManagement = () => {
   const indexOfLastBooking = currentPage * bookingsPerPage;
   const indexOfFirstBooking = indexOfLastBooking - bookingsPerPage;
   const currentBookings = filteredBookings.slice(indexOfFirstBooking, indexOfLastBooking);
-  const totalPages = Math.ceil(filteredBookings.length / bookingsPerPage);
+  const totalPages = Math.max(1, Math.ceil(filteredBookings.length / bookingsPerPage));
 
   const getStatusColor = (status) => {
     switch (status) {
@@ -397,7 +412,7 @@ const BookingsManagement = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: colors.background }}>
+      <div className="min-h-[60vh] flex items-center justify-center" style={{ backgroundColor: colors.background }}>
         <div className="text-center">
           <div className="animate-spin rounded-full h-16 w-16 border-b-2 mx-auto mb-4" style={{ borderColor: colors.primary }}></div>
           <h3 className="text-xl font-semibold mb-2" style={{ color: colors.text }}>Loading Bookings</h3>
@@ -408,7 +423,7 @@ const BookingsManagement = () => {
   }
 
   return (
-    <div className="min-h-screen p-6" style={{ backgroundColor: colors.background }}>
+    <div className="p-4 sm:p-6" style={{ backgroundColor: colors.background }}>
       <div className="max-w-7xl mx-auto space-y-8">
         {/* Header */}
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between space-y-4 lg:space-y-0 gap-4">
@@ -1110,7 +1125,7 @@ const BookingsManagement = () => {
 
       {/* Booking Details Modal */}
       {showDetailsModal && selectedBooking && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg shadow-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
             <div className="p-6">
               {/* Modal Header */}

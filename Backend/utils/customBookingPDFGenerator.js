@@ -3,6 +3,7 @@ import path from "path";
 import { fileURLToPath } from "url";
 import axios from "axios";
 
+import { SITE } from './siteConfig.js';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
@@ -81,8 +82,8 @@ export const generateCustomBookingPDF = async (booking) => {
         doc.fontSize(8)
           .fillColor('#FFFFFF')
           .text("www.aarohanholidays.com", contactX, 30, { width: 200, align: "left" })
-          .text("+91 9011268465", contactX, 45, { width: 200, align: "left" })
-          .text("info@aarohanholidays.com", contactX, 60, { width: 200, align: "left" });
+          .text(SITE.phoneDisplay, contactX, 45, { width: 200, align: "left" })
+          .text(SITE.email, contactX, 60, { width: 200, align: "left" });
 
         // Social Media - Right aligned
         doc.fontSize(7)
@@ -131,7 +132,7 @@ export const generateCustomBookingPDF = async (booking) => {
           .fillColor(mediumText)
           .font("Helvetica")
           .text("www.aarohanholidays.com", centerX - 100, footerY + 10, { width: 200, align: "center" })
-          .text("+91 9011268465 | info@aarohanholidays.com", centerX - 100, footerY + 20, { width: 200, align: "center" })
+          .text(`${SITE.phoneDisplay} | ${SITE.email}`, centerX - 100, footerY + 20, { width: 200, align: "center" })
           .text("Follow us for exciting offers", centerX - 100, footerY + 30, { width: 200, align: "center" });
 
         // Right: Confidential stamp
@@ -949,10 +950,10 @@ export const generateCustomBookingPDF = async (booking) => {
         .text("GET IN TOUCH", contactBoxX, contactY + 12, { width: contactBoxWidth, align: "center" });
 
       doc.fontSize(11)
-        .text("+91 9011268465", contactBoxX, contactY + 32, { width: contactBoxWidth, align: "center" });
+        .text(SITE.phoneDisplay, contactBoxX, contactY + 32, { width: contactBoxWidth, align: "center" });
 
       doc.fontSize(10)
-        .text("info@aarohanholidays.com | www.aarohanholidays.com", contactBoxX, contactY + 48, { width: contactBoxWidth, align: "center" });
+        .text(`${SITE.email} | ${SITE.websiteDisplay}`, contactBoxX, contactY + 48, { width: contactBoxWidth, align: "center" });
 
       doc.moveDown(4);
 

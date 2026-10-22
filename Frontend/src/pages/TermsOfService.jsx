@@ -4,7 +4,10 @@ import { FiFileText, FiCheckCircle, FiAlertTriangle, FiDollarSign, FiRefreshCw, 
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import Footer from '../components/Footer';
+import Navbar from '../components/Navbar';
+import Seo from '../components/Seo';
 
+import { CONTACT } from '../utils/contact';
 gsap.registerPlugin(ScrollTrigger);
 
 export default function TermsOfService() {
@@ -236,10 +239,12 @@ export default function TermsOfService() {
 
   return (
     <div className="min-h-screen" style={{ backgroundColor: colors.lightBg }}>
+      <Seo title="Terms of Service" description="Terms and conditions for booking tours, treks and travel services with Aarohan Holidays." />
+      <Navbar />
       {/* Hero Header */}
       <div 
         ref={headerRef}
-        className="relative py-20 overflow-hidden"
+        className="relative pb-20 pt-[calc(var(--header-h)+3rem)] overflow-hidden"
         style={{ backgroundColor: colors.darkBg }}
       >
         <div className="absolute inset-0 opacity-10">
@@ -299,7 +304,7 @@ export default function TermsOfService() {
             Welcome to <strong>Aarohan Holidays</strong>! These Terms of Service ("Terms") govern your use of our website and services. By making a booking or using our platform, you agree to be bound by these Terms.
           </p>
           <p className="text-lg leading-relaxed" style={{ color: colors.textDark }}>
-            We reserve the right to update these Terms at any time. Continued use of our services after changes constitutes acceptance of the revised Terms. For questions, contact us at <a href="mailto:info@aarohanholidays.com" className="font-semibold hover:underline" style={{ color: colors.secondary }}>info@aarohanholidays.com</a>.
+            We reserve the right to update these Terms at any time. Continued use of our services after changes constitutes acceptance of the revised Terms. For questions, contact us at <a href={CONTACT.mailto} className="font-semibold hover:underline" style={{ color: colors.secondary }}>info@aarohanholidays.com</a>.
           </p>
         </div>
 
@@ -376,7 +381,7 @@ export default function TermsOfService() {
               Start Booking
             </Link>
             <a
-              href="mailto:info@aarohanholidays.com"
+              href={CONTACT.mailto}
               className="inline-block px-8 py-4 rounded-xl font-bold transition-all duration-300 hover:scale-105 shadow-lg border-2"
               style={{ backgroundColor: 'transparent', color: 'white', borderColor: 'white' }}
             >

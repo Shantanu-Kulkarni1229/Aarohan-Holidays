@@ -21,6 +21,8 @@ import {
   FiCheckCircle
 } from 'react-icons/fi';
 import { FaWhatsapp, FaMountain, FaRoute, FaPassport } from 'react-icons/fa';
+import { CONTACT } from '../utils/contact';
+import Seo from '../components/Seo';
 
 const About = () => {
   const heroRef = useRef(null);
@@ -174,6 +176,7 @@ const About = () => {
 
   return (
    <div className="min-h-screen" style={{ backgroundColor: colors.lightBg }}>
+      <Seo title="About Us – Our Story, Founders & Mission" description="Meet the team behind Aarohan Holidays, a travel company crafting tours, treks and holidays across India with local expertise and care." />
       <Navbar />
        {/* Hero Section */}
       <div 
@@ -188,7 +191,7 @@ const About = () => {
           }}></div>
         </div>
 
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24 md:py-32">
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-24 md:pb-32 pt-[calc(var(--header-h)+3rem)]">
           <div className="text-center">
             <div className="inline-flex items-center justify-center w-24 h-24 rounded-full mb-8 animate-pulse"
                  style={{ backgroundColor: colors.primary + '20' }}>
@@ -384,7 +387,7 @@ const About = () => {
                       <FiLinkedin size={24} className="text-white" />
                     </a>
                     <a 
-                      href="https://wa.me/919011268465" 
+                      href={CONTACT.whatsapp} 
                       target="_blank" 
                       rel="noopener noreferrer"
                       className="w-12 h-12 rounded-full bg-white/20 flex items-center justify-center hover:bg-white/30 transition-all"
@@ -392,7 +395,7 @@ const About = () => {
                       <FaWhatsapp size={24} className="text-white" />
                     </a>
                     <a 
-                      href="mailto:kiran@aarohanholidays.com"
+                      href={CONTACT.mailto}
                       className="w-12 h-12 rounded-full bg-white/20 flex items-center justify-center hover:bg-white/30 transition-all"
                     >
                       <FiMail size={24} className="text-white" />
@@ -532,7 +535,7 @@ const About = () => {
               Explore Our Packages
             </Link>
             <a 
-              href="tel:+919011268465"
+              href={CONTACT.tel}
               className="px-10 py-4 bg-transparent border-2 border-white rounded-xl font-bold text-lg text-white transform transition-all duration-300 hover:scale-105 hover:bg-white/10"
             >
               Contact Us Today

@@ -3,9 +3,9 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { FiPhone, FiSearch, FiMapPin, FiMenu, FiX, FiChevronDown, FiHome, FiCamera, FiInfo, FiMail } from "react-icons/fi";
 import { FaMountain, FaRoute, FaConciergeBell, FaWhatsapp } from "react-icons/fa";
 import { gsap } from "gsap";
-import { toursAPI, treksAPI } from "../api/userAPI";
-import { showApiError } from "../utils/toast";
+import { toursAPI, treksAPI, LIST_ALL } from "../api/userAPI";
 import EnquiryForm from "./EnquiryForm";
+import { CONTACT } from '../utils/contact';
 
 export default function Navbar() {
   const navigate = useNavigate();
@@ -14,7 +14,6 @@ export default function Navbar() {
   const [hoveredMenu, setHoveredMenu] = useState(null);
   const [enquiryOpen, setEnquiryOpen] = useState(false);
   const [enquiryFormOpen, setEnquiryFormOpen] = useState(false);
-  const [placeholder, setPlaceholder] = useState("");
   const [tours, setTours] = useState([]);
   const [treks, setTreks] = useState([]);
   const [loadingTours, setLoadingTours] = useState(false);
@@ -31,19 +30,6 @@ export default function Navbar() {
   const chevronRefs = useRef({});
   const leftSectionRef = useRef(null);
   
-  const placeholders = [
-  "Search tours in Kerala backwaters...",
-  "Find desert adventures in Rajasthan...",
-  "Explore Himalayan treks like Kedarkantha & Hampta Pass...",
-  "Discover the beauty of Kashmir & Ladakh...",
-  "Plan your next getaway to Goa beaches...",
-  "Explore the hills of Himachal & Uttarakhand...",
-  "Find monsoon treks in Maharashtra like Rajmachi & Harishchandragad...",
-  "Search for spiritual tours in Varanasi & Rishikesh...",
-  "Discover tea valley escapes in Munnar & Ooty...",
-  "Explore wildlife safaris in Jim Corbett & Ranthambore...",
-];
-
   // New color palette
   const colors = {
     primary: "#1E9ABF",    // Blue
@@ -61,7 +47,7 @@ export default function Navbar() {
   const fetchTours = async () => {
     try {
       setLoadingTours(true);
-      const response = await toursAPI.getAll({ limit: 500 }); // Fetch all tours for search
+      const response = await toursAPI.getAll(LIST_ALL); // shared cached list, also used for search
       if (response.data.success) {
         // Filter only available tours (not sold out or unavailable)
         const availableTours = response.data.data.filter(
@@ -69,8 +55,8 @@ export default function Navbar() {
         );
         setTours(availableTours);
       }
-    } catch (error) {
-      showApiError(error);
+    } catch {
+      // search suggestions are optional; the page itself reports load failures
     } finally {
       setLoadingTours(false);
     }
@@ -80,7 +66,7 @@ export default function Navbar() {
   const fetchTreks = async () => {
     try {
       setLoadingTreks(true);
-      const response = await treksAPI.getAll({ limit: 500 }); // Fetch all treks for search
+      const response = await treksAPI.getAll(LIST_ALL);
       if (response.data.success) {
         // Filter only available treks (not sold out or unavailable)
         const availableTreks = response.data.data.filter(
@@ -88,8 +74,8 @@ export default function Navbar() {
         );
         setTreks(availableTreks);
       }
-    } catch (error) {
-      showApiError(error);
+    } catch {
+      // search suggestions are optional; the page itself reports load failures
     } finally {
       setLoadingTreks(false);
     }
@@ -138,32 +124,6 @@ export default function Navbar() {
       },
       "-=0.2"
     );
-  }, []);
-
-  // Typing effect for search placeholder
-  useEffect(() => {
-    let index = 0;
-    let charIndex = 0;
-    let typing = true;
-
-    const interval = setInterval(() => {
-      if (typing) {
-        setPlaceholder(placeholders[index].slice(0, ++charIndex));
-        if (charIndex === placeholders[index].length) {
-          typing = false;
-          setTimeout(() => {}, 1500);
-        }
-      } else {
-        setPlaceholder(placeholders[index].slice(0, --charIndex));
-        if (charIndex === 0) {
-          typing = true;
-          index = (index + 1) % placeholders.length;
-        }
-      }
-    }, 80);
-
-    return () => clearInterval(interval);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Dropdown animation
@@ -312,12 +272,12 @@ export default function Navbar() {
   };
 
   const handleCall = () => {
-    window.open("tel:+919011268465");
+    window.open(CONTACT.tel);
     setEnquiryOpen(false);
   };
 
   const handleWhatsApp = () => {
-    window.open("https://wa.me/919011268465", "_blank");
+    window.open(CONTACT.whatsapp, "_blank");
     setEnquiryOpen(false);
   };
 
@@ -365,8 +325,8 @@ export default function Navbar() {
   // Handle search result click
   const handleSearchResultClick = (result) => {
     const route = result.type === 'tour' 
-      ? `/book-tour/${result._id}` 
-      : `/book-trek/${result._id}`;
+      ? `/tour/${result._id}` 
+      : `/trek/${result._id}`;
     
     // Navigate to booking page
     navigate(route);
@@ -397,56 +357,27 @@ export default function Navbar() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Smooth scroll to section
+  // Smooth scroll to a section on the home page (navigates home first if needed)
   const scrollToSection = (sectionId) => {
-    if (location.pathname !== '/') {
-      navigate('/');
-      setTimeout(() => {
-        const element = document.getElementById(sectionId);
-        if (element) {
-          const scrollContainer = document.querySelector('[data-scroll-container]');
-          if (scrollContainer && scrollContainer.locomotiveScroll) {
-            const navHeight = navRef.current?.offsetHeight || 80;
-            scrollContainer.locomotiveScroll.scrollTo(element, {
-              offset: -(navHeight + 20),
-              duration: 1000,
-              easing: [0.25, 0.0, 0.35, 1.0]
-            });
-          } else {
-            const navHeight = navRef.current?.offsetHeight || 80;
-            const elementPosition = element.getBoundingClientRect().top + window.pageYOffset;
-            const offsetPosition = elementPosition - navHeight - 20;
-
-            window.scrollTo({
-              top: offsetPosition,
-              behavior: 'smooth'
-            });
-          }
-        }
-      }, 500);
-    } else {
+    const scroll = () => {
       const element = document.getElementById(sectionId);
-      if (element) {
-        const scrollContainer = document.querySelector('[data-scroll-container]');
-        if (scrollContainer && scrollContainer.locomotiveScroll) {
-          const navHeight = navRef.current?.offsetHeight || 80;
-          scrollContainer.locomotiveScroll.scrollTo(element, {
-            offset: -(navHeight + 20),
-            duration: 1000,
-            easing: [0.25, 0.0, 0.35, 1.0]
-          });
-        } else {
-          const navHeight = navRef.current?.offsetHeight || 80;
-          const elementPosition = element.getBoundingClientRect().top + window.pageYOffset;
-          const offsetPosition = elementPosition - navHeight - 20;
+      if (!element) return false;
+      const navHeight = navRef.current?.offsetHeight || 80;
+      const top = element.getBoundingClientRect().top + window.pageYOffset - navHeight - 52;
+      window.scrollTo({ top, behavior: 'smooth' });
+      return true;
+    };
 
-          window.scrollTo({
-            top: offsetPosition,
-            behavior: 'smooth'
-          });
-        }
-      }
+    if (location.pathname === '/') {
+      scroll();
+      return;
     }
+    navigate('/');
+    // Wait for the home sections to mount instead of guessing a fixed delay
+    let tries = 0;
+    const timer = setInterval(() => {
+      if (scroll() || ++tries > 30) clearInterval(timer);
+    }, 100);
   };
 
   // Check if a navigation link is active
@@ -454,8 +385,8 @@ export default function Navbar() {
     const currentPath = location.pathname;
     
     if (link === 'Home') return currentPath === '/';
-    if (link === 'Tours') return currentPath === '/tours' || currentPath.startsWith('/tour/') || currentPath.startsWith('/book-tour/');
-    if (link === 'Treks') return currentPath === '/treks' || currentPath.startsWith('/trek/') || currentPath.startsWith('/book-trek/');
+    if (link === 'Tours') return currentPath === '/tours' || currentPath.startsWith('/tour/') || currentPath.startsWith('/tour/');
+    if (link === 'Treks') return currentPath === '/treks' || currentPath.startsWith('/trek/') || currentPath.startsWith('/trek/');
     // if (link === 'Gallery') return currentPath === '/gallery';
     if (link === 'Extras') return currentPath === '/blogs' || currentPath === '/history' || currentPath === '/about';
     
@@ -513,25 +444,13 @@ export default function Navbar() {
     if (type === 'Tours') {
       // item is already the tour object with _id
       if (item && item._id) {
-        const route = `/book-tour/${item._id}`;
-        // Dispatch custom event to trigger loader
-        const navigationEvent = new CustomEvent('navigationStart', {
-          detail: { path: route }
-        });
-        window.dispatchEvent(navigationEvent);
-        // Navigate to the booking page
+        const route = `/tour/${item._id}`;
         navigate(route);
       }
     } else if (type === 'Treks') {
       // item is already the trek object with _id
       if (item && item._id) {
-        const route = `/book-trek/${item._id}`;
-        // Dispatch custom event to trigger loader
-        const navigationEvent = new CustomEvent('navigationStart', {
-          detail: { path: route }
-        });
-        window.dispatchEvent(navigationEvent);
-        // Navigate to the booking page
+        const route = `/trek/${item._id}`;
         navigate(route);
       }
     } else if (type === 'Other Services') {
@@ -663,7 +582,7 @@ export default function Navbar() {
           top: '32px'
         }}
       >
-        <div className="max-w-8xl mx-auto flex items-center justify-between px-4 lg:px-8 py-3">
+        <div className="max-w-[1600px] mx-auto flex items-center justify-between px-4 lg:px-8 py-2 lg:py-3">
           {/* Left Section - Logo */}
           <div 
             ref={leftSectionRef}
@@ -676,7 +595,7 @@ export default function Navbar() {
               <img 
                 src="https://res.cloudinary.com/dvlsgka21/image/upload/v1763733101/logo2_pdwnoo.jpg" 
                 alt="Aarohan Holidays Logo" 
-                className="h-16 w-auto object-contain transition-all duration-300 group-hover:scale-105 group-hover:brightness-110"
+                className="h-12 lg:h-14 w-auto object-contain transition-all duration-300 group-hover:scale-105 group-hover:brightness-110"
                 style={{ maxWidth: '200px' }}
               />
             </div>
@@ -702,8 +621,8 @@ export default function Navbar() {
                   type="text"
                   value={searchQuery}
                   onChange={(e) => handleSearch(e.target.value)}
-                  onKeyPress={handleSearchKeyPress}
-                  placeholder={placeholder}
+                  onKeyDown={handleSearchKeyPress}
+                  placeholder="Search tours & treks..."
                   onFocus={() => {
                     handleSearchFocus();
                     if (searchQuery.trim().length >= 1) {
@@ -1052,7 +971,7 @@ export default function Navbar() {
                       </div>
                       <div>
                         <p className="font-semibold">Call Now</p>
-                        <p className="text-xs" style={{ color: colors.textLight }}>+91 90112 68465</p>
+                        <p className="text-xs" style={{ color: colors.textLight }}>{CONTACT.display}</p>
                       </div>
                     </button>
                     
@@ -1087,7 +1006,8 @@ export default function Navbar() {
           </div>
         </div>
 
-        {/* Mobile Search Bar - Always Visible */}
+        {/* Mobile Search Bar - shown with the menu so the fixed header stays one row */}
+        {menuOpen && (
         <div className="lg:hidden border-t" style={{ borderColor: colors.border, background: colors.background }}>
           <div className="px-4 py-3">
             <div className="relative">
@@ -1107,11 +1027,8 @@ export default function Navbar() {
                   type="text"
                   value={searchQuery}
                   onChange={(e) => handleSearch(e.target.value)}
-                  onKeyPress={handleSearchKeyPress}
+                  onKeyDown={handleSearchKeyPress}
                   placeholder="Search tours & treks..."
-                  onFocus={() => {
-                    gsap.to(searchRef.current, { scale: 1.02, duration: 0.2 });
-                  }}
                   className="bg-transparent outline-none flex-grow placeholder-gray-500 text-sm font-medium w-full"
                   style={{ color: colors.text }}
                 />
@@ -1188,12 +1105,13 @@ export default function Navbar() {
             </div>
           </div>
         </div>
+        )}
 
         {/* Mobile Dropdown */}
         {menuOpen && (
           <div 
             ref={mobileMenuRef} 
-            className="lg:hidden shadow-xl p-6 space-y-4 overflow-hidden border-t"
+            className="lg:hidden shadow-xl p-4 space-y-2 overflow-y-auto max-h-[calc(100svh-230px)] border-t"
             style={{ 
               background: colors.background,
               borderColor: colors.border

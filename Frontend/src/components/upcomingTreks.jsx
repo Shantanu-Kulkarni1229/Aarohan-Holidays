@@ -1,10 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useNavigate, Link } from 'react-router-dom';
 import { treksAPI } from '../api/userAPI';
 import { MapPin, Filter, Camera, Mountain, Clock, Users, ChevronLeft, ChevronRight, BookOpen, ArrowRight, Shield, Star, Compass, Thermometer } from 'lucide-react';
 import { gsap } from 'gsap';
 import { showApiError } from '../utils/toast';
+import { cardImage } from '../utils/image';
 
 const UpcomingTreks = () => {
+  const navigate = useNavigate();
   const [treks, setTreks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -12,7 +15,6 @@ const UpcomingTreks = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [pagination, setPagination] = useState({});
   const [showFilters, setShowFilters] = useState(false);
-  const [hoveredTrek, setHoveredTrek] = useState(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(false);
 
@@ -78,37 +80,10 @@ const UpcomingTreks = () => {
 
     checkScrollPosition(scrollContainer);
 
-    let scrollAnimationFrame = null;
-
-    // Handle wheel events on desktop
-    const handleWheel = (e) => {
-      // Skip if horizontal scroll is already happening
-      if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) return;
-      
-      // Only convert vertical to horizontal on non-touch devices
-      const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
-      if (isTouchDevice) return;
-      
-      e.preventDefault();
-      
-      // Cancel any ongoing scroll animation
-      if (scrollAnimationFrame) {
-        cancelAnimationFrame(scrollAnimationFrame);
-      }
-      
-      // Use requestAnimationFrame for smooth scrolling
-      scrollAnimationFrame = requestAnimationFrame(() => {
-        scrollContainer.scrollLeft += e.deltaY;
-        checkScrollPosition(scrollContainer);
-      });
-    };
-
     const handleScrollUpdate = () => {
       checkScrollPosition(scrollContainer);
     };
 
-    // Attach wheel event to the container and propagate to children
-    scrollContainer.addEventListener('wheel', handleWheel, { passive: false });
     scrollContainer.addEventListener('scroll', handleScrollUpdate, { passive: true });
 
     const resizeObserver = new ResizeObserver(() => {
@@ -117,10 +92,6 @@ const UpcomingTreks = () => {
     resizeObserver.observe(scrollContainer);
 
     return () => {
-      if (scrollAnimationFrame) {
-        cancelAnimationFrame(scrollAnimationFrame);
-      }
-      scrollContainer.removeEventListener('wheel', handleWheel);
       scrollContainer.removeEventListener('scroll', handleScrollUpdate);
       resizeObserver.disconnect();
     };
@@ -351,7 +322,6 @@ const UpcomingTreks = () => {
     if (!card) return;
 
     if (isHovering) {
-      setHoveredTrek(trekId);
       
       gsap.to(card, {
         y: -8,
@@ -372,7 +342,6 @@ const UpcomingTreks = () => {
       }
 
     } else {
-      setHoveredTrek(null);
       
       gsap.to(card, {
         y: 0,
@@ -414,17 +383,12 @@ const UpcomingTreks = () => {
     }
   };
 
-  const handleCardClick = (trekId) => {
-    const navigationEvent = new CustomEvent('navigationStart', {
-      detail: { path: `/book-trek/${trekId}` }
-    });
-    window.dispatchEvent(navigationEvent);
-  };
+  const handleCardClick = (trekId) => navigate(`/trek/${trekId}`);
 
   // Enhanced skeleton loader
   const SkeletonCard = () => (
-    <div className="flex-shrink-0 w-80 bg-white rounded-2xl shadow-lg overflow-hidden border border-gray-200">
-      <div className="h-60 bg-gradient-to-br from-gray-100 to-gray-200 animate-pulse"></div>
+    <div className="flex-shrink-0 w-[85vw] max-w-[20rem] bg-white rounded-2xl shadow-lg overflow-hidden border border-gray-200">
+      <div className="aspect-video bg-gradient-to-br from-gray-100 to-gray-200 animate-pulse"></div>
       <div className="p-6">
         <div className="h-5 bg-gray-200 rounded mb-3 animate-pulse"></div>
         <div className="h-4 bg-gray-200 rounded w-2/3 mb-4 animate-pulse"></div>
@@ -647,19 +611,22 @@ const UpcomingTreks = () => {
                       if (el) cardsRef.current[index] = el;
                     }}
                     onClick={() => handleCardClick(trek._id)}
+                      role="link"
+                      tabIndex={0}
+                      onKeyDown={(e) => e.key === 'Enter' && handleCardClick(trek._id)}
                     onMouseEnter={() => handleCardHover(trek._id, true)}
                     onMouseLeave={() => handleCardHover(trek._id, false)}
-                    className="group bg-white rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden border cursor-pointer flex-shrink-0 w-80 snap-start"
+                    className="group bg-white rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden border cursor-pointer flex-shrink-0 w-[85vw] max-w-[20rem] snap-start"
                     style={{ 
                       borderColor: colors.border,
                       transform: 'translateZ(0)'
                     }}
                   >
                     {/* Image Container */}
-                    <div className="relative h-60 bg-gray-100 overflow-hidden">
+                    <div className="relative aspect-video bg-gray-100 overflow-hidden">
                       {getImageSrc(trek) ? (
-                        <img
-                          src={getImageSrc(trek)}
+                        <img loading="lazy" decoding="async"
+                          {...cardImage(getImageSrc(trek))}
                           alt={trek.name}
                           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                         />
@@ -705,7 +672,7 @@ const UpcomingTreks = () => {
                       </div>
 
                       <h3 className="text-lg font-bold mb-2 line-clamp-2 group-hover:text-blue-600 transition-colors" style={{ color: colors.text }}>
-                        {trek.name}
+                        <Link to={`/trek/${trek._id}`} onClick={(e) => e.stopPropagation()} className="hover:underline">{trek.name}</Link>
                       </h3>
 
                       <div className="flex items-center gap-2 mb-3">

@@ -83,9 +83,9 @@ ADMIN_EMAIL=admin-email@gmail.com (optional, defaults to EMAIL_USER)
 
 **Example:**
 ```
-EMAIL_USER=aarohanholidays@gmail.com
+EMAIL_USER=info@aarohanholidays.com
 EMAIL_PASS=abcd efgh ijkl mnop
-ADMIN_EMAIL=admin@aarohanholidays.com
+ADMIN_EMAIL=info@aarohanholidays.com
 ```
 
 ### Step 3: Redeploy

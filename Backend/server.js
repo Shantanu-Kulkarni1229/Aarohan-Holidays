@@ -15,10 +15,14 @@ import customBookingRoutes from "./routes/customBookingRoutes.js";
 import historyRoutes from "./routes/historyRoutes.js";
 import blogRoutes from "./routes/blogRoutes.js";
 import uploadRoutes from "./routes/uploadRoutes.js";
+import { adminLogin, requireAdmin } from "./middlewares/adminAuth.js";
 
 dotenv.config();
 
 const app = express();
+
+// Behind Vercel/Hostinger proxies: needed so req.ip is the real client (login rate limiting)
+app.set('trust proxy', 1);
 
 // Set production environment if not set
 if (!process.env.NODE_ENV) {
@@ -77,6 +81,17 @@ app.use(
 
 
 app.use(express.json());
+
+// ---- Admin protection ----
+// Runs before the database middleware so login works and unauthenticated requests are rejected without touching MongoDB.
+// Everything under these paths needs a valid admin token (see middlewares/adminAuth.js); only login is open.
+app.post('/api/admin/login', adminLogin);
+app.use('/api/admin', requireAdmin);          // tours, treks, bookings, enquiries, blogs, history, ...
+app.use('/api/coupons/admin', requireAdmin);
+app.use('/api/testimonials/admin', requireAdmin);
+app.use('/api/payment/admin', requireAdmin);
+app.use('/api/custom-bookings', requireAdmin);
+app.use('/api/upload', requireAdmin);
 
 // Middleware to ensure DB connection before handling requests
 app.use(async (req, res, next) => {

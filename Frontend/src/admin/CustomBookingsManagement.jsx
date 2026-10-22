@@ -83,7 +83,7 @@ const CustomBookingsManagement = () => {
           totalBookings: response.data.pagination.totalBookings
         }));
       }
-    } catch (error) {
+    } catch {
       showError('Failed to load bookings');
     } finally {
       setLoading(false);
@@ -99,7 +99,7 @@ const CustomBookingsManagement = () => {
       if (response.data.success) {
         setStats(response.data.data);
       }
-    } catch (error) {
+    } catch {
       // Stats are optional, silently fail
     }
   };
@@ -112,7 +112,7 @@ const CustomBookingsManagement = () => {
       fetchBookings();
       fetchStats();
       showSuccess('Booking deleted successfully');
-    } catch (error) {
+    } catch {
       showError('Failed to delete booking');
     }
   };
@@ -129,7 +129,7 @@ const CustomBookingsManagement = () => {
         showSuccess('Booking resent successfully!');
         fetchBookings();
       }
-    } catch (error) {
+    } catch {
       showError('Failed to resend booking');
     }
   };
@@ -146,7 +146,7 @@ const CustomBookingsManagement = () => {
         fetchStats();
         showSuccess('Payment status updated successfully');
       }
-    } catch (error) {
+    } catch {
       showError('Failed to update payment status');
     }
   };
@@ -168,7 +168,7 @@ const CustomBookingsManagement = () => {
   };
 
   return (
-    <div className="min-h-screen p-6" style={{ backgroundColor: colors.lightBg }}>
+    <div className="p-4 sm:p-6" style={{ backgroundColor: colors.lightBg }}>
       {/* Header */}
       <div className="mb-6 flex justify-between items-center">
         <div>

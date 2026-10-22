@@ -4,6 +4,7 @@ import { gsap } from 'gsap';
 import axios from 'axios';
 import { showSuccess, showApiError } from '../utils/toast';
 import { API_BASE_URL } from '../api/api';
+import { CONTACT } from '../utils/contact';
 
 export default function EnquiryForm({ isOpen, onClose }) {
   const [formData, setFormData] = useState({
@@ -312,7 +313,7 @@ export default function EnquiryForm({ isOpen, onClose }) {
                   Try Again
                 </button>
                 <a
-                  href="tel:+918482813688"
+                  href={CONTACT.tel}
                   className="px-6 py-2 rounded-full font-bold border-2 transition-all hover:scale-105"
                   style={{ borderColor: colors.primary, color: colors.primary }}
                 >
@@ -371,7 +372,7 @@ export default function EnquiryForm({ isOpen, onClose }) {
                     className={`w-full px-4 py-2 rounded-lg border-2 outline-none transition-all ${
                       errors.phone ? 'border-red-500' : 'border-gray-300 focus:border-yellow-500'
                     }`}
-                    placeholder="9876543210"
+                    placeholder="10-digit mobile number"
                     maxLength="10"
                   />
                   {errors.phone && <p className="text-xs text-red-500 mt-1">{errors.phone}</p>}

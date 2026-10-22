@@ -2,6 +2,7 @@ import OtherService from "../models/otherServices.js";
 import nodemailer from "nodemailer";
 import axios from "axios";
 
+import { SITE } from '../utils/siteConfig.js';
 // ✅ Configure Nodemailer
 const transporter = nodemailer.createTransport({
   service: "gmail",
@@ -16,6 +17,7 @@ const sendCustomerConfirmationEmail = async (enquiryData) => {
   try {
     const mailOptions = {
       from: `Aarohan Holidays <${process.env.EMAIL_USER}>`,
+      replyTo: SITE.email,
       to: enquiryData.email,
       subject: `Enquiry Received - ${enquiryData.enquiryReference}`,
       html: `
@@ -128,7 +130,7 @@ const sendCustomerConfirmationEmail = async (enquiryData) => {
               
               <div class="footer">
                 <p><strong>Need Immediate Assistance?</strong></p>
-                <p>📧 Email: <a href="mailto:${process.env.EMAIL_USER}" style="color: #667eea;">${process.env.EMAIL_USER}</a></p>
+                <p>📧 Email: <a href="mailto:${SITE.email}" style="color: #667eea;">${SITE.email}</a></p>
                 <p>📱 Phone: +91-XXXXXXXXXX</p>
                 <p>💬 WhatsApp: +91-XXXXXXXXXX</p>
                 <p style="margin-top: 20px; color: #999; font-size: 12px;">
@@ -220,6 +222,7 @@ const sendAdminNotificationEmail = async (enquiryData) => {
 
     const mailOptions = {
       from: `Aarohan Holidays System <${process.env.EMAIL_USER}>`,
+      replyTo: SITE.email,
       to: process.env.EMAIL_USER, // Admin email
       subject: `🔔 New Enquiry: ${enquiryData.serviceType} - ${enquiryData.enquiryReference}`,
       html: `

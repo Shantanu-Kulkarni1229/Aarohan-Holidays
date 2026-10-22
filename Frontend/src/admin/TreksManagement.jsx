@@ -37,7 +37,6 @@ const TreksManagement = () => {
   const [difficultyFilter, setDifficultyFilter] = useState('all');
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [error, setError] = useState('');
-  const [successMessage, setSuccessMessage] = useState('');
   const [stats, setStats] = useState({
     total: 0,
     published: 0,
@@ -82,7 +81,7 @@ const TreksManagement = () => {
       } else {
         setError('Unable to load treks data');
       }
-    } catch (error) {
+    } catch {
       setError('Error loading treks. Please check your connection and try again.');
       showError('Failed to load treks');
     } finally {
@@ -99,7 +98,7 @@ const TreksManagement = () => {
       await adminAPI.treks.delete(trekId);
       setTreks(treks.filter(trek => trek._id !== trekId));
       showSuccess('Trek deleted successfully');
-    } catch (error) {
+    } catch {
       setError('Failed to delete trek. Please try again.');
       setTimeout(() => setError(''), 5000);
       showError('Failed to delete trek');
@@ -116,7 +115,7 @@ const TreksManagement = () => {
         trek._id === trekId ? { ...trek, isActive: newStatus === 'published' } : trek
       ));
       showSuccess(`Trek ${newStatus === 'published' ? 'published' : 'moved to draft'}`);
-    } catch (error) {
+    } catch {
       setError('Failed to update trek status. Please try again.');
       setTimeout(() => setError(''), 5000);
       showError('Failed to update trek status');
@@ -133,7 +132,7 @@ const TreksManagement = () => {
         trek._id === trekId ? { ...trek, isFeatured: !currentStatus } : trek
       ));
       showSuccess(`Trek ${!currentStatus ? 'featured' : 'unfeatured'}`);
-    } catch (error) {
+    } catch {
       setError('Failed to update feature status. Please try again.');
       setTimeout(() => setError(''), 5000);
       showError('Failed to update feature status');
@@ -141,29 +140,25 @@ const TreksManagement = () => {
   };
 
   const filteredTreks = treks.filter(trek => {
-    const matchesSearch = trek.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         trek.location.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesSearch = (trek.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         (trek.location || '').toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = statusFilter === 'all' || 
       (statusFilter === 'published' && trek.isActive) ||
       (statusFilter === 'draft' && !trek.isActive);
-    const matchesDifficulty = difficultyFilter === 'all' || trek.difficulty.toLowerCase() === difficultyFilter;
+    const matchesDifficulty = difficultyFilter === 'all' || (trek.difficulty || '').toLowerCase() === difficultyFilter;
     const matchesCategory = categoryFilter === 'all' || trek.category === categoryFilter;
     
     return matchesSearch && matchesStatus && matchesDifficulty && matchesCategory;
   });
 
   const getDifficultyColor = (difficulty) => {
-    switch (difficulty.toLowerCase()) {
+    switch ((difficulty || '').toLowerCase()) {
       case 'easy': return 'bg-green-50 text-green-700 border-green-200';
       case 'moderate': return 'bg-amber-50 text-amber-700 border-amber-200';
       case 'hard': return 'bg-red-50 text-red-700 border-red-200';
       case 'extreme': return 'bg-purple-50 text-purple-700 border-purple-200';
       default: return 'bg-gray-50 text-gray-700 border-gray-200';
     }
-  };
-
-  const getStatusColor = (isActive) => {
-    return isActive ? 'bg-green-50 text-green-700 border-green-200' : 'bg-amber-50 text-amber-700 border-amber-200';
   };
 
   const StatCard = ({ title, value, subtitle, icon, color, trend }) => (
@@ -198,7 +193,7 @@ const TreksManagement = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: colors.lightBg }}>
+      <div className="min-h-[60vh] flex items-center justify-center" style={{ backgroundColor: colors.lightBg }}>
         <div className="text-center">
           <div 
             className="animate-spin rounded-full h-16 w-16 border-b-2 mx-auto mb-4"
@@ -213,7 +208,7 @@ const TreksManagement = () => {
 
   if (error && treks.length === 0) {
     return (
-      <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: colors.lightBg }}>
+      <div className="min-h-[60vh] flex items-center justify-center" style={{ backgroundColor: colors.lightBg }}>
         <div className="text-center max-w-md mx-auto">
           <div 
             className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4"
@@ -240,7 +235,7 @@ const TreksManagement = () => {
   }
 
   return (
-    <div className="min-h-screen p-6" style={{ backgroundColor: colors.lightBg }}>
+    <div className="p-4 sm:p-6" style={{ backgroundColor: colors.lightBg }}>
       <div className="max-w-7xl mx-auto space-y-8">
         {/* Header */}
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between space-y-4 lg:space-y-0">
@@ -280,23 +275,6 @@ const TreksManagement = () => {
         </div>
 
         {/* Success/Error Messages */}
-        {successMessage && (
-          <div 
-            className="rounded-lg p-4 border-l-4 animate-fade-in"
-            style={{ 
-              backgroundColor: '#F0F9FF',
-              borderColor: colors.secondary
-            }}
-          >
-            <div className="flex items-center">
-              <CheckCircle2 size={24} className="mr-3" style={{ color: colors.secondary }} />
-              <div>
-                <h4 className="font-semibold" style={{ color: colors.darkBg }}>Success</h4>
-                <p className="mt-1" style={{ color: colors.textDark }}>{successMessage}</p>
-              </div>
-            </div>
-          </div>
-        )}
 
         {error && (
           <div 
@@ -347,9 +325,9 @@ const TreksManagement = () => {
             color="#8B5CF6"
           />
           <StatCard 
-            title="Total Bookings" 
+            title="Travellers Booked" 
             value={stats.totalBookings}
-            subtitle="All time"
+            subtitle="Seats booked, all time"
             icon={<Users />}
             color={colors.primary}
           />
@@ -440,10 +418,9 @@ const TreksManagement = () => {
                 }}
               >
                 <option value="all">All Categories</option>
-                <option value="Himalayan Trek">Himalayan</option>
-                <option value="Sahyadri Trek">Sahyadri</option>
-                <option value="Western Ghats Trek">Western Ghats</option>
-                <option value="Custom">Custom</option>
+                {[...new Set(treks.map((trek) => trek.category).filter(Boolean))].map((category) => (
+                  <option key={category} value={category}>{category}</option>
+                ))}
               </select>
             </div>
           </div>

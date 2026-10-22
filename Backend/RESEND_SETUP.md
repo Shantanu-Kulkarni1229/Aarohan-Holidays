@@ -40,7 +40,7 @@
 3. Enter your domain: `aarohanholidays.com`
 4. Add DNS records (provided by Resend)
 5. Wait for verification (5-30 minutes)
-6. Use: `noreply@aarohanholidays.com`
+6. Use: `info@aarohanholidays.com`
 
 ### Step 4: Configure Render Environment Variables
 
@@ -60,10 +60,10 @@ RESEND_API_KEY=re_your_api_key_here
 RESEND_FROM_EMAIL=Aarohan Holidays <onboarding@resend.dev>
 
 # Option B: Using your verified domain (after DNS setup)
-RESEND_FROM_EMAIL=Aarohan Holidays <noreply@aarohanholidays.com>
+RESEND_FROM_EMAIL=Aarohan Holidays <info@aarohanholidays.com>
 
 # Admin Email (where to receive notifications)
-ADMIN_EMAIL=admin@aarohanholidays.com
+ADMIN_EMAIL=info@aarohanholidays.com
 ```
 
 **Example Configuration:**
@@ -71,7 +71,7 @@ ADMIN_EMAIL=admin@aarohanholidays.com
 EMAIL_PROVIDER=resend
 RESEND_API_KEY=re_123abc456def789ghi
 RESEND_FROM_EMAIL=Aarohan Holidays <onboarding@resend.dev>
-ADMIN_EMAIL=admin@aarohanholidays.com
+ADMIN_EMAIL=info@aarohanholidays.com
 ```
 
 ### Step 5: Install Resend Package
@@ -194,7 +194,7 @@ git push
 
 ### 1. Use Your Own Domain ✅
 ```bash
-RESEND_FROM_EMAIL=Aarohan Holidays <noreply@aarohanholidays.com>
+RESEND_FROM_EMAIL=Aarohan Holidays <info@aarohanholidays.com>
 ```
 
 ### 2. Set Up DNS Records

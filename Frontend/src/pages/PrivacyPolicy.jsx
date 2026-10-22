@@ -4,7 +4,10 @@ import { FiShield, FiLock, FiEye, FiDatabase, FiAlertCircle, FiMail, FiArrowLeft
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import Footer from '../components/Footer';
+import Navbar from '../components/Navbar';
+import Seo from '../components/Seo';
 
+import { CONTACT } from '../utils/contact';
 gsap.registerPlugin(ScrollTrigger);
 
 export default function PrivacyPolicy() {
@@ -194,10 +197,12 @@ export default function PrivacyPolicy() {
 
   return (
     <div className="min-h-screen" style={{ backgroundColor: colors.lightBg }}>
+      <Seo title="Privacy Policy" description="How Aarohan Holidays collects, uses and protects your personal information when you browse and book with us." />
+      <Navbar />
       {/* Hero Header */}
       <div 
         ref={headerRef}
-        className="relative py-20 overflow-hidden"
+        className="relative pb-20 pt-[calc(var(--header-h)+3rem)] overflow-hidden"
         style={{ backgroundColor: colors.darkBg }}
       >
         <div className="absolute inset-0 opacity-10">
@@ -257,7 +262,7 @@ export default function PrivacyPolicy() {
             At <strong>Aarohan Holidays</strong>, we are committed to protecting your privacy and ensuring the security of your personal information. This Privacy Policy explains how we collect, use, share, and safeguard your data when you use our website and services.
           </p>
           <p className="text-lg leading-relaxed" style={{ color: colors.textDark }}>
-            By using our services, you consent to the practices described in this policy. If you have any questions or concerns, please contact us at <a href="mailto:info@aarohanholidays.com" className="font-semibold hover:underline" style={{ color: colors.primary }}>info@aarohanholidays.com</a>.
+            By using our services, you consent to the practices described in this policy. If you have any questions or concerns, please contact us at <a href={CONTACT.mailto} className="font-semibold hover:underline" style={{ color: colors.primary }}>info@aarohanholidays.com</a>.
           </p>
         </div>
 
@@ -326,7 +331,7 @@ export default function PrivacyPolicy() {
             If you have any questions or concerns about our privacy practices, please don't hesitate to contact us.
           </p>
           <a
-            href="mailto:info@aarohanholidays.com"
+            href={CONTACT.mailto}
             className="inline-block px-8 py-4 rounded-xl font-bold transition-all duration-300 hover:scale-105 shadow-lg"
             style={{ backgroundColor: 'white', color: colors.primary }}
           >

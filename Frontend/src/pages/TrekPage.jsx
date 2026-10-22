@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { treksAPI } from '../api/userAPI';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { useNavigate, Link } from 'react-router-dom';
+import { treksAPI, LIST_ALL } from '../api/userAPI';
 import { showApiError } from '../utils/toast';
 import {
   Search,
@@ -18,6 +18,11 @@ import {
 } from 'lucide-react';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
+import Seo from '../components/Seo';
+import { cardImage } from '../utils/image';
+
+// Default 'no upper limit' for the price filter (tours can cost more than any fixed slider max)
+const PRICE_ANY = 10000000;
 
 const TrekPage = () => {
   const navigate = useNavigate();
@@ -40,7 +45,8 @@ const TrekPage = () => {
   const [allTreks, setAllTreks] = useState([]);
   const [filteredTreks, setFilteredTreks] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [searchQuery, setSearchQuery] = useState('');
+  // Home page search strip links here with ?q=destination&max=budget
+  const [searchQuery, setSearchQuery] = useState(() => new URLSearchParams(window.location.search).get('q') || '');
   const [showFilters, setShowFilters] = useState(false);
   const [viewMode, setViewMode] = useState('grid'); // 'grid' or 'list'
   const [sortBy, setSortBy] = useState('featured'); // 'featured', 'price-low', 'price-high', 'duration', 'name'
@@ -48,7 +54,7 @@ const TrekPage = () => {
 
   // Filter States
   const [filters, setFilters] = useState({
-    priceRange: [0, 100000],
+    priceRange: [0, Number(new URLSearchParams(window.location.search).get('max')) || PRICE_ANY],
     duration: [],
     categories: [],
     locations: [],
@@ -72,14 +78,7 @@ const TrekPage = () => {
   const fetchTreks = async () => {
     setLoading(true);
     try {
-      const params = {
-        page: 1,
-        limit: 1000,
-        sortBy: 'createdAt',
-        sortOrder: 'desc'
-      };
-
-      const response = await treksAPI.getAll(params);
+      const response = await treksAPI.getAll(LIST_ALL);
       const treks = response.data.data || [];
       
       setAllTreks(treks);
@@ -218,6 +217,12 @@ const TrekPage = () => {
     return allPrices.length > 0 ? Math.min(...allPrices) : 0;
   };
 
+  // Slider upper bound follows the real data, rounded up to the next 5,000
+  const priceCeiling = useMemo(() => {
+    const top = Math.max(0, ...allTreks.map(getMinPrice));
+    return Math.max(5000, Math.ceil(top / 5000) * 5000);
+  }, [allTreks]);
+
   const getTrekDaysCount = (trek) => {
     if (trek.duration) {
       const match = trek.duration.match(/(\d+)/);
@@ -242,7 +247,7 @@ const TrekPage = () => {
     if (allPrices.length === 0) return 'Contact for Pricing';
     
     const minPrice = Math.min(...allPrices);
-    return `₹${minPrice.toLocaleString()}`;
+    return `₹${minPrice.toLocaleString('en-IN')}`;
   };
 
   const getImageSrc = (trek) => {
@@ -261,7 +266,7 @@ const TrekPage = () => {
   };
 
   const handleCardClick = (trekId) => {
-    navigate(`/book-trek/${trekId}`);
+    navigate(`/trek/${trekId}`);
   };
 
   const toggleFilter = (filterType, value) => {
@@ -275,7 +280,7 @@ const TrekPage = () => {
 
   const clearAllFilters = () => {
     setFilters({
-      priceRange: [0, 100000],
+      priceRange: [0, PRICE_ANY],
       duration: [],
       categories: [],
       locations: [],
@@ -299,6 +304,7 @@ const TrekPage = () => {
   if (loading) {
     return (
       <>
+        <Seo title="Trekking Packages & Fixed Departure Treks in India" description="Explore Himalayan and Sahyadri trekking packages for every fitness level. Compare difficulty, altitude, dates and prices, then book online." />
         <Navbar />
         <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: colors.lightBg }}>
           <div className="text-center">
@@ -318,11 +324,12 @@ const TrekPage = () => {
 
   return (
     <>
+      <Seo title="Trekking Packages & Fixed Departure Treks in India" description="Explore Himalayan and Sahyadri trekking packages for every fitness level. Compare difficulty, altitude, dates and prices, then book online." />
       <Navbar />
       <div className="min-h-screen" style={{ backgroundColor: colors.lightBg }}>
         {/* Hero Section */}
       <div 
-        className="relative py-20 overflow-hidden"
+        className="relative pb-20 pt-[calc(var(--header-h)+3rem)] overflow-hidden"
         style={{
           background: `linear-gradient(135deg, ${colors.darkBg} 0%, ${colors.accent} 100%)`
         }}
@@ -604,14 +611,14 @@ const TrekPage = () => {
                   <div className="flex items-center justify-between text-sm font-medium"
                        style={{ color: colors.textLight }}>
                     <span>₹ {filters.priceRange[0].toLocaleString('en-IN')}</span>
-                    <span>₹ {filters.priceRange[1].toLocaleString('en-IN')}</span>
+                    <span>₹ {Math.min(filters.priceRange[1], priceCeiling).toLocaleString('en-IN')}</span>
                   </div>
                   <input
                     type="range"
                     min="0"
-                    max="100000"
+                    max={priceCeiling}
                     step="5000"
-                    value={filters.priceRange[1]}
+                    value={Math.min(filters.priceRange[1], priceCeiling)}
                     onChange={(e) => setFilters(prev => ({
                       ...prev,
                       priceRange: [0, parseInt(e.target.value)]
@@ -691,11 +698,11 @@ const TrekPage = () => {
               >
                 {/* Image Container */}
                 <div className={`relative bg-gray-100 overflow-hidden ${
-                  viewMode === 'list' ? 'w-80 flex-shrink-0' : 'h-60'
+                  viewMode === 'list' ? 'w-80 flex-shrink-0' : 'aspect-video'
                 }`}>
                   {getImageSrc(trek) ? (
-                    <img
-                      src={getImageSrc(trek)}
+                    <img loading="lazy" decoding="async"
+                      {...cardImage(getImageSrc(trek))}
                       alt={trek.name}
                       className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                     />
@@ -759,7 +766,7 @@ const TrekPage = () => {
                   <h3 className={`font-bold mb-2 line-clamp-2 group-hover:text-blue-600 transition-colors ${
                     viewMode === 'list' ? 'text-2xl mb-3' : 'text-lg'
                   }`} style={{ color: colors.text }}>
-                    {trek.name}
+                    <Link to={`/trek/${trek._id}`} onClick={(e) => e.stopPropagation()} className="hover:underline">{trek.name}</Link>
                   </h3>
 
                   <div className={`flex items-center gap-2 ${viewMode === 'list' ? 'mb-4' : 'mb-3'}`}>

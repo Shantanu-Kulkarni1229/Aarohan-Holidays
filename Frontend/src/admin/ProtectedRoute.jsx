@@ -1,24 +1,12 @@
-import { Navigate } from 'react-router-dom';
+import { Navigate, useLocation } from 'react-router-dom';
+import { isAdminLoggedIn } from '../utils/adminAuth';
 
+// The real check happens on the server for every request; this just keeps logged-out visitors
+// (or an expired session) on the login page instead of an empty admin shell.
 export default function ProtectedRoute({ children }) {
-  const isAuthenticated = sessionStorage.getItem('adminAuthenticated') === 'true';
-  const loginTime = sessionStorage.getItem('adminLoginTime');
-  
-  // Check if session has expired (24 hours)
-  if (loginTime) {
-    const currentTime = Date.now();
-    const sessionDuration = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
-    
-    if (currentTime - parseInt(loginTime) > sessionDuration) {
-      sessionStorage.removeItem('adminAuthenticated');
-      sessionStorage.removeItem('adminLoginTime');
-      return <Navigate to="/admin/login" replace />;
-    }
+  const location = useLocation();
+  if (!isAdminLoggedIn()) {
+    return <Navigate to="/admin/login" replace state={{ from: location.pathname }} />;
   }
-
-  if (!isAuthenticated) {
-    return <Navigate to="/admin/login" replace />;
-  }
-
   return children;
 }

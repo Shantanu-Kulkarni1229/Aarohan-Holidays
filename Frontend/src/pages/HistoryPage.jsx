@@ -8,6 +8,8 @@ import axios from 'axios';
 import { showApiError } from '../utils/toast';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
+import Seo from '../components/Seo';
+import { SITE } from '../utils/contact';
 import { API_BASE_URL } from '../api/api';
 
 const HistoryPage = () => {
@@ -148,8 +150,9 @@ const HistoryPage = () => {
   // History List View
   const HistoryListView = () => (
     <>
+    <Seo title="Indian History & Heritage – Forts, Temples & Stories" description="Explore the history behind India's forts, temples and heritage destinations, with photos, videos and travel context from Aarohan Holidays." />
     <Navbar />
-    <div className="min-h-screen bg-white pt-20">
+    <div className="min-h-screen bg-white pt-[calc(var(--header-h)+1rem)]">
       {/* Hero Section */}
       <div className="bg-[#E66926] text-white py-20">
         <div className="container mx-auto px-4">
@@ -220,7 +223,7 @@ const HistoryPage = () => {
                 >
                   <div className="relative h-64 overflow-hidden bg-gray-700">
                     {history.images && history.images.length > 0 ? (
-                      <img
+                      <img loading="lazy" decoding="async"
                         src={history.images[0]}
                         alt={history.title}
                         className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
@@ -334,12 +337,20 @@ const HistoryPage = () => {
 
     return (
       <>
+      <Seo
+        title={selectedHistory.title}
+        description={selectedHistory.description || selectedHistory.excerpt || selectedHistory.content}
+        image={selectedHistory.images?.[0]}
+        type="article"
+        path={`/history/${selectedHistory.slug || selectedHistory._id}`}
+        jsonLd={{ '@context': 'https://schema.org', '@type': 'Article', headline: selectedHistory.title, image: selectedHistory.images?.slice(0, 3), publisher: { '@type': 'Organization', name: SITE.name, logo: { '@type': 'ImageObject', url: SITE.logo } } }}
+      />
       <Navbar />
-      <div className="min-h-screen bg-white pt-20">
+      <div className="min-h-screen bg-white pt-[calc(var(--header-h)+1rem)]">
         {/* Hero Section */}
         <div className="relative h-96 overflow-hidden">
           {selectedHistory.images && selectedHistory.images.length > 0 ? (
-            <img
+            <img loading="lazy" decoding="async"
               src={selectedHistory.images[0]}
               alt={selectedHistory.title}
               className="w-full h-full object-cover"
@@ -456,7 +467,7 @@ const HistoryPage = () => {
                       onClick={() => openLightbox(index)}
                       className="relative aspect-square rounded-lg overflow-hidden cursor-pointer group"
                     >
-                      <img
+                      <img loading="lazy" decoding="async"
                         src={image}
                         alt={`${selectedHistory.title} - ${index + 1}`}
                         className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
@@ -508,7 +519,7 @@ const HistoryPage = () => {
               <ChevronRight size={48} />
             </button>
             
-            <img
+            <img loading="lazy" decoding="async"
               src={selectedHistory.images[currentImageIndex]}
               alt={`${selectedHistory.title} - ${currentImageIndex + 1}`}
               className="max-w-[90%] max-h-[90%] object-contain"
@@ -534,7 +545,8 @@ const HistoryPage = () => {
     );
   }
 
-  return view === 'detail' ? <HistoryDetailView /> : <HistoryListView />;
+  // Called as plain functions (not <Components/>) so inputs keep focus while typing
+  return view === 'detail' ? HistoryDetailView() : HistoryListView();
 };
 
 export default HistoryPage;

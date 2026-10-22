@@ -66,14 +66,16 @@ const Testimonial = () => {
         averageRating: statsData.averageRating || 0,
         totalReviews: statsData.totalReviews || 0
       });
-    } catch (error) {
+    } catch {
       setStats({ averageRating: 0, totalReviews: 0 });
     }
   };
 
   // Infinite auto-scroll animation
   useEffect(() => {
-    if (testimonials.length > 0 && scrollContainerRef.current) {
+    // Touch devices (and reduced-motion users) swipe the row natively; auto-scroll would fight their finger.
+    const canAutoScroll = window.matchMedia('(hover: hover) and (prefers-reduced-motion: no-preference)').matches;
+    if (canAutoScroll && testimonials.length > 0 && scrollContainerRef.current) {
       const container = scrollContainerRef.current;
       
       // Kill any existing animations
@@ -102,13 +104,15 @@ const Testimonial = () => {
       });
 
       // Pause on hover
-      container.addEventListener('mouseenter', () => animation.pause());
-      container.addEventListener('mouseleave', () => animation.resume());
+      const pause = () => animation.pause();
+      const resume = () => animation.resume();
+      container.addEventListener('mouseenter', pause);
+      container.addEventListener('mouseleave', resume);
 
       return () => {
         animation.kill();
-        container.removeEventListener('mouseenter', () => animation.pause());
-        container.removeEventListener('mouseleave', () => animation.resume());
+        container.removeEventListener('mouseenter', pause);
+        container.removeEventListener('mouseleave', resume);
       };
     }
   }, [testimonials]);
@@ -504,7 +508,7 @@ const Testimonial = () => {
                   ))}
                   
                   {/* Duplicate set for seamless infinite scroll */}
-                  {testimonials.map((testimonial, index) => (
+                  {testimonials.map((testimonial) => (
                     <div
                       key={`duplicate-${testimonial._id}`}
                       className="flex-shrink-0 w-80 bg-white rounded-2xl shadow-lg p-6 hover:shadow-xl transition-all duration-300 border border-gray-100"

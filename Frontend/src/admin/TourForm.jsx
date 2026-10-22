@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { adminAPI } from '../api/api';
-import { showSuccess, showError } from '../utils/toast';
+import { showError } from '../utils/toast';
 import RichTextEditor from '../components/RichTextEditor';
+import ThumbnailField from './ThumbnailField';
 import {
   ArrowLeft,
   Save,
@@ -163,9 +164,9 @@ const TourForm = () => {
             activities: item.activities || []
           })) : [{ day: 1, title: '', description: '', meals: '', accommodation: '', cabType: '', note: '', activities: [] }],
           faqs: tour.faqs?.length > 0 ? tour.faqs : [{ question: '', answer: '' }],
-          // eslint-disable-next-line no-unused-vars
+           
           addOns: tour.addOns?.length > 0 ? tour.addOns.map(({ _id, __v, ...addon }) => addon) : [{ name: '', price: '', description: '' }],
-          // eslint-disable-next-line no-unused-vars
+           
           addonFacilities: tour.addonFacilities?.length > 0 ? tour.addonFacilities.map(({ _id, __v, ...facility }) => ({
             ...facility,
             subPoints: facility.subPoints || []
@@ -236,28 +237,7 @@ const TourForm = () => {
   const handleFileChange = (e) => {
     const { name, files: selectedFiles } = e.target;
     
-    if (name === 'thumbnail' && selectedFiles[0]) {
-      const file = selectedFiles[0];
-      
-      // Validate file size (5MB max)
-      if (file.size > 5 * 1024 * 1024) {
-        setErrors(prev => ({ ...prev, thumbnail: 'Thumbnail image must be less than 5MB' }));
-        return;
-      }
-      
-      // Clear previous thumbnail preview URL to prevent memory leaks
-      if (thumbnailPreview && thumbnailPreview.startsWith('blob:')) {
-        URL.revokeObjectURL(thumbnailPreview);
-      }
-      
-      setFiles(prev => ({ ...prev, thumbnail: file }));
-      
-      // Create preview using URL.createObjectURL
-      const previewUrl = URL.createObjectURL(file);
-      setThumbnailPreview(previewUrl);
-      setErrors(prev => ({ ...prev, thumbnail: '' }));
-      
-    } else if (name === 'showcaseImages' && selectedFiles.length > 0) {
+    if (name === 'showcaseImages' && selectedFiles.length > 0) {
       const filesArray = Array.from(selectedFiles);
       
       // Combine existing and new files
@@ -495,8 +475,11 @@ const TourForm = () => {
 
       // Add basic fields
       Object.keys(cleanedData).forEach(key => {
+        // Saved image URLs are never sent back: images only change through the uploaded files below
+        if (['thumbnail', 'showcaseImages', 'hotelImages'].includes(key)) return;
         if (Array.isArray(cleanedData[key])) {
-          if (cleanedData[key].length > 0) {
+          // On edit an empty list must still be sent, otherwise deleting every item would silently not save
+          if (cleanedData[key].length > 0 || isEditing) {
             submitFormData.append(key, JSON.stringify(cleanedData[key]));
           }
         } else if (cleanedData[key] !== null && cleanedData[key] !== undefined) {
@@ -602,7 +585,7 @@ const TourForm = () => {
         className="text-white px-6 py-4 rounded-lg shadow-lg flex items-center space-x-3 animate-bounce"
         style={{ backgroundColor: colors.secondary }}
       >
-        <div className="w-6 h-6 bg-white bg-opacity-20 rounded-full flex items-center justify-center">
+        <div className="w-6 h-6 bg-white/20 rounded-full flex items-center justify-center">
           <CheckCircle2 size={16} />
         </div>
         <span className="font-semibold">
@@ -640,7 +623,7 @@ const TourForm = () => {
 
     return (
       <div 
-        className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-90 p-4"
+        className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 p-4"
         onClick={handleClose}
       >
         {/* Close button */}
@@ -658,7 +641,7 @@ const TourForm = () => {
               e.stopPropagation();
               handlePrevious();
             }}
-            className="absolute left-4 text-white hover:text-gray-300 transition-colors z-10 bg-black bg-opacity-50 rounded-full p-3"
+            className="absolute left-4 text-white hover:text-gray-300 transition-colors z-10 bg-black/50 rounded-full p-3"
           >
             <ArrowLeft size={24} />
           </button>
@@ -671,7 +654,7 @@ const TourForm = () => {
             alt="Preview"
             className="max-w-full max-h-[90vh] object-contain rounded-lg shadow-2xl"
           />
-          <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 bg-black bg-opacity-70 text-white px-4 py-2 rounded-full text-sm">
+          <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 bg-black/70 text-white px-4 py-2 rounded-full text-sm">
             {currentIndex + 1} / {allImages.length}
           </div>
         </div>
@@ -683,7 +666,7 @@ const TourForm = () => {
               e.stopPropagation();
               handleNext();
             }}
-            className="absolute right-4 text-white hover:text-gray-300 transition-colors z-10 bg-black bg-opacity-50 rounded-full p-3"
+            className="absolute right-4 text-white hover:text-gray-300 transition-colors z-10 bg-black/50 rounded-full p-3"
           >
             <ArrowLeft size={24} className="rotate-180" />
           </button>
@@ -694,7 +677,7 @@ const TourForm = () => {
 
   if (loading && !isEditing) {
     return (
-      <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: colors.lightBg }}>
+      <div className="min-h-[60vh] flex items-center justify-center" style={{ backgroundColor: colors.lightBg }}>
         <div className="bg-white rounded-xl shadow-lg p-8 text-center border" style={{ borderColor: colors.border }}>
           <div 
             className="w-16 h-16 border-4 rounded-full animate-spin mx-auto mb-4"
@@ -708,7 +691,7 @@ const TourForm = () => {
   }
 
   return (
-    <div className="min-h-screen py-6 px-4 sm:px-6 lg:px-8" style={{ backgroundColor: colors.lightBg }}>
+    <div className="py-6 px-4 sm:px-6 lg:px-8" style={{ backgroundColor: colors.lightBg }}>
       {showSuccess && <SuccessMessage />}
       {lightboxImage && <ImageLightbox />}
       
@@ -1041,77 +1024,24 @@ const TourForm = () => {
             </div>
             
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-              <div>
-                <label className="block text-sm font-semibold mb-3" style={{ color: colors.darkBg }}>
-                  Thumbnail Image {!isEditing && '*'}
-                  <span className="font-normal ml-2" style={{ color: colors.textDark }}>(Main display image)</span>
-                </label>
-                <div 
-                  className="border-2 border-dashed rounded-xl p-6 text-center hover:border-blue-400 transition-colors cursor-pointer"
-                  style={{ borderColor: colors.border }}
-                >
-                  <input
-                    type="file"
-                    name="thumbnail"
-                    accept="image/*"
-                    onChange={handleFileChange}
-                    className="hidden"
-                    id="thumbnail-upload"
-                  />
-                  <label htmlFor="thumbnail-upload" className="cursor-pointer">
-                    <Upload size={48} className="text-gray-400 mx-auto mb-3" />
-                    <p className="mb-2" style={{ color: colors.textDark }}>Click to upload thumbnail</p>
-                    <p className="text-sm" style={{ color: colors.textDark }}>Recommended: 800x600px, JPG/PNG</p>
-                  </label>
-                </div>
-                {errors.thumbnail && <p className="text-red-500 text-sm mt-2">{errors.thumbnail}</p>}
-                
-                {/* Thumbnail Preview */}
-                {thumbnailPreview && (
-                  <div className="mt-4">
-                    <p className="text-sm font-medium mb-2" style={{ color: colors.darkBg }}>Preview:</p>
-                    <div className="relative group">
-                      <img
-                        src={thumbnailPreview}
-                        alt="Thumbnail preview"
-                        className="w-full h-48 object-cover rounded-xl shadow-lg cursor-pointer hover:opacity-90 transition-opacity"
-                        onClick={() => {
-                          setLightboxImage(thumbnailPreview);
-                          setLightboxIndex(0);
-                        }}
-                      />
-                      <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-30 transition-all rounded-xl flex items-center justify-center">
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setLightboxImage(thumbnailPreview);
-                            setLightboxIndex(0);
-                          }}
-                          className="opacity-0 group-hover:opacity-100 text-white px-4 py-2 rounded-lg transition-all transform translate-y-2 group-hover:translate-y-0 mr-2"
-                          style={{ backgroundColor: colors.secondary }}
-                        >
-                          <Eye size={20} />
-                        </button>
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            if (thumbnailPreview.startsWith('blob:')) {
-                              URL.revokeObjectURL(thumbnailPreview);
-                            }
-                            setThumbnailPreview('');
-                            setFiles(prev => ({ ...prev, thumbnail: null }));
-                          }}
-                          className="opacity-0 group-hover:opacity-100 bg-red-500 text-white px-4 py-2 rounded-lg transition-all transform translate-y-2 group-hover:translate-y-0"
-                        >
-                          <Trash2 size={20} />
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
+              <ThumbnailField
+                label="Thumbnail Image"
+                required={!isEditing}
+                hint="(Main card image)"
+                previewUrl={thumbnailPreview}
+                error={errors.thumbnail}
+                onChange={(file, url) => {
+                  if (thumbnailPreview && thumbnailPreview.startsWith('blob:')) URL.revokeObjectURL(thumbnailPreview);
+                  setFiles(prev => ({ ...prev, thumbnail: file }));
+                  setThumbnailPreview(url);
+                  setErrors(prev => ({ ...prev, thumbnail: '' }));
+                }}
+                onRemove={() => {
+                  if (thumbnailPreview && thumbnailPreview.startsWith('blob:')) URL.revokeObjectURL(thumbnailPreview);
+                  setThumbnailPreview('');
+                  setFiles(prev => ({ ...prev, thumbnail: null }));
+                }}
+              />
 
               <div>
                 <label className="block text-sm font-semibold mb-3" style={{ color: colors.darkBg }}>
@@ -1157,7 +1087,7 @@ const TourForm = () => {
                               setLightboxIndex(index + 1);
                             }}
                           />
-                          <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-40 transition-all rounded-lg flex items-center justify-center">
+                          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-all rounded-lg flex items-center justify-center">
                             <button
                               type="button"
                               onClick={(e) => {
@@ -1241,7 +1171,7 @@ const TourForm = () => {
                               setLightboxIndex(index + 1);
                             }}
                           />
-                          <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-40 transition-all rounded-lg flex items-center justify-center">
+                          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-all rounded-lg flex items-center justify-center">
                             <button
                               type="button"
                               onClick={(e) => {

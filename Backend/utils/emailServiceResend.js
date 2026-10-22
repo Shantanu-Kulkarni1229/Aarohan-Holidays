@@ -4,6 +4,7 @@ import { Resend } from 'resend';
 import nodemailer from 'nodemailer';
 import { customBookingEmailTemplate } from './customBookingEmailTemplate.js';
 
+import { SITE } from './siteConfig.js';
 // ============================================
 // 🌐 ENVIRONMENT & PROVIDER DETECTION
 // ============================================
@@ -147,14 +148,14 @@ const userConfirmationTemplate = (enquiry) => {
           </p>
           
           <div style="text-align: center;">
-            <a href="tel:+918482813688" class="button">📞 Call Us: +91 8482813688</a>
-            <a href="https://wa.me/918482813688" class="button" style="background: #25D366;">💬 WhatsApp</a>
+            <a href="tel:${SITE.phone}" class="button">📞 Call Us: ${SITE.phoneDisplay}</a>
+            <a href="${SITE.whatsapp}" class="button" style="background: #25D366;">💬 WhatsApp</a>
           </div>
         </div>
         <div class="footer">
           <p><strong>Aarohan Holidays</strong></p>
-          <p>📧 Email: info@ravitours.com | 📞 Phone: +91 8482813688</p>
-          <p>🌐 Website: www.ravitours.com</p>
+          <p>📧 Email: ${SITE.email} | 📞 Phone: ${SITE.phoneDisplay}</p>
+          <p>🌐 Website: ${SITE.websiteDisplay}</p>
           <p style="font-size: 12px; color: #94a3b8;">This is an automated confirmation email. Please do not reply directly to this email.</p>
         </div>
       </div>
@@ -281,6 +282,7 @@ const sendUserConfirmationEmailResend = async (enquiry) => {
     
     const { data, error } = await resend.emails.send({
       from: process.env.RESEND_FROM_EMAIL,
+      reply_to: SITE.email,
       to: [enquiry.email],
       subject: `✅ Enquiry Confirmation - ${enquiry.referenceNumber}`,
       html: userConfirmationTemplate(enquiry),
@@ -311,6 +313,7 @@ const sendAdminNotificationEmailResend = async (enquiry) => {
     
     const { data, error } = await resend.emails.send({
       from: process.env.RESEND_FROM_EMAIL,
+      reply_to: SITE.email,
       to: [adminEmail],
       subject: `🚨 New Enquiry - ${enquiry.serviceType} - ${enquiry.referenceNumber}`,
       html: adminNotificationTemplate(enquiry),
@@ -353,6 +356,7 @@ const sendCustomBookingEmailResend = async (booking, pdfBuffer) => {
 
     const emailPayload = {
       from: process.env.RESEND_FROM_EMAIL,
+      reply_to: SITE.email,
       to: [booking.customerEmail],
       subject: `🎉 Your Customized ${booking.packageType} Package - ${emailData.packageName}`,
       html: customBookingEmailTemplate(emailData),
@@ -401,6 +405,7 @@ const sendUserConfirmationEmailNodemailer = async (enquiry) => {
   
   const mailOptions = {
     from: `"Aarohan Holidays" <${process.env.EMAIL_USER}>`,
+    replyTo: SITE.email,
     to: enquiry.email,
     subject: `✅ Enquiry Confirmation - ${enquiry.referenceNumber}`,
     html: userConfirmationTemplate(enquiry)
@@ -426,6 +431,7 @@ const sendAdminNotificationEmailNodemailer = async (enquiry) => {
   
   const mailOptions = {
     from: `"Aarohan Holidays" <${process.env.EMAIL_USER}>`,
+    replyTo: SITE.email,
     to: adminEmail,
     subject: `🚨 New Enquiry - ${enquiry.serviceType} - ${enquiry.referenceNumber}`,
     html: adminNotificationTemplate(enquiry)
@@ -464,6 +470,7 @@ const sendCustomBookingEmailNodemailer = async (booking, pdfBuffer) => {
   
   const mailOptions = {
     from: `"Aarohan Holidays" <${process.env.EMAIL_USER}>`,
+    replyTo: SITE.email,
     to: booking.customerEmail,
     subject: `🎉 Your Customized ${booking.packageType} Package - ${emailData.packageName}`,
     html: customBookingEmailTemplate(emailData),

@@ -16,7 +16,7 @@ const addTestTestimonials = async () => {
       {
         name: "Rahul Sharma",
         rating: 5,
-        review: "Amazing experience with Ravi Tours! The Goa trip was perfectly organized. Our guide was knowledgeable and friendly. Highly recommend their services!",
+        review: "Amazing experience with Aarohan Holidays! The Goa trip was perfectly organized. Our guide was knowledgeable and friendly. Highly recommend their services!",
         email: "rahul@example.com",
         tourOrTrek: "Goa Beach Paradise",
         location: "Mumbai",
@@ -44,7 +44,7 @@ const addTestTestimonials = async () => {
       {
         name: "Sneha Desai",
         rating: 5,
-        review: "Ravi Tours made our honeymoon special! Everything from flight bookings to hotel stays was seamless. Thank you for the memories!",
+        review: "Aarohan Holidays made our honeymoon special! Everything from flight bookings to hotel stays was seamless. Thank you for the memories!",
         email: "sneha@example.com",
         tourOrTrek: "Romantic Udaipur Package",
         location: "Ahmedabad",

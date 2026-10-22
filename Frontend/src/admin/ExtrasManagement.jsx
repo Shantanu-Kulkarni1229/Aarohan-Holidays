@@ -106,7 +106,7 @@ const ExtrasManagement = () => {
         setCoupons(response.data.data);
         setStatistics(response.data.statistics || {});
       }
-    } catch (error) {
+    } catch {
       showError('Failed to fetch coupons');
     } finally {
       setLoading(false);
@@ -134,7 +134,7 @@ const ExtrasManagement = () => {
         };
         setStatistics(stats);
       }
-    } catch (error) {
+    } catch {
       showError('Failed to fetch blogs');
     } finally {
       setLoading(false);
@@ -162,7 +162,7 @@ const ExtrasManagement = () => {
         };
         setStatistics(stats);
       }
-    } catch (error) {
+    } catch {
       showError('Failed to fetch histories');
     } finally {
       setLoading(false);
@@ -213,13 +213,13 @@ const ExtrasManagement = () => {
           `${API_BASE_URL}/coupons/admin/coupons/${editingCoupon._id}`,
           payload
         );
-        alert('Coupon updated successfully!');
+        showSuccess('Coupon updated successfully!');
       } else {
         await axios.post(
           `${API_BASE_URL}/coupons/admin/coupons`,
           payload
         );
-        alert('Coupon created successfully!');
+        showSuccess('Coupon created successfully!');
       }
 
       setShowModal(false);
@@ -258,7 +258,7 @@ const ExtrasManagement = () => {
       await axios.delete(`${API_BASE_URL}/coupons/admin/coupons/${id}`);
       showSuccess('Coupon deleted successfully');
       fetchCoupons();
-    } catch (error) {
+    } catch {
       showError('Failed to delete coupon');
     }
   };
@@ -304,10 +304,10 @@ const ExtrasManagement = () => {
 
       if (editingBlog) {
         await axios.put(`${API_BASE_URL}/admin/blogs/${editingBlog._id}`, payload);
-        alert('Blog updated successfully!');
+        showSuccess('Blog updated successfully!');
       } else {
         await axios.post(`${API_BASE_URL}/admin/blogs`, payload);
-        alert('Blog created successfully!');
+        showSuccess('Blog created successfully!');
       }
 
       setShowModal(false);
@@ -346,9 +346,9 @@ const ExtrasManagement = () => {
 
     try {
       await axios.delete(`${API_BASE_URL}/admin/blogs/${id}`);
-      alert('Blog deleted successfully!');
+      showSuccess('Blog deleted successfully!');
       fetchBlogs();
-    } catch (error) {
+    } catch {
       showError('Failed to delete blog');
     }
   };
@@ -357,7 +357,7 @@ const ExtrasManagement = () => {
     try {
       await axios.patch(`${API_BASE_URL}/admin/blogs/${id}/published`);
       fetchBlogs();
-    } catch (error) {
+    } catch {
       showError('Failed to toggle published status');
     }
   };
@@ -367,7 +367,7 @@ const ExtrasManagement = () => {
       await axios.patch(`${API_BASE_URL}/admin/blogs/${id}/featured`);
       fetchBlogs();
       showSuccess('Blog featured status updated');
-    } catch (error) {
+    } catch {
       showError('Failed to toggle blog featured status');
     }
   };
@@ -409,10 +409,10 @@ const ExtrasManagement = () => {
 
       if (editingHistory) {
         await axios.put(`${API_BASE_URL}/admin/history/${editingHistory._id}`, payload);
-        alert('History updated successfully!');
+        showSuccess('History updated successfully!');
       } else {
         await axios.post(`${API_BASE_URL}/admin/history`, payload);
-        alert('History created successfully!');
+        showSuccess('History created successfully!');
       }
 
       setShowModal(false);
@@ -451,10 +451,10 @@ const ExtrasManagement = () => {
 
     try {
       await axios.delete(`${API_BASE_URL}/admin/history/${id}`);
-      alert('History deleted successfully!');
+      showSuccess('History deleted successfully!');
       fetchHistories();
       showSuccess('History deleted successfully');
-    } catch (error) {
+    } catch {
       showError('Failed to delete history');
     }
   };
@@ -464,7 +464,7 @@ const ExtrasManagement = () => {
       await axios.patch(`${API_BASE_URL}/admin/history/${id}/featured`);
       fetchHistories();
       showSuccess('History featured status updated');
-    } catch (error) {
+    } catch {
       showError('Failed to toggle history featured status');
     }
   };
@@ -474,7 +474,7 @@ const ExtrasManagement = () => {
       await axios.patch(`${API_BASE_URL}/admin/history/${id}/active`);
       fetchHistories();
       showSuccess('Active status updated');
-    } catch (error) {
+    } catch {
       showError('Failed to toggle active status');
     }
   };
@@ -499,7 +499,6 @@ const ExtrasManagement = () => {
     setUploadingImage(true);
     try {
       const imageUrl = await uploadImage(file);
-      console.log('Uploaded image URL:', imageUrl);
       
       if (imageUrl && typeof imageUrl === 'string') {
         setBlogFormData(prev => ({ ...prev, featuredImage: imageUrl }));
@@ -938,7 +937,7 @@ const ExtrasManagement = () => {
   );
 
   return (
-    <div className="min-h-screen p-6" style={{ backgroundColor: colors.background }}>
+    <div className="p-4 sm:p-6" style={{ backgroundColor: colors.background }}>
       {/* Header */}
       <div className="mb-8">
         <h1 className="text-3xl font-bold mb-2" style={{ color: colors.text }}>
@@ -1234,7 +1233,7 @@ const ExtrasManagement = () => {
 
       {/* Modal */}
       {showModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
             <div className="sticky top-0 bg-white p-6 border-b" style={{ borderColor: colors.border }}>
               <div className="flex items-center justify-between">

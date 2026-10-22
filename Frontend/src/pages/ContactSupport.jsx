@@ -17,6 +17,9 @@ import axios from 'axios';
 import { showSuccess, showApiError } from '../utils/toast';
 import Footer from '../components/Footer';
 import { API_BASE_URL } from '../api/api';
+import { CONTACT } from '../utils/contact';
+import Navbar from '../components/Navbar';
+import Seo from '../components/Seo';
 
 export default function ContactSupport() {
   const headerRef = useRef(null);
@@ -83,9 +86,19 @@ export default function ContactSupport() {
     setError('');
 
     try {
-      // Replace with your actual API endpoint
-      await axios.post(`${API_BASE_URL}/contact`, formData);
-      
+      // Same endpoint as the site's enquiry form, so these messages show up in the admin Enquiries screen
+      const message = `Subject: ${formData.subject.trim()}
+
+${formData.message.trim()}`;
+      await axios.post(`${API_BASE_URL}/other-services/enquiry`, {
+        name: formData.name.trim(),
+        email: formData.email.trim(),
+        phone: formData.phone,
+        serviceType: 'Other',
+        specialRequests: message,
+        additionalDetails: message,
+      });
+
       setSubmitted(true);
       showSuccess('Your message has been sent successfully! We\'ll get back to you soon.');
       setFormData({
@@ -109,24 +122,24 @@ export default function ContactSupport() {
     {
       icon: FiPhone,
       title: "Call Us",
-      info: "+91 90112 68465",
-      link: "tel:+919011268465",
+      info: CONTACT.display,
+      link: CONTACT.tel,
       description: "Available 24/7 for urgent queries",
       color: colors.primary
     },
     {
       icon: FiMail,
       title: "Email Support",
-      info: "info@aarohanholidays.com",
-      link: "mailto:info@aarohanholidays.com",
+      info: CONTACT.email,
+      link: CONTACT.mailto,
       description: "Get response within 24 hours",
       color: colors.secondary
     },
     {
       icon: FaWhatsapp,
       title: "WhatsApp",
-      info: "+91 90112 68465",
-      link: "https://wa.me/919011268465",
+      info: CONTACT.display,
+      link: CONTACT.whatsapp,
       description: "Quick responses on WhatsApp",
       color: "#25D366"
     },
@@ -144,7 +157,7 @@ export default function ContactSupport() {
     { icon: FaFacebook, url: "https://facebook.com/aarohanholidays", color: "#1877F2", label: "Facebook" },
     { icon: FaInstagram, url: "https://instagram.com/aarohanholidays", color: "#E4405F", label: "Instagram" },
     { icon: FaLinkedin, url: "https://linkedin.com/company/aarohanholidays", color: "#0A66C2", label: "LinkedIn" },
-    { icon: FaWhatsapp, url: "https://wa.me/919011268465", color: "#25D366", label: "WhatsApp" }
+    { icon: FaWhatsapp, url: CONTACT.whatsapp, color: "#25D366", label: "WhatsApp" }
   ];
 
   const officeHours = [
@@ -155,10 +168,12 @@ export default function ContactSupport() {
 
   return (
     <div className="min-h-screen" style={{ backgroundColor: colors.lightBg }}>
+      <Seo title="Contact Us – Plan Your Trip With Our Team" description="Call, WhatsApp or message Aarohan Holidays for tour and trek bookings, custom itineraries and 24/7 travel support." />
+      <Navbar />
       {/* Hero Header */}
       <div 
         ref={headerRef}
-        className="relative py-20 overflow-hidden"
+        className="relative pb-20 pt-[calc(var(--header-h)+3rem)] overflow-hidden"
         style={{ backgroundColor: colors.darkBg }}
       >
         <div className="absolute inset-0 opacity-10">
@@ -272,7 +287,7 @@ export default function ContactSupport() {
 
                 <div>
                   <label className="block text-sm font-semibold mb-2" style={{ color: colors.textDark }}>
-                    Phone Number
+                    Phone Number *
                   </label>
                   <div className="relative">
                     <FiPhone className="absolute left-4 top-4" size={20} style={{ color: colors.secondary }} />
@@ -280,10 +295,14 @@ export default function ContactSupport() {
                       type="tel"
                       name="phone"
                       value={formData.phone}
-                      onChange={handleChange}
+                      onChange={(e) => setFormData({ ...formData, phone: e.target.value.replace(/\D/g, '').slice(0, 10) })}
+                      required
+                      pattern="[6-9][0-9]{9}"
+                      inputMode="numeric"
+                      title="Enter a valid 10-digit Indian mobile number"
                       className="w-full pl-12 pr-4 py-3 rounded-xl border-2 focus:outline-none focus:border-primary transition-all"
                       style={{ borderColor: colors.lightBg }}
-                      placeholder="+91 XXXXX XXXXX"
+                      placeholder="10-digit mobile number"
                     />
                   </div>
                 </div>
@@ -313,6 +332,7 @@ export default function ContactSupport() {
                     value={formData.message}
                     onChange={handleChange}
                     required
+                    minLength={10}
                     rows="6"
                     className="w-full px-4 py-3 rounded-xl border-2 focus:outline-none focus:border-primary transition-all resize-none"
                     style={{ borderColor: colors.lightBg }}

@@ -3,6 +3,7 @@ import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
 
+import { SITE } from './siteConfig.js';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
@@ -40,7 +41,7 @@ const addHeader = (doc, logoPath) => {
     .moveDown(0.5)
     .fontSize(9)
     .fillColor(lightGray)
-    .text("📞 +91 9011268465 | ✉️ info@aarohanholidays.com", { align: "center" })
+    .text(`📞 ${SITE.phoneDisplay} | ✉️ ${SITE.email}`, { align: "center" })
     .text("🌐 www.aarohanholidays.com", { align: "center" });
 
   doc
@@ -71,7 +72,7 @@ const addFooter = (doc) => {
     .fontSize(9)
     .fillColor(lightGray)
     .text("🌐 www.aarohanholidays.com", 0, footerY + 5, { align: "center" })
-    .text("📞 +91 9011268465 | ✉️ info@aarohanholidays.com", { align: "center" })
+    .text(`📞 ${SITE.phoneDisplay} | ✉️ ${SITE.email}`, { align: "center" })
     .text(
       "📷 Instagram | 👍 Facebook | 🔗 LinkedIn",
       { align: "center" }

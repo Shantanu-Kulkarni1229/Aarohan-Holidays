@@ -16,6 +16,8 @@ import {
 } from 'react-icons/fi';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
+import { CONTACT } from '../utils/contact';
+import Seo from '../components/Seo';
 
 const CancellationPolicy = () => {
   const heroRef = useRef(null);
@@ -141,6 +143,7 @@ const CancellationPolicy = () => {
 
   return (
     <>
+    <Seo title="Cancellation & Refund Policy" description="Read the Aarohan Holidays cancellation and refund policy for tours, treks and holiday packages before you book." />
     <Navbar />
 
 <div className="min-h-screen" style={{ backgroundColor: colors.lightBg }}>
@@ -157,7 +160,7 @@ const CancellationPolicy = () => {
           }}></div>
         </div>
 
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 md:py-28">
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-20 md:pb-28 pt-[calc(var(--header-h)+3rem)]">
           <div className="text-center">
             <div className="inline-flex items-center justify-center w-20 h-20 rounded-full mb-6"
                  style={{ backgroundColor: colors.primary + '20' }}>
@@ -393,21 +396,21 @@ const CancellationPolicy = () => {
 
           <div className="flex flex-col md:flex-row items-center justify-center gap-6">
             <a 
-              href="tel:+919011268465"
+              href={CONTACT.tel}
               className="flex items-center space-x-3 px-8 py-4 rounded-xl font-bold text-white transition-all duration-300 transform hover:scale-105 shadow-lg"
               style={{ backgroundColor: colors.primary }}
             >
               <FiPhone size={24} />
-              <span>+91 90112 68465</span>
+              <span>{CONTACT.display}</span>
             </a>
 
             <a 
-              href="mailto:info@aarohanholidays.com"
+              href={CONTACT.mailto}
               className="flex items-center space-x-3 px-8 py-4 rounded-xl font-bold text-white transition-all duration-300 transform hover:scale-105 shadow-lg"
               style={{ backgroundColor: colors.secondary }}
             >
               <FiMail size={24} />
-              <span>info@aarohanholidays.com</span>
+              <span>{CONTACT.email}</span>
             </a>
           </div>
 

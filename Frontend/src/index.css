@@ -1,49 +1,28 @@
 @import "tailwindcss";
 
-/* Locomotive Scroll Fixes */
-html.has-scroll-smooth {
-  overflow: hidden;
-  position: fixed;
-  left: 0;
-  right: 0;
-  top: 0;
-  bottom: 0;
+/* Fixed header height (promo strip + nav row). Pages offset their content by this. */
+:root {
+  --header-h: 100px;
+}
+@media (min-width: 1024px) {
+  :root {
+    --header-h: 116px;
+  }
 }
 
-html.has-scroll-dragging {
-  user-select: none;
-}
-
-[data-scroll-container] {
-  min-height: 100vh;
-}
-
-/* Fix for white space and stuck scroll */
 body {
   margin: 0;
   padding: 0;
   overflow-x: hidden;
 }
 
-.c-scrollbar {
-  position: fixed;
-  right: 0;
-  top: 0;
-  width: 11px;
-  height: 100%;
-  transform-origin: center right;
-  transition: transform 0.3s, opacity 0.3s;
-  opacity: 0;
-}
-
-.c-scrollbar:hover {
-  transform: scaleX(1.45);
-}
-
-.c-scrollbar:hover,
-.has-scroll-scrolling .c-scrollbar,
-.has-scroll-dragging .c-scrollbar {
-  opacity: 1;
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
 
 /* Rich Text Content Styles (Quill Editor Output) */
@@ -244,20 +223,13 @@ div[class*="rich-text-content"] ol ol {
   transform: scale(1.02);
 }
 
-/* WhatsApp Float Button - Fixed positioning that works with Locomotive Scroll */
+/* WhatsApp Float Button */
 .whatsapp-float {
   position: fixed !important;
   bottom: 24px;
   right: 24px;
   z-index: 9999;
   display: block;
-}
-
-/* Ensure WhatsApp button stays fixed even with Locomotive Scroll */
-html.has-scroll-smooth .whatsapp-float {
-  position: fixed !important;
-  bottom: 24px !important;
-  right: 24px !important;
 }
 
 /* Infinite Horizontal Scroll Animation */

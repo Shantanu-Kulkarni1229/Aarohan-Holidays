@@ -1,12 +1,13 @@
 import axios from 'axios';
+import { attachAdminAuth } from '../utils/adminAuth';
 
 // ============================================
 // 🌐 CENTRALIZED API BASE URL
 // ============================================
 // Change this URL in ONE place to update across the entire app
-export const API_BASE_URL = 'http://localhost:5000/api';
+// export const API_BASE_URL = 'http://localhost:5000/api';
 // export const API_BASE_URL = 'https://4zb5qb7j-5000.inc1.devtunnels.ms/api';
-// export const API_BASE_URL = 'https://aarohan-holidays.vercel.app/api';
+export const API_BASE_URL = 'https://aarohan-holidays.vercel.app/api';
 
 // Create axios instance with base configuration
 const api = axios.create({
@@ -17,35 +18,14 @@ const api = axios.create({
   },
 });
 
-// Request interceptor
-api.interceptors.request.use(
-  (config) => {
-    // Add auth token if available
-    const token = localStorage.getItem('adminToken');
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
-    return config;
-  },
-  (error) => {
-    return Promise.reject(error);
-  }
-);
-
-// Response interceptor
-api.interceptors.response.use(
-  (response) => {
-    return response;
-  },
-  (error) => {
-    if (error.response?.status === 401) {
-      // Handle unauthorized access
-      localStorage.removeItem('adminToken');
-      window.location.href = '/admin/login';
-    }
-    return Promise.reject(error);
-  }
-);
+// Admin token: attached to the shared instance and to plain `axios` calls that go to our API
+// (many admin screens call axios directly), but never to another host.
+const isOurApi = (config) => {
+  const url = config.url || '';
+  return config.baseURL === API_BASE_URL || url.startsWith(API_BASE_URL);
+};
+attachAdminAuth(api);
+attachAdminAuth(axios, isOurApi);
 
 // Admin API endpoints
 export const adminAPI = {

@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
 import { 
   FiPhone, 
@@ -17,10 +17,9 @@ import {
 } from "react-icons/fi";
 import { FaWhatsapp, FaMountain, FaRoute, FaConciergeBell } from "react-icons/fa";
 import { gsap } from "gsap";
+import { CONTACT } from '../utils/contact';
 
 export default function Footer() {
-  const [email, setEmail] = useState("");
-  const [subscribed, setSubscribed] = useState(false);
   const footerRef = useRef(null);
   const sectionsRef = useRef([]);
   const scrollToTopRef = useRef(null);
@@ -100,22 +99,6 @@ export default function Footer() {
     });
   }, []);
 
-  const handleSubscribe = (e) => {
-    e.preventDefault();
-    if (email) {
-      // Simulate subscription
-      setSubscribed(true);
-      setTimeout(() => setSubscribed(false), 3000);
-      setEmail("");
-      
-      // Animation for success
-      gsap.fromTo(".success-message",
-        { scale: 0, opacity: 0 },
-        { scale: 1, opacity: 1, duration: 0.5, ease: "back.out(1.7)" }
-      );
-    }
-  };
-
   const scrollToTop = () => {
     window.scrollTo({
       top: 0,
@@ -170,7 +153,7 @@ export default function Footer() {
     },
     { 
       icon: FaWhatsapp, 
-      url: "https://wa.me/+917276644221", 
+      url: CONTACT.whatsapp, 
       color: "#25D366",
       label: "WhatsApp" 
     },
@@ -194,7 +177,6 @@ export default function Footer() {
       linkedin: "https://www.linkedin.com/in/shantanu-kulkarni1229/",
       instagram: "https://www.instagram.com/_shantanu_kulkarni_/?hl=en",
       whatsapp: "https://wa.me/918482813688",
-      email: "shantanukulkarni1229@gmail.com",
       role: "Co-Founder"
     },
     {
@@ -202,7 +184,6 @@ export default function Footer() {
       linkedin: "https://www.linkedin.com/in/vaishnavi-kothawade-030627310/",
       instagram: "https://www.instagram.com/_vaishnavi_kothawade_/?hl=en",
       whatsapp: "https://wa.me/919423709155",
-      email: "vaishnavikothawade99@gmailcom",
       role: "Co-Founder"
     }
   ];
@@ -245,7 +226,7 @@ export default function Footer() {
             
             <div className="space-y-4">
               <a 
-                href="tel:+919011268465"
+                href={CONTACT.tel}
                 className="flex items-center space-x-3 group transition-all duration-300 hover:translate-x-2 p-3 rounded-lg"
                 style={{ backgroundColor: 'rgba(255,255,255,0.05)' }}
               >
@@ -258,7 +239,7 @@ export default function Footer() {
                     className="font-semibold block"
                     style={{ color: colors.textLight }}
                   >
-                    +91 72766 44221
+                    {CONTACT.display}
                   </span>
                   <span className="text-sm" style={{ color: colors.secondary }}>
                     Call us anytime
@@ -267,7 +248,7 @@ export default function Footer() {
               </a>
 
               <a 
-                href="mailto:info@aarohanholidays.com"
+                href={CONTACT.mailto}
                 className="flex items-center space-x-3 group transition-all duration-300 hover:translate-x-2 p-3 rounded-lg"
                 style={{ backgroundColor: 'rgba(255,255,255,0.05)' }}
               >
@@ -280,7 +261,7 @@ export default function Footer() {
                     className="font-semibold block"
                     style={{ color: colors.textLight }}
                   >
-                    info@aarohanholidays.com
+                    {CONTACT.email}
                   </span>
                   <span className="text-sm" style={{ color: colors.secondary }}>
                     Send us an email
@@ -411,51 +392,18 @@ export default function Footer() {
               className="mb-6 leading-relaxed"
               style={{ color: colors.textLight }}
             >
-              Get exclusive travel deals, destination guides, and adventure tips delivered to your inbox.
+              Questions about a trip? Message us on WhatsApp and we'll reply with the best options.
             </p>
 
-            <form onSubmit={handleSubscribe} className="space-y-4 mb-6">
-              <div className="relative">
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="Enter your email address"
-                  className="w-full px-4 py-4 rounded-xl border-2 transition-all duration-300 focus:outline-none focus:scale-105"
-                  style={{ 
-                    backgroundColor: colors.textLight,
-                    borderColor: colors.border,
-                    color: colors.darkBg
-                  }}
-                  required
-                />
-              </div>
-              <button
-                type="submit"
-                className="w-full py-4 rounded-xl font-bold transition-all duration-300 transform hover:scale-105 hover:shadow-lg border-2"
-                style={{ 
-                  backgroundColor: colors.primary,
-                  borderColor: colors.primary,
-                  color: colors.textLight
-                }}
-              >
-                Subscribe to Updates
-              </button>
-            </form>
-
-            {subscribed && (
-              <div 
-                className="p-4 rounded-xl text-center mb-6 border-2"
-                style={{ 
-                  backgroundColor: colors.secondary + '20',
-                  borderColor: colors.secondary,
-                  color: colors.textLight
-                }}
-              >
-                <span className="font-semibold">✅ Thank you for subscribing!</span>
-                <p className="text-sm mt-1">We'll send you the best travel content.</p>
-              </div>
-            )}
+            <a
+              href={CONTACT.whatsappWithText("Hi! I'd like to know more about your tours and treks.")}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="block w-full py-4 rounded-xl font-bold text-center mb-6 transition-all duration-300 hover:shadow-lg border-2"
+              style={{ backgroundColor: colors.primary, borderColor: colors.primary, color: colors.textLight }}
+            >
+              Chat on WhatsApp
+            </a>
 
             {/* Social Links */}
             <div>
@@ -514,7 +462,7 @@ export default function Footer() {
                 className="bg-white p-2 rounded-xl shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:scale-105 border-2"
                 style={{ borderColor: colors.border }}
               >
-                <img 
+                <img loading="lazy" decoding="async" 
                   src="https://yt3.googleusercontent.com/Up6P_vTGuPUFhnmyeXGJeH6enkSD_qNbZgovRHK141a3FOeUmuw9y4cSLN90hQ5U5SLBP6z9v9Y=s900-c-k-c0x00ffffff-no-rj"
                   alt="Maharashtra Tourism Development Corporation"
                   className="h-20 w-auto object-contain"
@@ -586,7 +534,7 @@ export default function Footer() {
                   className="text-sm font-bold"
                   style={{ color: colors.textLight }}
                 >
-                  by Pravartak
+                  by GoWurk
                 </span>
               </div>
               
@@ -650,7 +598,7 @@ export default function Footer() {
                         />
                       </a>
                       <a
-                        href={`mailto:${founder.email}`}
+                        href={CONTACT.mailto}
                         className="transition-all duration-300 hover:scale-125"
                         title="Email"
                       >

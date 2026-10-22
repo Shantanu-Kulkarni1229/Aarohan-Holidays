@@ -1,3 +1,4 @@
+import { SITE } from './siteConfig.js';
 export const customBookingEmailTemplate = (booking) => {
   const { pricing } = booking;
   const totalTravelers = pricing.adults + pricing.women + pricing.children + pricing.infants;
@@ -293,11 +294,11 @@ export const customBookingEmailTemplate = (booking) => {
             <tr>
               <td style="text-align: center; padding: 10px; font-size: 13px; color: #cbd5e0; vertical-align: top;">
                 <div style="margin-bottom: 5px;">📞</div>
-                <div style="line-height: 1.4;">+91 9011268465</div>
+                <div style="line-height: 1.4;">${SITE.phoneDisplay}</div>
               </td>
               <td style="text-align: center; padding: 10px; font-size: 13px; color: #cbd5e0; vertical-align: top;">
                 <div style="margin-bottom: 5px;">📧</div>
-                <div style="line-height: 1.4;">info@aarohanholidays.com</div>
+                <div style="line-height: 1.4;">${SITE.email}</div>
               </td>
               <td style="text-align: center; padding: 10px; font-size: 13px; color: #cbd5e0; vertical-align: top;">
                 <div style="margin-bottom: 5px;">🌐</div>

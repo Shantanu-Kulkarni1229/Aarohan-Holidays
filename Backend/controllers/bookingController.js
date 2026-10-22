@@ -4,6 +4,7 @@ import Trek from "../models/treks.js";
 import nodemailer from "nodemailer";
 import axios from "axios";
 
+import { SITE } from '../utils/siteConfig.js';
 // ✅ Configure Nodemailer (Gmail example)
 // You'll need to set these in your .env file:
 // EMAIL_USER=your-email@gmail.com
@@ -29,6 +30,7 @@ const sendBookingConfirmationEmail = async (bookingData, itemDetails) => {
     const bookingType = bookingData.bookingType === 'tour' ? 'Tour' : 'Trek';
     const mailOptions = {
       from: `Aarohan Holidays <${process.env.EMAIL_USER}>`,
+      replyTo: SITE.email,
       to: bookingData.email,
       subject: `🎉 Booking Confirmed - ${itemDetails.name} | Ref: ${bookingData.bookingReference}`,
       html: `
@@ -520,9 +522,9 @@ const sendBookingConfirmationEmail = async (bookingData, itemDetails) => {
 
               <!-- Contact Buttons -->
               <div class="contact-buttons">
-                <a href="tel:+917276644221" class="btn btn-primary">📞 Call Us: +91 7276644221</a>
-                <a href="https://wa.me/917276644221" class="btn btn-whatsapp">💬 WhatsApp Support</a>
-                <a href="mailto:infoaarohanholidays@gmail.com" class="btn btn-secondary">📧 Email Us</a>
+                <a href="tel:${SITE.phone}" class="btn btn-primary">📞 Call Us: ${SITE.phoneDisplay}</a>
+                <a href="${SITE.whatsapp}" class="btn btn-whatsapp">💬 WhatsApp Support</a>
+                <a href="mailto:${SITE.email}" class="btn btn-secondary">📧 Email Us</a>
               </div>
             </div>
 
@@ -533,9 +535,9 @@ const sendBookingConfirmationEmail = async (bookingData, itemDetails) => {
               <p><strong>Feel Free to Fly...</strong></p>
               
               <div style="margin: 20px 0;">
-                <p>📧 Email: infoaarohanholidays@gmail.com</p>
-                <p>📱 Phone: +91 7276644221</p>
-                <p>💬 WhatsApp: +91 7276644221</p>
+                <p>📧 Email: ${SITE.email}</p>
+                <p>📱 Phone: ${SITE.phoneDisplay}</p>
+                <p>💬 WhatsApp: ${SITE.phoneDisplay}</p>
               </div>
 
               <div class="footer-links">
@@ -580,6 +582,7 @@ const sendAdminNotification = async (bookingData, itemDetails) => {
     
     const mailOptions = {
       from: `Aarohan-holidays Bookings <${process.env.EMAIL_USER}>`,
+      replyTo: SITE.email,
       to: adminEmail,
       subject: `🔔 New Booking: ${bookingData.bookingReference} - ${bookingData.name}`,
       html: `
@@ -812,6 +815,7 @@ const sendOfflineBookingConfirmationEmail = async (bookingData, itemDetails) => 
     
     const mailOptions = {
       from: `Aarohan Holidays <${process.env.EMAIL_USER}>`,
+      replyTo: SITE.email,
       to: bookingData.email,
       subject: `✅ Booking Confirmed - ${itemDetails.name} | Ref: ${bookingData.bookingReference}`,
       html: `
@@ -903,14 +907,14 @@ const sendOfflineBookingConfirmationEmail = async (bookingData, itemDetails) => 
               </div>
 
               <div style="text-align: center; margin: 30px 0;">
-                <a href="tel:+917276644221" style="display: inline-block; background: #28a745; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; margin: 5px;">📞 Call Us</a>
-                <a href="https://wa.me/917276644221" style="display: inline-block; background: #25D366; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; margin: 5px;">💬 WhatsApp</a>
+                <a href="tel:${SITE.phone}" style="display: inline-block; background: #28a745; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; margin: 5px;">📞 Call Us</a>
+                <a href="${SITE.whatsapp}" style="display: inline-block; background: #25D366; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; margin: 5px;">💬 WhatsApp</a>
               </div>
 
               <div style="text-align: center; padding: 20px; border-top: 2px solid #28a745; margin-top: 20px;">
                 <h3 style="color: #28a745;">Aarohan Holidays</h3>
-                <p>📧 Email: infoaarohanholidays@gmail.com</p>
-                <p>📱 Phone: +91 7276644221</p>
+                <p>📧 Email: ${SITE.email}</p>
+                <p>📱 Phone: ${SITE.phoneDisplay}</p>
                 <p style="font-size: 12px; color: #777; margin-top: 15px;">Feel Free to Fly...</p>
               </div>
             </div>

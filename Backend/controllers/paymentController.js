@@ -4,6 +4,7 @@ import Booking from "../models/booking.js";
 import Tour from "../models/tours.js";
 import Trek from "../models/treks.js";
 
+import { SITE } from '../utils/siteConfig.js';
 // Log Razorpay configuration (without exposing secrets)
 console.log("🔐 Razorpay Configuration:");
 console.log("Key ID:", process.env.RAZORPAY_KEY_ID ? `${process.env.RAZORPAY_KEY_ID.substring(0, 12)}...` : "NOT SET");
@@ -404,6 +405,7 @@ export const handlePaymentFailure = async (req, res) => {
       if (bookingData && bookingData.email) {
         await transporter.sendMail({
           from: `Aarohan-holidays <${process.env.EMAIL_USER}>`,
+          replyTo: SITE.email,
           to: bookingData.email,
           subject: "Payment Failed - Aarohan-holidays Booking",
           html: `
@@ -434,7 +436,7 @@ export const handlePaymentFailure = async (req, res) => {
                   
                   <div style="text-align: center; margin-top: 30px;">
                     <p style="margin: 0;"><strong>Need Help?</strong></p>
-                    <p>📧 Email: ${process.env.EMAIL_USER || 'support@aarohan-holidays.com'}</p>
+                    <p>📧 Email: ${SITE.email}</p>
                     <p>📱 Phone: +91-XXXXXXXXXX</p>
                   </div>
                 </div>
@@ -449,6 +451,7 @@ export const handlePaymentFailure = async (req, res) => {
       const adminEmail = process.env.ADMIN_EMAIL || process.env.EMAIL_USER;
       await transporter.sendMail({
         from: `Aarohan-holidays System <${process.env.EMAIL_USER}>`,
+        replyTo: SITE.email,
         to: adminEmail,
         subject: `⚠️ Payment Failed - ${bookingData?.name || 'Unknown Customer'}`,
         html: `

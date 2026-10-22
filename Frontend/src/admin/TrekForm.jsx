@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { adminAPI } from '../api/api';
-import { showSuccess, showError } from '../utils/toast';
+import { showError } from '../utils/toast';
 import RichTextEditor from '../components/RichTextEditor';
+import ThumbnailField from './ThumbnailField';
 import {
   ArrowLeft, Info, Mountain, ImageIcon, Star, DollarSign,
   Calendar, HelpCircle, TrendingUp, Users, MapPin, Save,
@@ -167,9 +168,9 @@ const TrekForm = () => {
           // NEW: Load inclusions and exclusions
           inclusions: trek.inclusions?.length > 0 ? trek.inclusions : [''],
           exclusions: trek.exclusions?.length > 0 ? trek.exclusions : [''],
-          // eslint-disable-next-line no-unused-vars
+           
           addOns: trek.addOns?.length > 0 ? trek.addOns.map(({ _id, __v, ...addon }) => addon) : [{ name: '', price: '', description: '' }],
-          // eslint-disable-next-line no-unused-vars
+           
           addonFacilities: trek.addonFacilities?.length > 0 ? trek.addonFacilities.map(({ _id, __v, ...facility }) => ({
             ...facility,
             subPoints: facility.subPoints || []
@@ -244,18 +245,6 @@ const TrekForm = () => {
   };
 
   // Handle file uploads
-  const handleThumbnailChange = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      // Revoke previous URL
-      if (thumbnailPreview && thumbnailPreview.startsWith('blob:')) {
-        URL.revokeObjectURL(thumbnailPreview);
-      }
-      setThumbnailFile(file);
-      setThumbnailPreview(URL.createObjectURL(file));
-    }
-  };
-
   const handleShowcaseChange = (e) => {
     const files = Array.from(e.target.files);
     const currentCount = showcaseFiles.length;
@@ -380,8 +369,11 @@ const TrekForm = () => {
 
       // Add basic fields
       Object.keys(cleanedData).forEach(key => {
+        // Saved image URLs are never sent back: images only change through the uploaded files below
+        if (['thumbnail', 'showcaseImages', 'hotelImages'].includes(key)) return;
         if (Array.isArray(cleanedData[key])) {
-          if (cleanedData[key].length > 0) {
+          // On edit an empty list must still be sent, otherwise deleting every item would silently not save
+          if (cleanedData[key].length > 0 || isEdit) {
             submitFormData.append(key, JSON.stringify(cleanedData[key]));
           }
         } else if (typeof cleanedData[key] === 'object' && cleanedData[key] !== null && key !== 'thumbnail' && key !== 'showcaseImages' && key !== 'hotelImages') {
@@ -454,7 +446,7 @@ const TrekForm = () => {
 
   if (loading && isEdit) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
+      <div className="bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
         <div className="bg-white rounded-2xl shadow-xl p-8 text-center">
           <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
           <h2 className="text-xl font-semibold text-gray-800 mb-2">Loading Trek Data</h2>
@@ -465,7 +457,7 @@ const TrekForm = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-6 px-4 sm:px-6 lg:px-8">
+    <div className="bg-gradient-to-br from-blue-50 to-indigo-100 py-6 px-4 sm:px-6 lg:px-8">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between mb-8">
@@ -552,7 +544,7 @@ const TrekForm = () => {
         {success && (
           <div className="fixed top-4 right-4 z-50">
             <div className="bg-green-500 text-white px-6 py-4 rounded-lg shadow-lg flex items-center space-x-3 animate-bounce">
-              <div className="w-6 h-6 bg-white bg-opacity-20 rounded-full flex items-center justify-center">
+              <div className="w-6 h-6 bg-white/20 rounded-full flex items-center justify-center">
                 <CheckCircle className="w-4 h-4" />
               </div>
               <span className="font-semibold">
@@ -908,54 +900,22 @@ const TrekForm = () => {
             </div>
             
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-3">
-                  Thumbnail Image {!isEdit && '*'}
-                  <span className="text-gray-500 font-normal ml-2">(Main display image)</span>
-                </label>
-                <div className="border-2 border-dashed border-gray-300 rounded-xl p-6 text-center hover:border-blue-400 transition-colors">
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={handleThumbnailChange}
-                    className="hidden"
-                    id="thumbnail-upload"
-                  />
-                  <label htmlFor="thumbnail-upload" className="cursor-pointer">
-                    <Upload className="w-12 h-12 text-gray-400 mx-auto mb-3" />
-                    <p className="text-gray-600 mb-2">Click to upload thumbnail</p>
-                    <p className="text-sm text-gray-500">Recommended: 800x600px, JPG/PNG</p>
-                  </label>
-                </div>
-                
-                {thumbnailPreview && (
-                  <div className="mt-4">
-                    <p className="text-sm font-medium text-gray-700 mb-2">Preview:</p>
-                    <div className="relative group">
-                      <img
-                        src={thumbnailPreview}
-                        alt="Thumbnail preview"
-                        className="w-full h-48 object-cover rounded-xl shadow-lg"
-                      />
-                      <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-30 transition-all rounded-xl flex items-center justify-center">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            if (thumbnailPreview.startsWith('blob:')) {
-                              URL.revokeObjectURL(thumbnailPreview);
-                            }
-                            setThumbnailPreview('');
-                            setThumbnailFile(null);
-                          }}
-                          className="opacity-0 group-hover:opacity-100 bg-red-500 text-white px-4 py-2 rounded-lg transition-all"
-                        >
-                          <X className="w-5 h-5" />
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
+              <ThumbnailField
+                label="Thumbnail Image"
+                required={!isEdit}
+                hint="(Main card image)"
+                previewUrl={thumbnailPreview}
+                onChange={(file, url) => {
+                  if (thumbnailPreview && thumbnailPreview.startsWith('blob:')) URL.revokeObjectURL(thumbnailPreview);
+                  setThumbnailFile(file);
+                  setThumbnailPreview(url);
+                }}
+                onRemove={() => {
+                  if (thumbnailPreview && thumbnailPreview.startsWith('blob:')) URL.revokeObjectURL(thumbnailPreview);
+                  setThumbnailPreview('');
+                  setThumbnailFile(null);
+                }}
+              />
 
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-3">
@@ -991,7 +951,7 @@ const TrekForm = () => {
                             alt={`Showcase ${index + 1}`}
                             className="w-full h-24 object-cover rounded-lg shadow-md"
                           />
-                          <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-40 transition-all rounded-lg flex items-center justify-center">
+                          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-all rounded-lg flex items-center justify-center">
                             <button
                               type="button"
                               onClick={() => {
@@ -1049,7 +1009,7 @@ const TrekForm = () => {
                             alt={`Hotel ${index + 1}`}
                             className="w-full h-24 object-cover rounded-lg shadow-md"
                           />
-                          <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-40 transition-all rounded-lg flex items-center justify-center">
+                          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-all rounded-lg flex items-center justify-center">
                             <button
                               type="button"
                               onClick={() => removeHotelImage(index)}
